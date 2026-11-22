@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-:root{--ink:#1d2321;--muted:#6b736f;--line:#e2e0da;--bg:#faf8f4;--accent:#7a4b2a;
+:root{--ink:#1d2321;--muted:#6b736f;--line:#e2e0da;--bg:#faf8f4;--accent:#7a4b2a;--sale:#245b8f;
   --A:#1a6b3c;--B:#4c9a5b;--C:#d39b2a;--D:#9aa19d}
 *{box-sizing:border-box}
 body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
@@ -45,12 +45,13 @@ footer{font-size:11.5px;color:var(--muted);padding:12px 16px}
 footer a,.box a{color:var(--accent)}
 .leaflet-popup-content{min-width:260px}
 /* site with a state sale offer: grade-coloured dot, pulsing ring, euro badge */
-.kpin{position:relative;width:16px;height:16px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 0 0 2px #7a4b2a}
-.kpin::before{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #7a4b2a;animation:kp 2s ease-out infinite}
-.kpin::after{content:"€";position:absolute;right:-10px;top:-10px;width:15px;height:15px;border-radius:50%;background:#7a4b2a;color:#fff;font:700 10px/15px sans-serif;text-align:center;border:1.5px solid #fff}
+.kpin{position:relative;width:16px;height:16px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 0 0 2px var(--sale)}
+.kpin::before{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--sale);animation:kp 2s ease-out infinite}
+.kbadge{position:absolute;right:-10px;top:-10px;width:15px;height:15px;border-radius:50%;background:var(--sale);border:1.5px solid #fff;display:flex;align-items:center;justify-content:center}
 @keyframes kp{from{transform:scale(.8);opacity:.9}to{transform:scale(2.3);opacity:0}}
 @media (prefers-reduced-motion:reduce){.kpin::before{animation:none}}
-.offer{margin-top:6px;padding:6px 8px;background:#f6efe7;border-left:3px solid #7a4b2a;border-radius:4px;font-size:12px}
+.offer{margin-top:6px;padding:6px 8px;background:#eef3f8;border-left:3px solid var(--sale);border-radius:4px;font-size:12px}
+.offer svg{vertical-align:-1px;margin-right:3px}
 .kfilter{display:flex;align-items:center;gap:6px;margin:6px 0 2px;font-size:13px;cursor:pointer}
 @media(max-width:800px){main{grid-template-columns:1fr;grid-template-rows:55vh auto;height:auto}#map{height:55vh}aside{order:2}}
 </style>
@@ -72,7 +73,7 @@ footer a,.box a{color:var(--accent)}
     <select id="vv"><option value="" data-t="allRegions"></option></select>
     <div class="mode" id="mode"><button data-m="new"></button><button data-m="renovation"></button></div>
     <div class="grades" id="grades"></div>
-    <label class="kfilter"><input type="checkbox" id="kowrOnly"> <span class="g" style="background:#7a4b2a">€</span> <span data-t="kowrOnly"></span></label>
+    <label class="kfilter"><input type="checkbox" id="kowrOnly"> <span class="g" style="background:var(--sale);display:inline-flex;align-items:center;justify-content:center;height:18px"><svg viewBox="0 0 24 24" width="9" height="9" aria-hidden="true"><path fill="#fff" d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.8" fill="#245b8f"/></svg></span> <span data-t="kowrOnly"></span></label>
     <div class="small" id="count"></div>
   </div>
   <ul id="list"></ul>
@@ -187,22 +188,25 @@ const map = window.L.map("map", {preferCanvas:true}).setView([52.1, 19.2], 6);
 const wms = (url, layers, o={}) => window.L.tileLayer.wms(url, Object.assign({layers, format:"image/png", transparent:true, version:"1.1.1"}, o));
 const topo = wms("https://mapy.geoportal.gov.pl/wss/service/img/guest/TOPO/MapServer/WMSServer","Raster",{transparent:false, attribution:"GUGiK / Geoportal"}).addTo(map);
 const ortho = wms("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution","Raster",{transparent:false, attribution:"GUGiK / Geoportal"});
+const osm = window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'});
 const mtb = wms("https://pastmaps.cenagis.edu.pl/geoserver/ihpan/wms","m25k_3857",{transparent:false, attribution:"IH PAN, pastmaps (CC BY-NC)"});
 const layers = {};
 const markers = window.L.layerGroup().addTo(map);
 const kowrLayer = window.L.layerGroup().addTo(map);
 function ctl(){
   if(map._ctl) map.removeControl(map._ctl);
-  map._ctl = window.L.control.layers({"Geoportal TOPO":topo, "Orthophoto":ortho, [t("hist")]:mtb},
+  map._ctl = window.L.control.layers({"Geoportal TOPO":topo, "OpenStreetMap":osm, "Orthophoto":ortho, [t("hist")]:mtb},
                                      {[t("kowr")]:kowrLayer}).addTo(map);
 }
 // KOWR offers matched to a site are shown on that site (badge + popup); only unmatched ones get their own marker
 const OFFERS = Object.fromEntries(D.kowr.map(o => [o.url, o]));
 const MATCHED = new Set(VV.flatMap(v => v.sites.map(s => s.ku).filter(Boolean)));
-const offerHtml = o => `<div class="offer"><b>€ ${esc(t("kowr"))}</b><br>${esc(o.t)}<br>${o.ha?esc(o.ha)+" ha":""}${o.ha&&o.tender?" · ":""}${o.tender?esc(t("tender"))+": "+esc(o.tender):""}<br><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(t("openCard"))}</a></div>`;
+// price tag, not a currency: neutral for a Polish state sale shown in three languages
+const TAG = (fill, hole, px) => `<svg viewBox="0 0 24 24" width="${px}" height="${px}" aria-hidden="true"><path fill="${fill}" d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.8" fill="${hole}"/></svg>`;
+const offerHtml = o => `<div class="offer"><b>${TAG("#245b8f", "#eef3f8", 11)}${esc(t("kowr"))}</b><br>${esc(o.t)}<br>${o.ha?esc(o.ha)+" ha":""}${o.ha&&o.tender?" · ":""}${o.tender?esc(t("tender"))+": "+esc(o.tender):""}<br><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(t("openCard"))}</a></div>`;
 for(const o of D.kowr){
   if(MATCHED.has(o.url)) continue;
-  window.L.marker([o.lat,o.lon], {title:o.t, icon: window.L.divIcon({className:"", html:'<div style="background:#7a4b2a;color:#fff;border-radius:50%;width:24px;height:24px;text-align:center;font:700 14px/24px sans-serif;border:2px solid #fff">€</div>', iconSize:[24,24]})})
+  window.L.marker([o.lat,o.lon], {title:o.t, icon: window.L.divIcon({className:"", html:`<div style="background:#245b8f;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid #fff">${TAG("#fff", "#245b8f", 13)}</div>`, iconSize:[24,24]})})
    .bindPopup(() => offerHtml(o))
    .addTo(kowrLayer);
 }
@@ -231,7 +235,7 @@ function render(){
     for(const s of sites.filter(s => s.lat)){              // located: a dot at the exact site
       const m = s.ku                                         // for sale: grade colour, pulsing ring, euro badge
         ? window.L.marker([s.lat,s.lon], {zIndexOffset: 1000, title: OFFERS[s.ku] ? OFFERS[s.ku].t : "",
-            icon: window.L.divIcon({className:"", html:`<div class="kpin" style="--c:${COL[sg(s)]}"></div>`, iconSize:[20,20], iconAnchor:[10,10], popupAnchor:[0,-10]})})
+            icon: window.L.divIcon({className:"", html:`<div class="kpin" style="--c:${COL[sg(s)]}"><span class="kbadge">${TAG("#fff", "#245b8f", 9)}</span></div>`, iconSize:[20,20], iconAnchor:[10,10], popupAnchor:[0,-10]})})
         : window.L.circleMarker([s.lat,s.lon], {radius: 6, color:"#fff", weight:1.5, fillColor:COL[sg(s)], fillOpacity:.95});
       m.bindPopup(() => popup(v, [s])).addTo(markers);
       first = first || m;
