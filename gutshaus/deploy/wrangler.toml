@@ -1,0 +1,12 @@
+# Cloudflare Pages project (free plan). Fill in the KV namespace id once, see README "Selling dossiers".
+name = "manormap"
+pages_build_output_dir = "./public"
+compatibility_date = "2026-11-01"
+
+[[kv_namespaces]]
+binding = "ORDERS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[r2_buckets]]
+binding = "DOSSIERS"
+bucket_name = "gutshaus-dossiers"

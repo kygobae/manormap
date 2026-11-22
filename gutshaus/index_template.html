@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gutshaus-Finder · results</title>
+<style>
+  :root { --ink:#1d2321; --muted:#6b736f; --line:#e2e0da; --bg:#faf8f4; --accent:#7a4b2a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); background:var(--bg); }
+  main { max-width:1100px; margin:0 auto; padding:28px 24px 60px; }
+  h1 { font:600 26px/1.2 Georgia, serif; margin:0 0 4px; }
+  .sub { color:var(--muted); }
+  .hero { display:flex; justify-content:space-between; align-items:center; gap:16px; margin:22px 0; padding:18px 20px;
+          background:#fff; border:1px solid var(--line); border-radius:8px; }
+  .hero h2 { font:600 17px Georgia, serif; margin:0 0 2px; }
+  a.btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:9px 16px; border-radius:6px; font-weight:600; white-space:nowrap; }
+  a.btn.off { background:#bbb; pointer-events:none; }
+  .bar { height:6px; background:#e8e5df; border-radius:3px; overflow:hidden; margin-top:8px; width:280px; }
+  .bar i { display:block; height:100%; background:var(--accent); }
+  .tools { display:flex; gap:8px; margin:18px 0 10px; flex-wrap:wrap; }
+  .tools input, .tools select { padding:7px 9px; border:1px solid var(--line); border-radius:5px; font:inherit; background:#fff; }
+  .tools input { flex:1; min-width:220px; }
+  details { background:#fff; border:1px solid var(--line); border-radius:8px; margin-bottom:10px; }
+  summary { cursor:pointer; padding:11px 16px; font-weight:600; display:flex; justify-content:space-between; }
+  summary span { color:var(--muted); font-weight:400; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:6px 10px; border-top:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td a { color:var(--accent); }
+  .best { color:var(--muted); }
+  .best b { color:var(--ink); }
+  .warn { margin-top:14px; padding:10px 14px; background:#fbf1e3; border:1px solid #edd6b0; border-radius:6px; }
+  .help { margin-top:28px; color:var(--muted); font-size:13px; }
+  .help code { background:#efece6; padding:1px 5px; border-radius:3px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Gutshaus-Finder</h1>
+  <div class="sub" id="status"></div>
+
+  <div class="hero">
+    <div><h2>National map</h2><div class="sub" id="natsub"></div><div class="bar"><i id="prog"></i></div></div>
+    <a class="btn" id="natbtn" href="poland/review.html">Open the map of Poland</a>
+  </div>
+
+  <div class="tools">
+    <input id="q" placeholder="Find a powiat or a site…">
+    <select id="sort">
+      <option value="best">Sort by best score</option><option value="lost">Sort by lost manors</option>
+      <option value="n">Sort by number of sites</option><option value="name">Sort by name</option>
+    </select>
+    <select id="open"><option value="closed">Voivodeships collapsed</option><option value="open">Voivodeships expanded</option></select>
+  </div>
+  <div id="kowr"></div>
+  <div id="groups"></div>
+  <div id="failed"></div>
+
+  <div class="help">
+    Each powiat has its own map (<b>Map</b>) and spreadsheet (<b>CSV</b>). The national map holds every site, with the same weights and filters.
+    Files live in <code>output/powiats/&lt;TERYT&gt;/</code>. To refresh: <code>gutshaus run --all</code> continues unfinished powiats,
+    and <code>gutshaus build</code> rebuilds the national map and this page.
+  </div>
+</main>
+<script>
+const D = __DATA__;
+const $ = id => document.getElementById(id);
+const esc = x => String(x ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"})[c]);
+const nf = n => (n ?? 0).toLocaleString("en");
+const done = D.rows.length, total = D.total || null;
+const sites = D.rows.reduce((a, r) => a + r.n, 0), lost = D.rows.reduce((a, r) => a + (r.counts.lost || 0), 0);
+$("status").textContent = `${nf(done)}${total ? " of " + nf(total) : ""} powiats processed · ${nf(sites)} sites · ${nf(lost)} lost manors · updated ${D.generated}`;
+$("natsub").textContent = D.national ? `${nf(D.national_n)} sites with weights, filters and the minimap` : "Not built yet: run gutshaus build";
+if (!D.national) $("natbtn").classList.add("off");
+$("prog").style.width = total ? Math.round(100 * done / total) + "%" : "100%";
+if (D.failed.length) $("failed").innerHTML = `<div class="warn">${D.failed.length} powiats failed (${esc(D.failed.join(", "))}). Run <code>gutshaus run --all</code> again to retry them.</div>`;
+
+if ((D.kowr || []).length) {
+  $("kowr").innerHTML = `<details><summary>Heritage properties for sale by KOWR (state agency) <span>${D.kowr.length} offers · up to 50 % off with a renovation commitment</span></summary>
+    <table><tr><th>Property</th><th>Where</th><th class="num">Area</th><th>Tender</th><th>Card</th></tr>
+    ${D.kowr.map(o => `<tr><td><b>${esc(o.title)}</b></td><td>${esc([o.gmina && "gm. " + o.gmina, o.powiat, o.voivodeship].filter(Boolean).join(", "))}</td>
+      <td class="num">${o.area_ha ? o.area_ha + " ha" : ""}</td><td class="best">${esc(o.tender || "")}</td>
+      <td><a href="${esc(o.url)}" target="_blank" rel="noopener">PDF</a>${o.lat == null ? ' <span class="best">(not on map)</span>' : ""}</td></tr>`).join("")}
+    </table></details>`;
+}
+const best = r => (r.top[0] || {}).score || 0;
+function render() {
+  const q = $("q").value.toLowerCase(), sort = $("sort").value, open = $("open").value === "open" || !!q;
+  const rows = D.rows.filter(r => !q || [r.powiat, r.teryt, r.voivodeship, ...r.top.map(t => t.name)].join(" ").toLowerCase().includes(q));
+  const cmp = {best: (a, b) => best(b) - best(a), lost: (a, b) => (b.counts.lost || 0) - (a.counts.lost || 0),
+               n: (a, b) => b.n - a.n, name: (a, b) => a.powiat.localeCompare(b.powiat, "pl")}[sort];
+  const groups = {};
+  rows.forEach(r => (groups[r.voivodeship || "other"] = groups[r.voivodeship || "other"] || []).push(r));
+  $("groups").innerHTML = Object.keys(groups).sort((a, b) => a.localeCompare(b, "pl")).map(v => {
+    const g = groups[v].sort(cmp), n = g.reduce((a, r) => a + r.n, 0), l = g.reduce((a, r) => a + (r.counts.lost || 0), 0);
+    return `<details ${open ? "open" : ""}><summary>${esc(v)} <span>${g.length} powiats · ${nf(n)} sites · ${nf(l)} lost</span></summary>
+      <table><tr><th>Powiat</th><th class="num">Sites</th><th class="num">Lost</th><th class="num">Ruin</th><th class="num">Unlocated</th><th class="num">Standing</th><th>Best sites</th><th>Updated</th><th>Open</th></tr>
+      ${g.map(r => `<tr><td><b>${esc(r.powiat)}</b><br><span class="best">${esc(r.teryt)}</span></td>
+        <td class="num">${r.n}</td><td class="num">${r.counts.lost || 0}</td><td class="num">${r.counts.ruin || 0}</td>
+        <td class="num">${r.counts.unlocated || 0}</td><td class="num">${r.counts.standing || 0}</td>
+        <td class="best">${r.top.map(t => `<b>${t.score}</b> ${esc(t.name)}`).join("<br>")}</td>
+        <td class="best">${esc(r.finished)}</td>
+        <td><a href="powiats/${esc(r.teryt)}/review.html">Map</a> · <a href="powiats/${esc(r.teryt)}/candidates.csv">CSV</a></td></tr>`).join("")}
+      </table></details>`;
+  }).join("") || `<p class="sub">No powiats match.</p>`;
+}
+["q", "sort", "open"].forEach(id => $(id).addEventListener("input", render));
+render();
+</script>
+</body>
+</html>

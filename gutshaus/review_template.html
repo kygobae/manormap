@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gutshaus-Finder · __TITLE__</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root { --ink:#1d2321; --muted:#6b736f; --line:#e2e0da; --bg:#faf8f4; --accent:#7a4b2a;
+          --high:#1f7a4d; --possible:#c98a1b; --skip:#9aa19d; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:13px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); display:flex; height:100vh; }
+  #side { width:400px; display:flex; flex-direction:column; border-right:1px solid var(--line); background:var(--bg); }
+  header { padding:12px 14px 8px; border-bottom:1px solid var(--line); }
+  h1 { font:600 17px/1.2 Georgia, serif; margin:0 0 2px; }
+  .sub { color:var(--muted); font-size:12px; }
+  .tabs { display:flex; border-bottom:1px solid var(--line); }
+  .tabs button { flex:1; border:0; border-radius:0; background:transparent; padding:8px 0; font-weight:600; color:var(--muted); border-bottom:2px solid transparent; }
+  .tabs button.on { color:var(--ink); border-bottom-color:var(--accent); }
+  .pane { display:none; overflow-y:auto; flex:1; }
+  .pane.on { display:block; }
+  .progress { padding:7px 14px; font-size:12px; color:var(--muted); border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  button { font:inherit; border:1px solid var(--line); background:#fff; border-radius:4px; padding:3px 8px; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  .item { padding:8px 14px; border-bottom:1px solid var(--line); cursor:pointer; display:grid; grid-template-columns:36px 1fr; gap:8px; }
+  .item:hover, .item.active { background:#fff; }
+  .score { font:600 15px/1 Georgia, serif; text-align:center; padding-top:2px; }
+  .name { font-weight:600; }
+  .meta { color:var(--muted); font-size:12px; }
+  .tag { display:inline-block; font-size:11px; padding:0 6px; border-radius:9px; margin-right:4px; background:#eee; }
+  .tag.lost { background:#f3dfd2; } .tag.ruin { background:#efe3c4; } .tag.standing { background:#dfe8e3; } .tag.unlocated { background:#e6def0; }
+  .v-high { border-left:4px solid var(--high); } .v-possible { border-left:4px solid var(--possible); } .v-skip { border-left:4px solid var(--skip); opacity:.6; }
+  .more { padding:10px 14px; color:var(--muted); font-size:12px; }
+  .form { padding:10px 14px; }
+  .row { margin-bottom:11px; }
+  .row > label, .row > .lbl { display:flex; justify-content:space-between; font-weight:600; margin-bottom:3px; }
+  .row .help { color:var(--muted); font-size:11px; font-weight:400; }
+  .row input[type=range] { width:100%; }
+  .row select, .row input[type=text], .row input[type=number] { width:100%; padding:4px 6px; border:1px solid var(--line); border-radius:4px; background:#fff; font:inherit; }
+  .chips { display:flex; flex-wrap:wrap; gap:4px; }
+  .chips label { border:1px solid var(--line); border-radius:12px; padding:1px 8px; background:#fff; cursor:pointer; font-weight:400; }
+  .chips input { margin:0 4px 0 0; vertical-align:-1px; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  h3.sec { font:600 12px/1 -apple-system, sans-serif; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:14px 0 8px; }
+  #mapwrap { flex:1; position:relative; }
+  #map { position:absolute; inset:0; }
+  #mini { position:absolute; left:10px; bottom:24px; width:210px; height:170px; z-index:1000; border:1px solid #bbb; border-radius:4px; background:#f4f2ee; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+  #mini.leaflet-container { background:#f4f2ee; cursor:pointer; }
+  .pop h3 { margin:0 0 2px; font:600 15px Georgia, serif; }
+  .pop table { font-size:12px; border-collapse:collapse; margin:6px 0; width:100%; }
+  .pop td { padding:1px 6px 1px 0; vertical-align:top; } .pop td:first-child { color:var(--muted); white-space:nowrap; }
+  .bar { height:7px; background:#eee; border-radius:4px; position:relative; min-width:70px; }
+  .bar i { position:absolute; left:0; top:0; bottom:0; background:var(--accent); border-radius:4px; }
+  .vbtn.on[data-v=high] { background:var(--high); color:#fff; } .vbtn.on[data-v=possible] { background:var(--possible); color:#fff; } .vbtn.on[data-v=skip] { background:var(--skip); color:#fff; }
+  .pop textarea { width:100%; height:44px; margin-top:6px; font:inherit; font-size:12px; }
+  .pop .links a { margin-right:10px; font-size:12px; }
+  .kowr-icon { background:#1d4e89; color:#fff; border:2px solid #fff; border-radius:3px; transform:rotate(45deg);
+               box-shadow:0 1px 3px rgba(0,0,0,.4); }
+  .kowr-icon span { display:block; transform:rotate(-45deg); font:700 10px/16px sans-serif; text-align:center; }
+  .forsale { display:inline-block; font-size:11px; padding:0 6px; border-radius:9px; background:#dbe6f4; color:#1d4e89; margin-left:4px; }
+</style>
+</head>
+<body>
+<div id="side">
+  <header>
+    <h1>Gutshaus-Finder <a id="home" class="sub" style="font:13px sans-serif;float:right;margin-top:3px;color:var(--accent);display:none">← All results</a></h1>
+    <div class="sub" id="subtitle"></div>
+  </header>
+  <div class="tabs"><button data-tab="sites" class="on">Sites</button><button data-tab="weights">Weights</button><button data-tab="filters">Filters</button></div>
+  <div class="progress"><span id="prog"></span>
+    <span><button id="exportShown" title="Download the sites currently shown, with your scores">CSV</button>
+    <button id="export" title="Save your verdicts next to candidates.csv; the next run picks them up">Verdicts</button></span></div>
+  <div class="pane on" id="pane-sites"><div id="list"></div></div>
+  <div class="pane" id="pane-weights"><div class="form" id="weights"></div></div>
+  <div class="pane" id="pane-filters"><div class="form" id="filters"></div></div>
+</div>
+<div id="mapwrap"><div id="map"></div><div id="mini"></div></div>
+<script>
+const D = __DATA__;
+const SITES = D.sites;
+const $ = id => document.getElementById(id);
+const esc = x => String(x ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"})[c]);
+const fmtM = m => m == null ? "—" : m >= 1000 ? (m / 1000).toFixed(1) + " km" : m + " m";
+$("subtitle").textContent = D.title + " · " + SITES.length + " sites";
+if (D.index) { $("home").href = D.index; $("home").style.display = "inline"; }
+
+// ---------- persistent state (browser storage may be unavailable) ----------
+function loadState(key, def) { try { return Object.assign(def, JSON.parse(localStorage.getItem(key) || "{}")); } catch (e) { return def; } }
+function saveState(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+const DEFAULT_W = Object.fromEntries(D.criteria.map(c => [c.key, c.weight]));
+const W = loadState("gutshaus:weights", {...DEFAULT_W});
+const REF = loadState("gutshaus:ref", {name: "Berlin", weight: 0, maxKm: 150, lat: null, lon: null});
+const FILTER_DEFAULT = {status: ["lost", "ruin", "unlocated", "standing", "unknown"], verdict: "", voiv: "", powiat: "",
+  landuse: ["agri", "built", "forest", "unknown"], protection: "any", maxPower: 2000, maxRoad: 1000, minHa: "", maxHa: "",
+  registered: false, park: false, forsale: false, maxRefKm: 1000, inView: false, minScore: 0, q: ""};
+const F = loadState("gutshaus:filters", JSON.parse(JSON.stringify(FILTER_DEFAULT)));
+const store = loadState("gutshaus:verdicts:" + D.title, {});
+SITES.forEach(s => { if (!store[s.uid] && (s.verdict || s.notes)) store[s.uid] = {verdict: s.verdict || "", notes: s.notes || ""}; });
+const V = s => (store[s.uid] || {}).verdict || "";
+const saveAll = () => { saveState("gutshaus:weights", W); saveState("gutshaus:ref", REF); saveState("gutshaus:filters", F); saveState("gutshaus:verdicts:" + D.title, store); };
+
+// ---------- scoring ----------
+function refPoint() {
+  if (REF.name === "custom") return REF.lat != null ? [REF.lat, REF.lon] : null;
+  return D.references[REF.name] || null;
+}
+function km(lat1, lon1, lat2, lon2) {
+  const r = Math.PI / 180, a = Math.sin((lat2 - lat1) * r / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin((lon2 - lon1) * r / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(a));
+}
+function rescore() {
+  const rp = refPoint();
+  SITES.forEach(s => {
+    s._ref = rp ? km(s.lat, s.lon, rp[0], rp[1]) : null;
+    let acc = 0, tw = 0;
+    D.criteria.forEach(c => { const w = +W[c.key] || 0; if (w <= 0) return; const v = s["c_" + c.key]; acc += w * (v == null ? 0.5 : v); tw += w; });
+    if (REF.weight > 0 && s._ref != null) { acc += REF.weight * Math.max(0, 1 - s._ref / REF.maxKm); tw += +REF.weight; }
+    s._score = tw ? Math.round(100 * acc / tw) : 0;
+  });
+}
+
+// ---------- map ----------
+const map = L.map("map", {preferCanvas: true});
+const bases = {}, overlays = {};
+let defaultBase = null;
+D.wms.forEach(w => {
+  const l = L.tileLayer.wms(w.url, {layers: w.layers, format: "image/png", transparent: !!w.overlay, version: "1.1.1",
+    maxZoom: 20, minZoom: w.minZoom || 0, opacity: w.opacity || 1, attribution: w.attribution});
+  (w.overlay ? overlays : bases)[w.name] = l;
+  if (w.default) defaultBase = l;
+});
+(defaultBase || Object.values(bases)[0]).addTo(map);
+const areaLayer = L.geoJSON({type: "FeatureCollection", features: D.areas.map(g => ({type: "Feature", geometry: g}))},
+  {style: {color: "#7a4b2a", weight: 2, fill: false, dashArray: "4 4"}}).addTo(map);
+const parcelLayer = L.layerGroup().addTo(map);
+const siteLayer = L.layerGroup().addTo(map);
+overlays["Parcels of shown sites (zoom 14+)"] = parcelLayer;
+const kowrLayer = L.layerGroup().addTo(map);
+overlays["KOWR heritage offers (state sale)"] = kowrLayer;
+(D.kowr || []).forEach(o => {
+  const icon = L.divIcon({className: "kowr-icon", html: "<span>€</span>", iconSize: [16, 16]});
+  const media = o.media ? Object.entries(o.media).filter(([k, v]) => v).map(([k, v]) => k + ": " + v).join(", ") : "";
+  const rows = [["Where", [o.obreb, o.gmina && "gm. " + o.gmina, o.powiat, o.voivodeship].filter(Boolean).join(", ")],
+    ["Parcels", (o.parcels || []).join(", ")], ["Area", o.area_ha ? o.area_ha + " ha" + (o.usable_m2 ? ` · building ${o.usable_m2} m²` : "") : ""],
+    ["Type", o.kind], ["Zoning", o.zoning], ["Tender", o.tender], ["Utilities", media],
+    ["Contact", [o.contact_email, o.contact_phone].filter(Boolean).join(" · ")]]
+    .filter(r => r[1]).map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join("");
+  L.marker([o.lat, o.lon], {icon, zIndexOffset: 1000, title: o.title})
+    .bindPopup(`<div class="pop"><h3>${esc(o.title)}</h3><div class="sub">Offered for sale by KOWR (state agency); registered monuments can get up to 50 % off with a renovation commitment</div>
+      <table>${rows}</table><div class="sub">${esc((o.description || "").slice(0, 400))}…</div>
+      <div class="links"><a href="${esc(o.url)}" target="_blank" rel="noopener">Property card (PDF)</a>
+      <a href="https://www.gov.pl/web/kowr/nieruchomosci-zabytkowe" target="_blank" rel="noopener">All KOWR offers</a></div></div>`, {maxWidth: 380})
+    .addTo(kowrLayer);
+});
+L.control.layers(bases, overlays, {collapsed: true}).addTo(map);
+L.control.scale({imperial: false}).addTo(map);
+if (D.areas.length) map.fitBounds(areaLayer.getBounds()); else map.fitBounds([[49.0, 14.1], [54.9, 24.2]]);
+
+const colour = s => s._score >= 75 ? "#1a6b3c" : s._score >= 60 ? "#4c9a5b" : s._score >= 45 ? "#d39b2a" : "#9aa19d";
+const stroke = s => ({high: "#0b4d2a", possible: "#a86c00", skip: "#666"})[V(s)] || "#fff";
+const markers = {};
+let selected = null;
+SITES.forEach(s => {
+  const m = L.circleMarker([s.lat, s.lon], {radius: 5, weight: 1.5, color: "#fff", fillOpacity: .9});
+  m.bindPopup(() => popup(s), {maxWidth: 380});
+  m.on("click", () => { selected = s.uid; drawParcels(); highlight(); });
+  markers[s.uid] = m;
+});
+
+// ---------- minimap ----------
+const mini = L.map("mini", {zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false,
+  doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, preferCanvas: true});
+if (D.poland) L.geoJSON(D.poland, {style: {color: "#7a7268", weight: 1, fillColor: "#fff", fillOpacity: 1}, interactive: false}).addTo(mini);
+mini.fitBounds([[49.0, 14.1], [54.9, 24.2]], {padding: [4, 4]});
+const miniDots = L.layerGroup().addTo(mini);
+const viewBox = L.rectangle(map.getBounds(), {color: "#b0302a", weight: 2, fillOpacity: .12, interactive: false}).addTo(mini);
+const viewDot = L.circleMarker(map.getCenter(), {radius: 4, color: "#fff", weight: 1.5, fillColor: "#b0302a", fillOpacity: 1, interactive: false}).addTo(mini);
+mini.on("click", e => map.setView(e.latlng, Math.max(map.getZoom(), 10)));
+map.on("moveend", () => { viewBox.setBounds(map.getBounds()); viewDot.setLatLng(map.getCenter()); if (F.inView) render(); else drawParcels(); });
+
+// ---------- filters ----------
+function passes(s, bounds) {
+  if (!F.status.includes(s.status)) return false;
+  if (F.verdict && (F.verdict === "none" ? V(s) : V(s) !== F.verdict)) return false;
+  if (F.voiv && s.voivodeship !== F.voiv) return false;
+  if (F.powiat && s.powiat !== F.powiat) return false;
+  if (!F.landuse.includes(s.land_cover || "unknown")) return false;
+  if (F.protection === "strict" && s.c_protection === 0) return false;
+  if (F.protection === "none" && s.protection && s.protection !== "none") return false;
+  if (F.maxPower < 2000 && !(s.dist_power_m != null && s.dist_power_m <= F.maxPower)) return false;
+  if (F.maxRoad < 1000 && !(s.dist_road_m != null && s.dist_road_m <= F.maxRoad)) return false;
+  if (F.minHa !== "" && !(s.parcel_ha >= +F.minHa)) return false;
+  if (F.maxHa !== "" && !(s.parcel_ha <= +F.maxHa)) return false;
+  if (F.registered && !s.registered) return false;
+  if (F.park && !s.park) return false;
+  if (F.forsale && !s.kowr_offer) return false;
+  if (F.maxRefKm < 1000 && !(s._ref != null && s._ref <= F.maxRefKm)) return false;
+  if (s._score < F.minScore) return false;
+  if (F.q && ![s.name, s.also_known_as, s.name_de, s.commune, s.powiat, s.parcel_id, s.precinct, s.nearest_town].join(" ").toLowerCase().includes(F.q.toLowerCase())) return false;
+  if (F.inView && !bounds.contains([s.lat, s.lon])) return false;
+  return true;
+}
+let shown = [];
+let raf = null;
+function render() { if (raf) return; raf = requestAnimationFrame(() => { raf = null; doRender(); }); }
+function doRender() {
+  rescore();
+  const b = map.getBounds();
+  shown = SITES.filter(s => passes(s, b)).sort((a, c) => c._score - a._score);
+  siteLayer.clearLayers(); miniDots.clearLayers();
+  shown.forEach(s => {
+    const m = markers[s.uid];
+    m.setStyle({fillColor: colour(s), color: stroke(s), weight: V(s) ? 3 : 1.5});
+    m.setRadius(3.5 + s._score / 16);
+    siteLayer.addLayer(m);
+    miniDots.addLayer(L.circleMarker([s.lat, s.lon], {radius: 1.5, stroke: false, fillColor: colour(s), fillOpacity: 1, interactive: false}));
+  });
+  const LIMIT = 300, refLabel = REF.name === "custom" ? "point" : REF.name;
+  $("list").innerHTML = shown.slice(0, LIMIT).map(s => `<div class="item ${V(s) ? "v-" + V(s) : ""}" data-uid="${esc(s.uid)}">
+      <div class="score">${s._score}</div>
+      <div><div class="name">${esc(s.name)}</div>
+      <div class="meta"><span class="tag ${s.status}">${s.status}</span>${s.kowr_offer ? '<span class="forsale">for sale</span> ' : ""}${esc(s.powiat || "")}${s.commune ? " · gm. " + esc(s.commune) : ""}${s.parcel_ha ? " · " + s.parcel_ha + " ha" : ""}${s._ref != null ? " · " + Math.round(s._ref) + " km to " + esc(refLabel) : ""}</div></div></div>`).join("")
+    + (shown.length > LIMIT ? `<div class="more">Showing the top ${LIMIT} of ${shown.length}. Narrow the filters, or tick "only sites in the current map view".</div>` : "");
+  $("list").querySelectorAll(".item").forEach(el => el.onclick = () => {
+    const s = SITES.find(x => x.uid === el.dataset.uid); selected = s.uid;
+    map.setView([s.lat, s.lon], Math.max(map.getZoom(), 16)); markers[s.uid].openPopup(); highlight(); drawParcels();
+  });
+  const reviewed = SITES.filter(s => V(s)).length, high = SITES.filter(s => V(s) === "high").length;
+  $("prog").textContent = `${shown.length} shown · ${reviewed} reviewed · ${high} high`;
+  highlight(); drawParcels();
+}
+function highlight() { document.querySelectorAll(".item").forEach(el => el.classList.toggle("active", el.dataset.uid === selected)); }
+function drawParcels() {
+  parcelLayer.clearLayers();
+  const b = map.getBounds();
+  const list = map.getZoom() >= 14 ? shown.filter(s => b.contains([s.lat, s.lon])).slice(0, 300) : [];
+  const sel = SITES.find(s => s.uid === selected);
+  if (sel && !list.includes(sel)) list.push(sel);
+  list.forEach(s => { if (s.parcel_ll) parcelLayer.addLayer(L.polygon(s.parcel_ll.map(([x, y]) => [y, x]),
+    {color: s.uid === selected ? "#b0302a" : "#7a4b2a", weight: s.uid === selected ? 3 : 1.5, fillOpacity: .06, interactive: false})); });
+}
+
+// ---------- popup ----------
+function popup(s) {
+  const d = document.createElement("div"); d.className = "pop";
+  const crit = D.criteria.filter(c => (+W[c.key] || 0) > 0).map(c => { const v = s["c_" + c.key];
+    return `<tr title="${esc(c.help)}"><td>${esc(c.label)}</td><td style="width:40%"><div class="bar"><i style="width:${v == null ? 50 : v * 100}%;${v == null ? "opacity:.3" : ""}"></i></div></td><td>${v == null ? "?" : v.toFixed(2)}</td></tr>`; }).join("");
+  const facts = [["Status", s.status + (s.location && s.location !== "exact" ? " · " + s.location : "")],
+    ["Parcel", s.parcel_id ? `${s.parcel_id} · ${s.parcel_ha} ha` : "—"], ["Where", [s.powiat, s.commune && "gm. " + s.commune, s.voivodeship].filter(Boolean).join(", ")],
+    ["Power line", fmtM(s.dist_power_m)], ["Public road", fmtM(s.dist_road_m)],
+    ["Nearest building", fmtM(s.dist_building_m) + (s.buildings_500m != null ? ` · ${s.buildings_500m} within 500 m` : "")],
+    ["Town", s.nearest_town ? `${s.nearest_town}, ${fmtM(s.dist_town_m)}` : "—"], ["Lake or river", fmtM(s.dist_water_m)],
+    ["Land use", s.land_cover], ["Protection", s.protection_names || s.protection || "—"],
+    ["For sale", s.kowr_offer ? `KOWR: ${s.kowr_offer}${s.kowr_tender ? " · tender " + s.kowr_tender : ""}` : ""],
+    ["Register", s.registered ? (s.nid_ref || "yes") : "no"], ["Also", s.also_known_as], ["German name", s.name_de]]
+    .filter(r => r[1]).map(r => `<tr><td>${esc(r[0])}</td><td colspan="2">${esc(r[1])}</td></tr>`).join("");
+  const links = [["KOWR card", s.kowr_url], ["Geoportal", s.link_geoportal], ["Google sat.", s.link_gmaps], ["OSM", s.link_osm]].filter(l => l[1])
+    .map(l => `<a href="${esc(l[1])}" target="_blank" rel="noopener">${l[0]}</a>`).join("");
+  d.innerHTML = `<h3>${esc(s.name)}</h3><div><b>${s._score}</b>/100 with your weights</div>
+    <table>${crit}</table><table>${facts}</table>
+    <div>${["high", "possible", "skip"].map(v => `<button class="vbtn ${V(s) === v ? "on" : ""}" data-v="${v}">${v}</button>`).join(" ")}</div>
+    <textarea placeholder="Notes (Messtischblatt, owner, access, utilities…)">${esc((store[s.uid] || {}).notes || "")}</textarea>
+    <div class="links">${links}</div>`;
+  d.querySelectorAll(".vbtn").forEach(b => b.onclick = () => {
+    const cur = store[s.uid] || {notes: ""}; cur.verdict = cur.verdict === b.dataset.v ? "" : b.dataset.v; store[s.uid] = cur; saveAll();
+    d.querySelectorAll(".vbtn").forEach(x => x.classList.toggle("on", x.dataset.v === cur.verdict)); render();
+  });
+  d.querySelector("textarea").oninput = e => { const cur = store[s.uid] || {verdict: ""}; cur.notes = e.target.value; store[s.uid] = cur; saveAll(); };
+  return d;
+}
+
+// ---------- weights pane ----------
+const refMarker = L.marker([0, 0], {title: "Reference point"});
+function buildWeights() {
+  const refOpts = Object.keys(D.references).map(n => `<option ${REF.name === n ? "selected" : ""}>${esc(n)}</option>`).join("")
+    + `<option value="custom" ${REF.name === "custom" ? "selected" : ""}>Custom point (click the map)</option>`;
+  $("weights").innerHTML = `<div class="sub" style="margin-bottom:10px">Each site gets a value from 0 to 1 per criterion; the score is the weighted average. Weight 0 switches a criterion off. Unknown values count as 0.5.</div>`
+    + D.criteria.map(c => `<div class="row"><label>${esc(c.label)} <span id="wv-${c.key}">${W[c.key]}</span></label>
+        <input type="range" min="0" max="5" step="0.5" value="${W[c.key]}" data-key="${c.key}"><div class="help">${esc(c.help)}</div></div>`).join("")
+    + `<h3 class="sec">Distance from a reference point</h3>
+       <div class="row"><select id="refName">${refOpts}</select><div class="help" id="refHelp"></div></div>
+       <div class="row"><label>Weight <span id="wv-ref">${REF.weight}</span></label><input type="range" id="refW" min="0" max="5" step="0.5" value="${REF.weight}"></div>
+       <div class="row"><label>Full value at 0 km, none at <span id="refKmV">${REF.maxKm} km</span></label><input type="range" id="refKm" min="25" max="600" step="25" value="${REF.maxKm}"></div>
+       <button id="resetW">Reset to defaults</button>`;
+  $("weights").querySelectorAll("input[data-key]").forEach(el => el.oninput = () => { W[el.dataset.key] = +el.value; $("wv-" + el.dataset.key).textContent = el.value; saveAll(); render(); });
+  $("refName").onchange = e => { REF.name = e.target.value; updRef(); saveAll(); buildFilters(); render(); };
+  $("refW").oninput = e => { REF.weight = +e.target.value; $("wv-ref").textContent = e.target.value; saveAll(); render(); };
+  $("refKm").oninput = e => { REF.maxKm = +e.target.value; $("refKmV").textContent = e.target.value + " km"; saveAll(); render(); };
+  $("resetW").onclick = () => { Object.assign(W, DEFAULT_W); REF.weight = 0; saveAll(); buildWeights(); render(); };
+  updRef();
+}
+function updRef() {
+  const custom = REF.name === "custom";
+  $("refHelp").textContent = custom ? (REF.lat != null ? `Point at ${REF.lat.toFixed(3)}, ${REF.lon.toFixed(3)}. Click the map to move it.` : "Click the map to set the point.") : "";
+  if (custom && REF.lat != null) refMarker.setLatLng([REF.lat, REF.lon]).addTo(map); else refMarker.remove();
+}
+map.on("click", e => { if (REF.name !== "custom") return; REF.lat = e.latlng.lat; REF.lon = e.latlng.lng; updRef(); saveAll(); render(); });
+
+// ---------- filters pane ----------
+function chips(name, values, selectedList) {
+  return `<div class="chips">${values.map(v => `<label><input type="checkbox" data-chip="${name}" value="${v}" ${selectedList.includes(v) ? "checked" : ""}>${v}</label>`).join("")}</div>`;
+}
+function buildFilters() {
+  const voivs = [...new Set(SITES.map(s => s.voivodeship).filter(Boolean))].sort();
+  const powiats = [...new Set(SITES.filter(s => !F.voiv || s.voivodeship === F.voiv).map(s => s.powiat).filter(Boolean))].sort();
+  const refName = REF.name === "custom" ? "the custom point" : REF.name;
+  const anyLbl = (v, max, unit) => v >= max ? "any" : v + unit;
+  $("filters").innerHTML = `
+    <div class="row"><input type="text" id="fq" placeholder="Search name, gmina, powiat, parcel…" value="${esc(F.q)}"></div>
+    <div class="row"><div class="lbl">Status</div>${chips("status", ["lost", "ruin", "unlocated", "standing", "unknown"], F.status)}</div>
+    <div class="row"><label>Min score <span id="fScoreV">${F.minScore}</span></label><input type="range" id="fScore" min="0" max="100" value="${F.minScore}"></div>
+    <h3 class="sec">Geography</h3>
+    <div class="row two"><select id="fVoiv"><option value="">All voivodeships</option>${voivs.map(v => `<option ${F.voiv === v ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>
+      <select id="fPowiat"><option value="">All powiats</option>${powiats.map(v => `<option ${F.powiat === v ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
+    <div class="row"><label>Max distance to ${esc(refName)} <span id="fRefV">${anyLbl(F.maxRefKm, 1000, " km")}</span></label>
+      <input type="range" id="fRef" min="25" max="1000" step="25" value="${F.maxRefKm}"><div class="help">Pick the reference point in the Weights tab.</div></div>
+    <div class="row chips"><label><input type="checkbox" id="fView" ${F.inView ? "checked" : ""}>Only sites in the current map view</label></div>
+    <h3 class="sec">Buildability</h3>
+    <div class="row"><div class="lbl">Land use</div>${chips("landuse", ["agri", "built", "forest", "unknown"], F.landuse)}</div>
+    <div class="row"><select id="fProt"><option value="any" ${F.protection === "any" ? "selected" : ""}>Any nature protection</option>
+      <option value="strict" ${F.protection === "strict" ? "selected" : ""}>Exclude reserves and national parks</option>
+      <option value="none" ${F.protection === "none" ? "selected" : ""}>Only sites without any protection</option></select></div>
+    <div class="row"><label>Power line within <span id="fPowerV">${anyLbl(F.maxPower, 2000, " m")}</span></label><input type="range" id="fPower" min="100" max="2000" step="100" value="${F.maxPower}"></div>
+    <div class="row"><label>Public road within <span id="fRoadV">${anyLbl(F.maxRoad, 1000, " m")}</span></label><input type="range" id="fRoad" min="50" max="1000" step="50" value="${F.maxRoad}"></div>
+    <div class="row"><div class="lbl">Parcel size (ha)</div><div class="two"><input type="number" id="fMinHa" step="0.1" placeholder="min" value="${F.minHa}"><input type="number" id="fMaxHa" step="0.1" placeholder="max" value="${F.maxHa}"></div></div>
+    <div class="row chips"><label><input type="checkbox" id="fPark" ${F.park ? "checked" : ""}>Park on site</label><label><input type="checkbox" id="fReg" ${F.registered ? "checked" : ""}>In monument register</label>
+      <label><input type="checkbox" id="fSale" ${F.forsale ? "checked" : ""}>Offered for sale (KOWR)</label></div>
+    <h3 class="sec">Review</h3>
+    <div class="row"><select id="fVerdict"><option value="">All verdicts</option><option value="none" ${F.verdict === "none" ? "selected" : ""}>Not reviewed</option>
+      ${["high", "possible", "skip"].map(v => `<option ${F.verdict === v ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+    <button id="resetF">Reset filters</button>`;
+  const on = (id, ev, fn) => $(id).addEventListener(ev, e => { fn(e.target); saveAll(); render(); });
+  on("fq", "input", t => F.q = t.value);
+  on("fScore", "input", t => { F.minScore = +t.value; $("fScoreV").textContent = t.value; });
+  on("fVoiv", "change", t => { F.voiv = t.value; F.powiat = ""; buildFilters(); });
+  on("fPowiat", "change", t => F.powiat = t.value);
+  on("fRef", "input", t => { F.maxRefKm = +t.value; $("fRefV").textContent = anyLbl(F.maxRefKm, 1000, " km"); });
+  on("fView", "change", t => F.inView = t.checked);
+  on("fProt", "change", t => F.protection = t.value);
+  on("fPower", "input", t => { F.maxPower = +t.value; $("fPowerV").textContent = anyLbl(F.maxPower, 2000, " m"); });
+  on("fRoad", "input", t => { F.maxRoad = +t.value; $("fRoadV").textContent = anyLbl(F.maxRoad, 1000, " m"); });
+  on("fMinHa", "input", t => F.minHa = t.value);
+  on("fMaxHa", "input", t => F.maxHa = t.value);
+  on("fPark", "change", t => F.park = t.checked);
+  on("fReg", "change", t => F.registered = t.checked);
+  on("fSale", "change", t => F.forsale = t.checked);
+  on("fVerdict", "change", t => F.verdict = t.value);
+  $("filters").querySelectorAll("[data-chip]").forEach(el => el.addEventListener("change", () => {
+    const key = el.dataset.chip; F[key] = [...$("filters").querySelectorAll(`[data-chip=${key}]:checked`)].map(x => x.value); saveAll(); render(); }));
+  $("resetF").onclick = () => { Object.assign(F, JSON.parse(JSON.stringify(FILTER_DEFAULT))); saveAll(); buildFilters(); render(); };
+}
+
+// ---------- tabs, export ----------
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("on", p.id === "pane-" + b.dataset.tab));
+});
+function download(name, rows) {
+  const csv = rows.map(r => r.map(x => '"' + String(x ?? "").replace(/"/g, '""') + '"').join(",")).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + csv], {type: "text/csv"}));
+  a.download = name; a.click();
+}
+$("export").onclick = () => {
+  const rows = [["uid", "members", "verdict", "notes", "lat", "lon", "name"]];
+  SITES.forEach(s => { const r = store[s.uid]; if (r && (r.verdict || r.notes)) rows.push([s.uid, [].concat(s.members || []).join(";"), r.verdict || "", r.notes || "", s.lat, s.lon, s.name]); });
+  download("verdicts.csv", rows);
+};
+$("exportShown").onclick = () => {
+  const cols = ["name", "status", "voivodeship", "powiat", "commune", "parcel_id", "parcel_ha", "land_cover", "protection",
+    "dist_power_m", "dist_road_m", "dist_building_m", "nearest_town", "dist_town_m", "lat", "lon", "link_geoportal"];
+  download("shown_sites.csv", [["score", "verdict", ...cols], ...shown.map(s => [s._score, V(s), ...cols.map(c => s[c])])]);
+};
+
+buildWeights(); buildFilters(); render();
+</script>
+</body>
+</html>

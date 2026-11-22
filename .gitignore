@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+*.log
+# Run outputs and download caches (regenerate with `gutshaus run`)
+output/
+# Personal files: your own weights/settings, review verdicts, local notes
+gutshaus.json
+reviews/*
+!reviews/README.md
+CLAUDE.local.md
+
+# personal: sites you keep for yourself
+reserved.txt
