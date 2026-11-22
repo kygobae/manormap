@@ -23,10 +23,17 @@ HERE = Path(__file__).parent
 DEPLOY = HERE / "deploy"
 
 
+def _is_place_name(v: str) -> bool:
+    """Town precincts are often just numbers ("04-02", "15", "Nr7", "Obręb 3"): not a place name."""
+    return bool(re.search(r"[^\W\d_]{3,}", v or "")) and not re.match(r"(?i)^(nr|obr[eę]b)\b", v.strip())
+
+
 def village_of(s: dict) -> str:
-    v = s.get("precinct")
-    if not v:  # "park dworski, Dąbrowa" -> "Dąbrowa"
-        v = s["name"].rsplit(",", 1)[-1].strip() if "," in s["name"] else s.get("commune") or s["name"]
+    v = (s.get("precinct") or "").strip()
+    if not _is_place_name(v):  # "park dworski, Dąbrowa" -> "Dąbrowa", else the municipality
+        v = s["name"].rsplit(",", 1)[-1].strip() if "," in s["name"] else ""
+        if not _is_place_name(v):
+            v = re.sub(r"\s*\((miasto|gmina [a-z-]+|obszar wiejski)\)", "", s.get("commune") or "").strip() or s["name"]
     return v
 
 
