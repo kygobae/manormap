@@ -465,6 +465,7 @@ def test_publish_site(built, monkeypatch):
     assert "zabytki.szczecin" not in html                                 # KOWR staff contacts stay private
     for f in ("functions/webhook.js", "functions/download.js", "wrangler.toml", "public/legal.html"):
         assert (built / "site" / f).exists(), f
+    assert not (built / "site" / "wrangler.jsonc").exists()                 # the shop deploys as a Pages project
 
 
 def test_config_from_env_and_reserved_file(tmp_path, monkeypatch):
@@ -510,6 +511,15 @@ def test_publish_without_shop(built):
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     assert data["cfg"]["shop"] is False and data["villages"]
     assert not (site / "functions").exists()
+    # static deploy config: only ./public is uploaded, SITE_URL's domain (+ www) as custom domains
+    (site / "wrangler.toml").write_text('name = "x"\nid = "REPLACE_WITH_KV_NAMESPACE_ID"\n', encoding="utf-8")
+    cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
+    assert not (site / "wrangler.toml").exists()                              # unfilled shop template removed
+    raw = (site / "wrangler.jsonc").read_text(encoding="utf-8")
+    cfg = json.loads("\n".join(ln for ln in raw.splitlines() if not ln.startswith("//")))
+    assert cfg["name"] == config.DEPLOY_NAME and cfg["assets"]["directory"] == "./public"
+    host = config.SITE_URL.split("//")[1].strip("/")
+    assert [r["pattern"] for r in cfg["routes"]] == [host, "www." + host] and all(r["custom_domain"] for r in cfg["routes"])
     legal = (site / "public" / "legal.html").read_text(encoding="utf-8")
     assert "Widerrufsrecht" not in legal and "Lemon Squeezy" not in legal and "Impressum" in legal and "Datenschutz" in legal
     assert "vor dem Start ausfüllen" in legal                            # placeholder until LEGAL_NOTICE is set

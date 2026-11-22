@@ -144,7 +144,26 @@ gutshaus publish --sample sample.pdf             # -> output/site/public + funct
   manor still stands, new build is graded C at best. Thresholds: A from 85, B from 75, C from 62 (`config.GRADES`,
   calibrated so that only about 4 % of sites get an A). The public map switches between the two grades.
 
-### Setup (once)
+### Deploy the free map (no shop)
+
+With `SHOP_ENABLED` off, `gutshaus publish` writes a static site plus `output/site/wrangler.jsonc` for Cloudflare
+(free plan; Pages is now part of Workers, so the site is a Worker with static assets). The custom domains come from
+`SITE_URL` (the domain and its `www.` variant); the project name is `DEPLOY_NAME`.
+
+1. Put the domain's DNS on Cloudflare (add the domain in the dashboard, then switch the nameservers at your registrar).
+2. Once: `npx wrangler login`.
+3. Every update:
+   ```
+   gutshaus build && gutshaus publish
+   cd output/site
+   npx wrangler deploy --dry-run    # should list only index.html, legal.html, robots.txt
+   npx wrangler deploy
+   ```
+
+Run wrangler only inside `output/site`, never in the repository root: without a config there, wrangler's autoconfig
+offers to upload the whole `output` folder (OSM extract, your verdicts, caches).
+
+### Setup (once, for selling dossiers)
 
 1. **Lemon Squeezy** (free account, store verification takes a few days): create a product "Standort-Dossier",
    single payment of 49 €. In the product's confirmation settings set the button link to

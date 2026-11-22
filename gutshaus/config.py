@@ -237,6 +237,8 @@ NEW_CAP_STANDING = "C"     # best new-build grade while the manor still stands (
 # Shop: buy buttons, the dossier section and the Cloudflare Functions (webhook, download). Off until the dossier
 # is ready to sell; switch on with {"SHOP_ENABLED": true} in gutshaus.json.
 SHOP_ENABLED = False
+# Cloudflare project (Worker) name the site is deployed to; custom domains come from SITE_URL
+DEPLOY_NAME = "manormap"
 # Legal notice (Impressum) lines for legal.html, e.g. ["Example Ltd", "Owner: Jane Doe", "Street 1, 00-000 City",
 # "NIP 0000000000"]. Personal data: set it in your private gutshaus.json, never here.
 LEGAL_NOTICE: list = []
