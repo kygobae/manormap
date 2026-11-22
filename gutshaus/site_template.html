@@ -39,6 +39,7 @@ input[type=search],select{width:100%;padding:7px 9px;border:1px solid var(--line
 .site .s{flex:1}
 .buy,.leaflet-popup-content a.buy{background:var(--accent);color:#fff;text-decoration:none;padding:4px 9px;border-radius:5px;font-size:12px;white-space:nowrap}
 .buy:hover{filter:brightness(1.1)}
+.teaser{margin-top:6px;padding-top:5px;border-top:1px solid var(--line)}
 ul.inc{margin:4px 0 0;padding-left:18px;font-size:13px}
 footer{font-size:11.5px;color:var(--muted);padding:12px 16px}
 footer a,.box a{color:var(--accent)}
@@ -90,7 +91,7 @@ const C = D.cfg;
 const T = {
  de:{tagline:"Ehemalige Gutshäuser in Polen – neu bauen, wo das Herrenhaus stand, oder retten, was übrig ist",
   whatH:"Worum es geht",
-  what:"Nach 1945 verfielen in Polen Tausende Gutshäuser. Wir kombinieren historische Karten, das Denkmalregister, Luftbilder und Infrastrukturdaten und bewerten jeden Standort für einen Neubau und für eine Sanierung. Auf der Karte sehen Sie Dörfer.",whatShop:" Die genaue Lage und alle Daten stehen im Dossier.",
+  what:"Nach 1945 verfielen in Polen Tausende Gutshäuser. Wir kombinieren historische Karten, das Denkmalregister, Luftbilder und Infrastrukturdaten und bewerten jeden Standort für einen Neubau und für eine Sanierung. Punkte zeigen die genaue Lage; ein Kreis heißt: nur das Dorf ist bekannt.",whatShop:" Flurstück, Karten und alle Daten stehen im Dossier.",
   search:"Dorf suchen (polnisch oder deutsch) …",allRegions:"Alle Woiwodschaften",sites:"Standorte",villages:"Dörfer",
   dossierH:"Das Standort-Dossier",dossier:"Automatisch erstellt, als PDF sofort nach dem Kauf. Auf Deutsch mit polnischer Zusammenfassung für Gemeinde, Notar oder Architekt.",
   includes:"<li>genaue Lage, Flurstücksnummer und -fläche</li><li>Luftbild und LiDAR-Relief mit Flurstücksgrenze</li><li>Leitungskarte; Entfernung zu Strom, Straße, Nachbarn, Wasser</li><li>Naturschutz, Flächennutzung, Denkmalregister</li><li>staatliches Verkaufsangebot (KOWR), falls vorhanden</li><li>Note mit Begründung und Checkliste der nächsten Schritte</li><li>Fördermöglichkeiten: Zuschüsse des Denkmalpflegers, des Kulturministeriums, der Woiwodschaft und der Gemeinde</li>",
@@ -101,10 +102,13 @@ const T = {
   park:"Park",reg:"Denkmal",hist:"Historische Karte (Messtischblatt)",forSale:"zum Verkauf",
   status:{lost:"Herrenhaus verschwunden",ruin:"Ruine",standing:"Gebäude steht",unlocated:"Lage im Dorf unklar",unknown:"unklar"},
   sources:"Daten: © OpenStreetMap-Mitwirkende (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Historische Karten: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen"},
+  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",
+  approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
+  private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
+  teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste mit polnischer Zusammenfassung."},
  pl:{tagline:"Dawne dwory i pałace w Polsce – zbudować nowy dom w miejscu dworu albo uratować to, co zostało",
   whatH:"O co chodzi",
-  what:"Po 1945 r. tysiące dworów w Polsce popadło w ruinę. Łączymy mapy historyczne, rejestr zabytków, ortofotomapy i dane o infrastrukturze i oceniamy każde miejsce pod kątem budowy nowego domu i remontu. Na mapie widać wsie.",whatShop:" Dokładna lokalizacja i wszystkie dane są w raporcie.",
+  what:"Po 1945 r. tysiące dworów w Polsce popadło w ruinę. Łączymy mapy historyczne, rejestr zabytków, ortofotomapy i dane o infrastrukturze i oceniamy każde miejsce pod kątem budowy nowego domu i remontu. Punkty pokazują dokładną lokalizację; okrąg oznacza, że znana jest tylko wieś.",whatShop:" Działka, mapy i wszystkie dane są w raporcie.",
   search:"Szukaj wsi (polska lub niemiecka nazwa) …",allRegions:"Wszystkie województwa",sites:"miejsc",villages:"wsi",
   dossierH:"Raport o lokalizacji",dossier:"Generowany automatycznie, PDF od razu po zakupie. Po niemiecku, z podsumowaniem po polsku dla gminy, notariusza lub architekta.",
   includes:"<li>dokładna lokalizacja, numer i powierzchnia działki</li><li>ortofotomapa i cieniowanie LiDAR z granicą działki</li><li>mapa uzbrojenia; odległość do linii energetycznej, drogi, sąsiadów, wody</li><li>ochrona przyrody, użytkowanie terenu, rejestr zabytków</li><li>oferta KOWR, jeśli istnieje</li><li>ocena z uzasadnieniem i lista kolejnych kroków</li><li>możliwości dofinansowania: dotacje konserwatora, ministerstwa, województwa i gminy</li>",
@@ -115,10 +119,13 @@ const T = {
   park:"park",reg:"zabytek",hist:"Mapa historyczna (Messtischblatt)",forSale:"na sprzedaż",
   status:{lost:"dwór nie istnieje",ruin:"ruina",standing:"budynek istnieje",unlocated:"lokalizacja we wsi niepewna",unknown:"nieustalony"},
   sources:"Dane: © współtwórcy OpenStreetMap (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Mapy historyczne: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj"},
+  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",
+  approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
+  private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
+  teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna."},
  en:{tagline:"Former manor houses in Poland – build where the manor stood, or save what is left",
   whatH:"What this is",
-  what:"After 1945 thousands of manor houses in Poland fell into ruin. We combine historical maps, the monument register, aerial imagery and infrastructure data and rate every site for a new build and for renovation. The map shows villages.",whatShop:" The exact location and all data are in the dossier.",
+  what:"After 1945 thousands of manor houses in Poland fell into ruin. We combine historical maps, the monument register, aerial imagery and infrastructure data and rate every site for a new build and for renovation. Dots show the exact site; a ring means only the village is known.",whatShop:" The parcel, maps and all data are in the dossier.",
   search:"Search village (Polish or German name) …",allRegions:"All voivodeships",sites:"sites",villages:"villages",
   dossierH:"The site dossier",dossier:"Generated automatically, PDF right after purchase. In German with a Polish summary for the municipality, notary or architect.",
   includes:"<li>exact location, parcel number and area</li><li>aerial photo and LiDAR relief with the parcel outline</li><li>utility map; distance to power line, road, neighbours, water</li><li>nature protection, land use, monument register</li><li>state sale offer (KOWR), if any</li><li>grade with explanation and a checklist of next steps</li><li>funding options: grants from the heritage conservator, the ministry of culture, the voivodeship and the municipality</li>",
@@ -129,7 +136,10 @@ const T = {
   park:"park",reg:"listed",hist:"Historical map (Messtischblatt)",forSale:"for sale",
   status:{lost:"manor gone",ruin:"ruin",standing:"building stands",unlocated:"position in village unclear",unknown:"unclear"},
   sources:"Data: © OpenStreetMap contributors (ODbL), National Heritage Institute (NID), GUGiK/Geoportal, GDOŚ, KOWR. Historical maps: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask"}
+  optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",
+  approx:"Location known only at village level – look for the estate on the Messtischblatt.",
+  private:"The building stands and is usually lived in: private property, please visit only with permission.",
+  teaser:"Site dossier (coming soon): parcel and area, aerial, LiDAR and utility maps with the parcel outline, distances, nature protection, funding and a checklist with a Polish summary."}
 };
 let lng = (()=>{try{return localStorage.getItem("lang")}catch(e){return null}})()
   || (navigator.language||"de").slice(0,2);
@@ -147,15 +157,19 @@ function buyUrl(id){
   return C.checkout + (C.checkout.includes("?")?"&":"?") + "checkout[custom][dossier]=" + encodeURIComponent(id)
          + "&checkout[locale]=" + lng;
 }
-function popup(v){
+const sg = s => mode === "new" ? s.grade : s.ren;           // a site's grade in the current mode
+function popup(v, sites){
   let h = `<b>${esc(v.v)}</b>${v.de?` <span class="small">(${esc(v.de)})</span>`:""}<br>
     <span class="small">gm. ${esc(v.gm)} · pow. ${esc(v.pw)}</span>`;
-  for(const s of v.sites){
+  if(!sites[0].lat) h += `<div class="small"><i>${esc(t("approx"))}</i></div>`;
+  for(const s of sites){
     const tags = [t("status")[s.status]||s.status, s.park?t("park"):"", s.registered?t("reg"):"", s.kowr?t("forSale"):""].filter(Boolean).join(" · ");
     h += `<div class="site"><span title="${esc(t("mNew"))}" class="g g${s.grade}">${s.grade}</span><span title="${esc(t("mRen"))}" class="g g${s.ren}">${s.ren}</span><span class="s">${esc(tags)}</span>
       ${C.shop ? `<a class="buy" href="${esc(buyUrl(s.id))}" target="_blank" rel="noopener">${t("buy")} ${esc(C.price)}</a>` : ""}</div>`;
+    if(s.status === "standing") h += `<div class="small">${esc(t("private"))}</div>`;
   }
-  h += `<div class="small">${esc(t("mNew"))} · ${esc(t("mRen"))}${C.shop ? "<br>" + esc(v.sites.map(s=>s.id).join(", ")) : ""}</div>`;
+  h += `<div class="small">${esc(t("mNew"))} · ${esc(t("mRen"))}${C.shop ? "<br>" + esc(sites.map(s=>s.id).join(", ")) : ""}</div>`;
+  if(!C.shop) h += `<div class="small teaser">${esc(t("teaser"))}</div>`;
   return h;
 }
 
@@ -190,21 +204,34 @@ for(const g of "ABCD"){
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ł/g,"l");
 function render(){
   const q = norm(document.getElementById("q").value), vv = vvSel.value;
-  const list = VV.filter(v => shown.has(vg(v)) && (!vv || v.vv===vv) && (!q || norm(v.v).includes(q) || norm(v.de).includes(q)));
+  const list = VV.filter(v => v.sites.some(s => shown.has(sg(s))) && (!vv || v.vv===vv) && (!q || norm(v.v).includes(q) || norm(v.de).includes(q)));
   markers.clearLayers();
+  let n = 0;
   for(const v of list){
-    const m = window.L.circleMarker([v.lat,v.lon], {radius: 5 + Math.min(4, v.sites.length), color:"#fff", weight:1.5, fillColor:COL[vg(v)], fillOpacity:.9})
-      .bindPopup(() => popup(v)).addTo(markers);
-    layers[v.v+v.gm] = m;
+    const sites = v.sites.filter(s => shown.has(sg(s)));
+    n += sites.length;
+    let first = null;
+    for(const s of sites.filter(s => s.lat)){              // located: a dot at the exact site
+      const m = window.L.circleMarker([s.lat,s.lon], {radius: 6, color:"#fff", weight:1.5, fillColor:COL[sg(s)], fillOpacity:.95})
+        .bindPopup(() => popup(v, [s])).addTo(markers);
+      first = first || m;
+    }
+    const approx = sites.filter(s => !s.lat);               // known only by village: a ring around the village
+    if(approx.length){
+      const best = approx.map(sg).sort()[0];
+      const m = window.L.circleMarker([v.lat,v.lon], {radius: 9, color:COL[best], weight:3, dashArray:"3 3", fillOpacity:0})
+        .bindPopup(() => popup(v, approx)).addTo(markers);
+      first = first || m;
+    }
+    layers[v.v+v.gm] = first;
   }
-  const n = list.reduce((a,v)=>a+v.sites.length,0);
   document.getElementById("count").textContent = `${list.length} ${t("villages")} · ${n} ${t("sites")}`;
   const ul = document.getElementById("list"); ul.innerHTML = "";
   list.sort((a,b) => vg(a).localeCompare(vg(b)) || a.v.localeCompare(b.v));
   for(const v of list.slice(0, 200)){
     const li = document.createElement("li");
     li.innerHTML = `<span class="g g${vg(v)}">${vg(v)}</span><span class="n">${esc(v.v)} ${v.de?`<span class="de">${esc(v.de)}</span>`:""}<br><span class="small">${esc(v.pw)}</span></span><span class="small">${v.sites.length}</span>`;
-    li.onclick = () => { map.setView([v.lat,v.lon], 13); layers[v.v+v.gm].openPopup(); };
+    li.onclick = () => { const m = layers[v.v+v.gm]; map.setView(m.getLatLng(), 15); m.openPopup(); };
     ul.appendChild(li);
   }
 }

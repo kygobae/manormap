@@ -550,3 +550,26 @@ def test_publish_without_shop(built):
 def test_public_village_names_are_places(precinct, name, commune, expected):
     from gutshaus.publish import village_of
     assert village_of({"precinct": precinct, "name": name, "commune": commune}) == expected
+
+
+def test_public_map_has_exact_sites_but_no_parcels(built, monkeypatch):
+    """Located sites carry their exact position (it is public in OSM and the register); sites known only by their
+    village do not. No parcel numbers. Analytics only with a token, and then the privacy text says so."""
+    import json, re
+    from gutshaus import config, grades
+    cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
+    pub = built / "site" / "public"
+    html = (pub / "index.html").read_text(encoding="utf-8")
+    data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
+    status = {grades.dossier_id(s["uid"]): s["status"] for s in grades.all_sites(built)}
+    items = [x for v in data["villages"] for x in v["sites"]]
+    assert items and all(("lat" in x) == (status[x["id"]] != "unlocated") for x in items)
+    assert any("lat" in x for x in items) and any("lat" not in x for x in items)
+    assert "cloudflareinsights" not in html
+    assert "keine Cookies und kein Tracking" in (pub / "legal.html").read_text(encoding="utf-8")
+    monkeypatch.setattr(config, "WEB_ANALYTICS_TOKEN", "abc123")
+    cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
+    html = (pub / "index.html").read_text(encoding="utf-8")
+    assert 'data-cf-beacon=\'{"token": "abc123"}\'' in html
+    legal = (pub / "legal.html").read_text(encoding="utf-8")
+    assert "Cloudflare Web Analytics" in legal and "kein Tracking" not in legal

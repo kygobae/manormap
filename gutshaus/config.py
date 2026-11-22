@@ -239,6 +239,9 @@ NEW_CAP_STANDING = "C"     # best new-build grade while the manor still stands (
 SHOP_ENABLED = False
 # Cloudflare project (Worker) name the site is deployed to; custom domains come from SITE_URL
 DEPLOY_NAME = "manormap"
+# Cloudflare Web Analytics site token (dashboard -> Analytics & Logs -> Web Analytics): cookie-free visitor counts.
+# Empty: no analytics script at all. The privacy text on legal.html follows this setting.
+WEB_ANALYTICS_TOKEN = ""
 # Legal notice (Impressum) lines for legal.html, e.g. ["Example Ltd", "Owner: Jane Doe", "Street 1, 00-000 City",
 # "NIP 0000000000"]. Personal data: set it in your private gutshaus.json, never here.
 LEGAL_NOTICE: list = []
