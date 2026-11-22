@@ -23,10 +23,20 @@ HERE = Path(__file__).parent
 DEPLOY = HERE / "deploy"
 
 
+def _is_place_name(v: str) -> bool:
+    """Town precincts are often just numbers ("04-02", "15", "Nr7", "Obręb 3"): not a place name."""
+    return bool(re.search(r"[^\W\d_]{3,}", v or "")) and not re.match(r"(?i)^(nr|obr[eę]b)\b", v.strip())
+
+
 def village_of(s: dict) -> str:
-    v = s.get("precinct")
-    if not v:  # "park dworski, Dąbrowa" -> "Dąbrowa"
-        v = s["name"].rsplit(",", 1)[-1].strip() if "," in s["name"] else s.get("commune") or s["name"]
+    # numbered precincts: "21 - Szczepanowice", "0001 Żagań", "026B Śródmieście", "1 M.słubice" (M. = miasto), "Prabuty - M"
+    v = re.sub(r"^\d+[A-Za-z]?(\s*[-–.]\s*|\s+)", "", (s.get("precinct") or "").strip())
+    v = re.sub(r"\s*-\s*M$", "", re.sub(r"^M\.\s*", "", v))
+    v = v[:1].upper() + v[1:]
+    if not _is_place_name(v):  # "park dworski, Dąbrowa" -> "Dąbrowa", else the municipality
+        v = s["name"].rsplit(",", 1)[-1].strip() if "," in s["name"] else ""
+        if not _is_place_name(v):
+            v = re.sub(r"\s*\((miasto|gmina [a-z-]+|obszar wiejski)\)", "", s.get("commune") or "").strip() or s["name"]
     return v
 
 

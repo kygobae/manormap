@@ -520,3 +520,23 @@ def test_publish_without_shop(built):
         config.LEGAL_NOTICE = []
     legal = (site / "public" / "legal.html").read_text(encoding="utf-8")
     assert "Muster GmbH<br>Musterstraße 1 &lt;b&gt;<br>NIP 123" in legal and "vor dem Start" not in legal
+
+
+
+@pytest.mark.parametrize("precinct,name,commune,expected", [
+    ("Przykładowo", "park dworski, Przykładowo", "Wzorowo", "Przykładowo"),
+    ("04-02", "park pałacowy, Radzymin", "Radzymin", "Radzymin"),          # number precinct: place from the name
+    ("15", "Pałac Potockich", "Międzyrzec Podlaski (miasto)", "Międzyrzec Podlaski"),
+    ("Nr7", "Dwór", "Skierniewice (miasto)", "Skierniewice"),
+    ("Obręb 3", "Dwór", "Wzorowo (gmina wiejska)", "Wzorowo"),
+    ("", "park dworski, Dąbrowa", "", "Dąbrowa"),
+    ("21 - Szczepanowice", "Dwór", "Wzorowo", "Szczepanowice"),           # numbered precinct
+    ("3-Centrum", "Dwór", "Stalowa Wola (miasto)", "Centrum"),
+    ("0001 Żagań", "Dwór", "Żagań (miasto)", "Żagań"),
+    ("026B Śródmieście", "Dwór", "Wzorowo", "Śródmieście"),
+    ("1 M.słubice", "Dwór", "Słubice (miasto)", "Słubice"),
+    ("0001 Prabuty - M", "Dwór", "Prabuty", "Prabuty"),
+])
+def test_public_village_names_are_places(precinct, name, commune, expected):
+    from gutshaus.publish import village_of
+    assert village_of({"precinct": precinct, "name": name, "commune": commune}) == expected
