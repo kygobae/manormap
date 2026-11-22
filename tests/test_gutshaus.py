@@ -573,3 +573,9 @@ def test_public_map_has_exact_sites_but_no_parcels(built, monkeypatch):
     assert 'data-cf-beacon=\'{"token": "abc123"}\'' in html
     legal = (pub / "legal.html").read_text(encoding="utf-8")
     assert "Cloudflare Web Analytics" in legal and "kein Tracking" not in legal
+    # Cloudflare injects the script itself: none from us, but the privacy text still says so
+    monkeypatch.setattr(config, "WEB_ANALYTICS_TOKEN", "")
+    monkeypatch.setattr(config, "WEB_ANALYTICS_AUTO", True)
+    cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
+    assert "cloudflareinsights" not in (pub / "index.html").read_text(encoding="utf-8")
+    assert "Cloudflare Web Analytics" in (pub / "legal.html").read_text(encoding="utf-8")

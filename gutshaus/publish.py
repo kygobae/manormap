@@ -114,7 +114,7 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
     legal = (HERE / "legal_template.html").read_text(encoding="utf-8")
     if not config.SHOP_ENABLED:  # no sales yet: drop purchase, withdrawal and order-data sections
         legal = re.sub(r"<!--SHOP-->.*?<!--/SHOP-->\n?", "", legal, flags=re.S)
-    if config.WEB_ANALYTICS_TOKEN:
+    if config.WEB_ANALYTICS_TOKEN or config.WEB_ANALYTICS_AUTO:
         legal = legal.replace("Diese Website setzt keine Cookies und kein Tracking ein.",
                               "Diese Website setzt keine Cookies ein. Für eine anonyme Besucherstatistik nutzen wir Cloudflare "
                               "Web Analytics: Es speichert keine IP-Adressen und erstellt keine Nutzerprofile; erfasst werden nur "
