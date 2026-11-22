@@ -242,6 +242,9 @@ DEPLOY_NAME = "manormap"
 # Cloudflare Web Analytics site token (dashboard -> Analytics & Logs -> Web Analytics): cookie-free visitor counts.
 # Empty: no analytics script at all. The privacy text on legal.html follows this setting.
 WEB_ANALYTICS_TOKEN = ""
+# True when Cloudflare injects Web Analytics itself (dashboard: Web Analytics -> "Enable", automatic injection):
+# no script from us, but the privacy text must still mention it.
+WEB_ANALYTICS_AUTO = False
 # Legal notice (Impressum) lines for legal.html, e.g. ["Example Ltd", "Owner: Jane Doe", "Street 1, 00-000 City",
 # "NIP 0000000000"]. Personal data: set it in your private gutshaus.json, never here.
 LEGAL_NOTICE: list = []
