@@ -579,3 +579,19 @@ def test_public_map_has_exact_sites_but_no_parcels(built, monkeypatch):
     cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
     assert "cloudflareinsights" not in (pub / "index.html").read_text(encoding="utf-8")
     assert "Cloudflare Web Analytics" in (pub / "legal.html").read_text(encoding="utf-8")
+
+
+def test_kowr_offer_shown_on_its_site(built, monkeypatch):
+    """A KOWR offer matched to a site is linked from that site (shown in its popup, one marker) instead of being a
+    separate dot; unmatched offers stay separate markers."""
+    import json, re
+    from gutshaus.sources import kowr
+    from fake_services import KOWR_CARDS
+    monkeypatch.setattr(kowr, "pdf_text", lambda raw: KOWR_CARDS[raw.decode()])
+    cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
+    html = (built / "site" / "public" / "index.html").read_text(encoding="utf-8")
+    data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
+    linked = [x for v in data["villages"] for x in v["sites"] if x.get("ku")]
+    urls = {o["url"] for o in data["kowr"]}
+    assert linked and all(x["ku"] in urls and x["kowr"] for x in linked)
+    assert 'id="kowrOnly"' in html and "MATCHED.has(o.url)" in html
