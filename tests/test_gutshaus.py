@@ -530,6 +530,8 @@ def test_publish_without_shop(built):
     ("Nr7", "Dwór", "Skierniewice (miasto)", "Skierniewice"),
     ("Obręb 3", "Dwór", "Wzorowo (gmina wiejska)", "Wzorowo"),
     ("", "park dworski, Dąbrowa", "", "Dąbrowa"),
+    ("21 - Szczepanowice", "Dwór", "Wzorowo", "Szczepanowice"),           # numbered precinct
+    ("3-Centrum", "Dwór", "Stalowa Wola (miasto)", "Centrum"),
 ])
 def test_public_village_names_are_places(precinct, name, commune, expected):
     from gutshaus.publish import village_of

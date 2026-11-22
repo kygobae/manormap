@@ -29,7 +29,7 @@ def _is_place_name(v: str) -> bool:
 
 
 def village_of(s: dict) -> str:
-    v = (s.get("precinct") or "").strip()
+    v = re.sub(r"^\d+\s*[-–.]\s*", "", (s.get("precinct") or "").strip())  # "21 - Szczepanowice" -> "Szczepanowice"
     if not _is_place_name(v):  # "park dworski, Dąbrowa" -> "Dąbrowa", else the municipality
         v = s["name"].rsplit(",", 1)[-1].strip() if "," in s["name"] else ""
         if not _is_place_name(v):
