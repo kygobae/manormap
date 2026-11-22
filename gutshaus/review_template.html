@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  :root { --ink:#1d2321; --muted:#6b736f; --line:#e2e0da; --bg:#faf8f4; --accent:#7a4b2a;
+  :root { --ink:#1d2321; --muted:#6b736f; --line:#e2e0da; --bg:#faf8f4; --accent:#33505f;
           --high:#1f7a4d; --possible:#c98a1b; --skip:#9aa19d; }
   * { box-sizing:border-box; }
   body { margin:0; font:13px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); display:flex; height:100vh; }
@@ -132,7 +132,7 @@ D.wms.forEach(w => {
 });
 (defaultBase || Object.values(bases)[0]).addTo(map);
 const areaLayer = L.geoJSON({type: "FeatureCollection", features: D.areas.map(g => ({type: "Feature", geometry: g}))},
-  {style: {color: "#7a4b2a", weight: 2, fill: false, dashArray: "4 4"}}).addTo(map);
+  {style: {color: "#33505f", weight: 2, fill: false, dashArray: "4 4"}}).addTo(map);
 const parcelLayer = L.layerGroup().addTo(map);
 const siteLayer = L.layerGroup().addTo(map);
 overlays["Parcels of shown sites (zoom 14+)"] = parcelLayer;
@@ -238,7 +238,7 @@ function drawParcels() {
   const sel = SITES.find(s => s.uid === selected);
   if (sel && !list.includes(sel)) list.push(sel);
   list.forEach(s => { if (s.parcel_ll) parcelLayer.addLayer(L.polygon(s.parcel_ll.map(([x, y]) => [y, x]),
-    {color: s.uid === selected ? "#b0302a" : "#7a4b2a", weight: s.uid === selected ? 3 : 1.5, fillOpacity: .06, interactive: false})); });
+    {color: s.uid === selected ? "#b0302a" : "#33505f", weight: s.uid === selected ? 3 : 1.5, fillOpacity: .06, interactive: false})); });
 }
 
 // ---------- popup ----------
