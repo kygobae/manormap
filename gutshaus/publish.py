@@ -59,10 +59,7 @@ def villages(sites: list[dict], reserved: set[str] = frozenset(), round_to: int 
     for (village, commune, powiat), members in groups.items():
         lat = sum(s["lat"] for _, s in members) / len(members)
         lon = sum(s["lon"] for _, s in members) / len(members)
-        items = sorted(({"id": did, "grade": grade_of(s), "ren": grade_of(s, "renovation"),
-                         "status": s.get("status", "unknown"),
-                         "park": bool(s.get("park")), "registered": bool(s.get("registered")),
-                         "kowr": bool(s.get("kowr_offer"))} for did, s in members), key=lambda d: d["grade"])
+        items = sorted((site_item(did, s) for did, s in members), key=lambda d: d["grade"])
         name_de = next((s["name_de"] for _, s in members if s.get("name_de")), "")
         out.append({"v": village, "de": name_de, "gm": commune, "pw": powiat,
                     "vv": members[0][1].get("voivodeship", ""),
@@ -70,6 +67,16 @@ def villages(sites: list[dict], reserved: set[str] = frozenset(), round_to: int 
                     "g": items[0]["grade"], "r": min(i["ren"] for i in items), "sites": items})
     out.sort(key=lambda v: (v["g"], v["v"]))
     return out
+
+
+def site_item(did: str, s: dict) -> dict:
+    """One site on the public map. Located sites carry their exact position (as in OSM and the register, which are
+    public); sites known only by their village do not. Never parcel numbers, owners or scores."""
+    item = {"id": did, "grade": grade_of(s), "ren": grade_of(s, "renovation"), "status": s.get("status", "unknown"),
+            "park": bool(s.get("park")), "registered": bool(s.get("registered")), "kowr": bool(s.get("kowr_offer"))}
+    if s.get("status") != "unlocated" and s.get("lat") is not None:
+        item["lat"], item["lon"] = round(s["lat"], 5), round(s["lon"], 5)
+    return item
 
 
 def offers(sites: list[dict], kowr_json: Path | None) -> list[dict]:
@@ -98,10 +105,20 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
                     "shop": bool(config.SHOP_ENABLED)}}
     html = (HERE / "site_template.html").read_text(encoding="utf-8")
     js = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    (pub / "index.html").write_text(html.replace("/*__DATA__*/null", js), encoding="utf-8")
+    page = html.replace("/*__DATA__*/null", js)
+    if config.WEB_ANALYTICS_TOKEN:  # Cloudflare Web Analytics: no cookies, no personal data, no consent banner needed
+        beacon = ('<script defer src="https://static.cloudflareinsights.com/beacon.min.js" '
+                  f"data-cf-beacon='{json.dumps({'token': str(config.WEB_ANALYTICS_TOKEN)})}'></script>")
+        page = page.replace("</body>", beacon + "\n</body>", 1)
+    (pub / "index.html").write_text(page, encoding="utf-8")
     legal = (HERE / "legal_template.html").read_text(encoding="utf-8")
     if not config.SHOP_ENABLED:  # no sales yet: drop purchase, withdrawal and order-data sections
         legal = re.sub(r"<!--SHOP-->.*?<!--/SHOP-->\n?", "", legal, flags=re.S)
+    if config.WEB_ANALYTICS_TOKEN:
+        legal = legal.replace("Diese Website setzt keine Cookies und kein Tracking ein.",
+                              "Diese Website setzt keine Cookies ein. Für eine anonyme Besucherstatistik nutzen wir Cloudflare "
+                              "Web Analytics: Es speichert keine IP-Adressen und erstellt keine Nutzerprofile; erfasst werden nur "
+                              "aufgerufene Seite, Herkunftsseite, Land und Gerätetyp.")
     if config.LEGAL_NOTICE:
         notice = "<br>".join(htmllib.escape(str(line)) for line in config.LEGAL_NOTICE)
         legal = re.sub(r'<p class="todo">.*?</p>', f"<p>{notice}</p>", legal, count=1, flags=re.S)
