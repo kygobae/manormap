@@ -532,6 +532,10 @@ def test_publish_without_shop(built):
     ("", "park dworski, Dąbrowa", "", "Dąbrowa"),
     ("21 - Szczepanowice", "Dwór", "Wzorowo", "Szczepanowice"),           # numbered precinct
     ("3-Centrum", "Dwór", "Stalowa Wola (miasto)", "Centrum"),
+    ("0001 Żagań", "Dwór", "Żagań (miasto)", "Żagań"),
+    ("026B Śródmieście", "Dwór", "Wzorowo", "Śródmieście"),
+    ("1 M.słubice", "Dwór", "Słubice (miasto)", "Słubice"),
+    ("0001 Prabuty - M", "Dwór", "Prabuty", "Prabuty"),
 ])
 def test_public_village_names_are_places(precinct, name, commune, expected):
     from gutshaus.publish import village_of
