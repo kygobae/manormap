@@ -700,6 +700,8 @@ def test_kowr_offer_shown_on_its_site(built, monkeypatch):
     located = [o for o in data["kowr"] if o.get("lat")]
     assert located and all(o["pl"] and o["pn"] >= 1 and 49 < o["pl"][0][0][0] < 55 for o in located)
     assert "drawOfferAreas" in html
+    # every site card can be shared as manormap.eu/#GF-…, and such a link opens the site
+    assert "data-share" in html and "openShared" in html and "/^GF-[0-9A-F]{8}$/i" in html
     assert 'id="kowrOnly"' in html and "MATCHED.has(o.id || o.url)" in html
 
 
