@@ -852,3 +852,33 @@ def test_village_entry_joins_only_a_site_in_its_own_village():
     assert len(sites) == 2 and next(s for s in sites if s["uid"] == "osm:way/2")["name"] == "Pałac Wiśniowa"
     own = {**palace, "uid": "osm:way/4", "name": "Dwór Sulisławice", "x": 200.0}
     assert len(merge([own, entry])) == 1
+
+
+def test_share_pages_give_link_previews(built, monkeypatch):
+    """manormap.eu/s/<ID>: one page per published site with its own preview (title, grades, image) that forwards
+    to the map; none for reserved sites; the Share button hands out these links."""
+    import json, re
+    from gutshaus import config, grades
+    monkeypatch.setattr(config, "SITE_URL", "https://example.org")
+    sites = grades.all_sites(built)
+    (built / "reserved.txt").write_text(sites[0]["uid"] + "\n", encoding="utf-8")
+    cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "reserved.txt")])
+    pub = built / "site" / "public"
+    html = (pub / "index.html").read_text(encoding="utf-8")
+    data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
+    ids = [x["id"] for v in data["villages"] for x in v["sites"]]
+    pages = {f.stem for f in (pub / "s").glob("GF-*.html")}
+    assert pages == set(ids) and grades.dossier_id(sites[0]["uid"]) not in pages
+    v = next(v for v in data["villages"] if v["sites"])
+    item = v["sites"][0]
+    page = (pub / "s" / f"{item['id']}.html").read_text(encoding="utf-8")
+    assert f'<meta property="og:url" content="https://example.org/s/{item["id"]}">' in page
+    assert 'content="https://example.org/og.png"' in page and f"Sanierung {item['ren']}" in page
+    assert f"Remont {item['ren']}" in page and v["v"] in page
+    assert f'url=/#{item["id"]}' in page and f'location.replace("/#{item["id"]}")' in page
+    assert (pub / "og.png").stat().st_size > 20000
+    assert '<meta property="og:image" content="https://example.org/og.png">' in html and "__SITE_URL__" not in html
+    assert 'new URL("s/" + id' in html
+    cfg = json.loads("\n".join(ln for ln in (built / "site" / "wrangler.jsonc").read_text(encoding="utf-8").splitlines()
+                               if not ln.startswith("//")))
+    assert cfg["assets"]["html_handling"] == "auto-trailing-slash"
