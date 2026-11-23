@@ -1,8 +1,9 @@
 """Public website: village-level map with grades and a buy button per site.
 
-No parcel numbers, exact positions or scores leave this machine: each village is
-shown at a rounded position with its sites' grades and status. KOWR offers are
-public anyway and are shown exactly. Sites listed in reserved.txt are left out.
+No parcel numbers, owners or scores leave this machine. Located sites are shown at their exact position with
+their parcel outline (parcels.json, loaded when zoomed in): both are public anyway (OSM, the monument register,
+Geoportal). Sites known only by their village are shown at the village. KOWR offers are shown exactly.
+Sites listed in reserved.txt are left out entirely.
 """
 from __future__ import annotations
 
@@ -81,6 +82,25 @@ def site_item(did: str, s: dict) -> dict:
     return item
 
 
+def parcel_outlines(villages_: list[dict], sites: list[dict]) -> dict[str, list]:
+    """Dossier ID -> parcel outline [[lat, lon], ...] (about 1 m precision) for the located sites on the map."""
+    from shapely.geometry import Polygon
+    from .geo import ll_to_pl, pl_to_ll
+    by_id = {dossier_id(s["uid"]): s for s in sites}
+    out = {}
+    for v in villages_:
+        for item in v["sites"]:
+            ring = (by_id.get(item["id"]) or {}).get("parcel_ll") or []
+            if "lat" not in item or len(ring) < 4:
+                continue
+            poly = Polygon([ll_to_pl(lon, lat) for lon, lat in ring]).simplify(1.0)
+            if poly.is_empty or poly.geom_type != "Polygon":
+                continue
+            out[item["id"]] = [[round(lat, 5), round(lon, 5)]
+                               for lon, lat in (pl_to_ll(x, y) for x, y in poly.exterior.coords)]
+    return out
+
+
 def offers(sites: list[dict], kowr_json: Path | None) -> list[dict]:
     if not kowr_json or not Path(kowr_json).exists():
         return []
@@ -115,6 +135,7 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
                   f"data-cf-beacon='{json.dumps({'token': str(config.WEB_ANALYTICS_TOKEN)})}'></script>")
         page = page.replace("</body>", beacon + "\n</body>", 1)
     (pub / "index.html").write_text(page, encoding="utf-8")
+    (pub / "parcels.json").write_text(json.dumps(parcel_outlines(vs, sites), separators=(",", ":")), encoding="utf-8")
     legal = (HERE / "legal_template.html").read_text(encoding="utf-8")
     if not config.SHOP_ENABLED:  # no sales yet: drop purchase, withdrawal and order-data sections
         legal = re.sub(r"<!--SHOP-->.*?<!--/SHOP-->\n?", "", legal, flags=re.S)

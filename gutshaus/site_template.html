@@ -206,16 +206,34 @@ function popup(v, sites){
 
 const map = window.L.map("map", {preferCanvas:true}).setView([52.1, 19.2], 6);
 const wms = (url, layers, o={}) => window.L.tileLayer.wms(url, Object.assign({layers, format:"image/png", transparent:true, version:"1.1.1"}, o));
-const topo = wms("https://mapy.geoportal.gov.pl/wss/service/img/guest/TOPO/MapServer/WMSServer","Raster",{transparent:false, attribution:"GUGiK / Geoportal"}).addTo(map);
 const ortho = wms("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution","Raster",{transparent:false, attribution:"GUGiK / Geoportal"});
-const osm = window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'});
+const osm = window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
 const mtb = wms("https://pastmaps.cenagis.edu.pl/geoserver/ihpan/wms","m25k_3857",{transparent:false, attribution:"IH PAN, pastmaps (CC BY-NC)"});
 const layers = {};
 const markers = window.L.layerGroup().addTo(map);
 const kowrLayer = window.L.layerGroup().addTo(map);
+// parcel outlines of the shown sites, from zoom 14 (parcels.json is loaded on first use)
+const parcelLayer = window.L.layerGroup().addTo(map);
+let PARCELS = null, shownSites = [];
+function drawParcels(){
+  parcelLayer.clearLayers();
+  if(map.getZoom() < 14) return;
+  if(PARCELS === null){
+    PARCELS = {};
+    fetch("parcels.json").then(r => r.ok ? r.json() : {}).then(d => { PARCELS = d; drawParcels(); }).catch(() => {});
+    return;
+  }
+  const b = map.getBounds().pad(0.2);
+  for(const s of shownSites){
+    const ring = PARCELS[s.id];
+    if(ring && b.contains([s.lat, s.lon]))
+      window.L.polygon(ring, {color:COL[sg(s)], weight:2, fillOpacity:.08, interactive:false}).addTo(parcelLayer);
+  }
+}
+map.on("zoomend moveend", drawParcels);
 function ctl(){
   if(map._ctl) map.removeControl(map._ctl);
-  map._ctl = window.L.control.layers({"Geoportal TOPO":topo, "OpenStreetMap":osm, "Orthophoto":ortho, [t("hist")]:mtb},
+  map._ctl = window.L.control.layers({"OpenStreetMap":osm, "Orthophoto (Geoportal)":ortho, [t("hist")]:mtb},
                                      {[t("kowr")]:kowrLayer}).addTo(map);
 }
 // KOWR offers matched to a site are shown on that site (badge + popup); only unmatched ones get their own marker
@@ -272,12 +290,14 @@ function render(){
                          && (!F.reg || s.registered) && (!F.ref || km(s, v, F) <= F.km);
   const list = VV.filter(v => v.sites.some(s => keep(s, v)) && (!vv || v.vv===vv) && (!q || norm(v.v).includes(q) || norm(v.de).includes(q)));
   markers.clearLayers();
+  shownSites = [];
   let n = 0;
   for(const v of list){
     const sites = v.sites.filter(s => keep(s, v));
     n += sites.length;
     let first = null;
     for(const s of sites.filter(s => s.lat)){              // located: a dot at the exact site
+      shownSites.push(s);
       const m = s.ku                                         // for sale: grade colour, pulsing ring, euro badge
         ? window.L.marker([s.lat,s.lon], {zIndexOffset: 1000, title: OFFERS[s.ku] ? OFFERS[s.ku].t : "",
             icon: window.L.divIcon({className:"", html:`<div class="kpin" style="--c:${COL[sg(s)]}"><span class="kbadge">${TAG("#fff", "#245b8f", 9)}</span></div>`, iconSize:[20,20], iconAnchor:[10,10], popupAnchor:[0,-10]})})
@@ -294,6 +314,7 @@ function render(){
     }
     layers[v.v+v.gm] = first;
   }
+  drawParcels();
   document.getElementById("count").textContent = `${list.length} ${t("villages")} · ${n} ${t("sites")}`;
   document.getElementById("nActive").textContent = F.active || "";
   const ul = document.getElementById("list"); ul.innerHTML = "";
@@ -359,8 +380,8 @@ function fromHash(){
   const p = location.hash.slice(1).split(",");
   if(p.length >= 3 && !isNaN(+p[0])){
     map.setView([+p[0], +p[1]], +p[2]);
-    if(p[3]==="messtischblatt"){ map.removeLayer(topo); map.removeLayer(ortho); mtb.addTo(map); }
-    if(p[3]==="ortho"){ map.removeLayer(topo); map.removeLayer(mtb); ortho.addTo(map); }
+    if(p[3]==="messtischblatt"){ map.removeLayer(osm); map.removeLayer(ortho); mtb.addTo(map); }
+    if(p[3]==="ortho"){ map.removeLayer(osm); map.removeLayer(mtb); ortho.addTo(map); }
   }
 }
 lang(lng); fromHash(); window.addEventListener("hashchange", fromHash);
