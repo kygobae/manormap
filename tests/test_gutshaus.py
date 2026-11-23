@@ -408,6 +408,11 @@ def test_kowr_real_cards():
     assert jas["obreb"] == "Jastrzębia" and jas["parcels"] == ["115/2"]   # "obręb i nr działki: Jastrzębia dz. 115/2 AM-2"
     gl = kowr.parse_card(next(v for k, v in cards.items() if "Glinka" in k))
     assert gl["area_ha"] == 9.6221 and gl["usable_m2"] == 980 and "403/9" in gl["parcels"]
+    # parcel lists over several lines: all of them, not only the first line (and no "AM-2" map sheet)
+    ryn = kowr.parse_card(next(v for k, v in cards.items() if "Rynarcice" in k))
+    assert len(ryn["parcels"]) == 13 and ryn["parcels"][-1] == "203/30"
+    mal = kowr.parse_card(next(v for k, v in cards.items() if "Małkowice" in k))
+    assert mal["parcels"][-1] == "1/72" and len(mal["parcels"]) == 9
 
 
 # ------------------------------------------------------------ cache + matching
@@ -691,6 +696,10 @@ def test_kowr_offer_shown_on_its_site(built, monkeypatch):
     ids = {o["id"] for o in data["kowr"]}
     assert linked and all(x["ku"] in ids and x["kowr"] for x in linked)
     assert all(o["past"] is False for o in data["kowr"])                   # fixture tenders lie in 2027 and 2099
+    # the whole tender area is drawn: outlines of the offer's parcels, [lat, lon] rings in Poland
+    located = [o for o in data["kowr"] if o.get("lat")]
+    assert located and all(o["pl"] and o["pn"] >= 1 and 49 < o["pl"][0][0][0] < 55 for o in located)
+    assert "drawOfferAreas" in html
     assert 'id="kowrOnly"' in html and "MATCHED.has(o.id || o.url)" in html
 
 

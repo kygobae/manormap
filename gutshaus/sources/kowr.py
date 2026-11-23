@@ -145,7 +145,9 @@ def parse_card(text: str) -> dict:
     t = clean_text(text)
     head = re.search(r"^\s*([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻ\- ]{2,}),\s*gm(?:ina|\.)\s*([^\n]+)", t, re.M)
     obreb = _one(r"obręb\s*:\s*([^\n]+)", t)
-    parcels_raw = _one(r"(?<!Powierzchnia )(?<!Pow\. )działk[ai]\s*(?:nr|numer)?\.?\s*:\s*([^\n]+)", t)
+    # the parcel list can run over several lines ("203/4, 203/5, …,\n203/9, …"): read it up to the next heading
+    parcels_raw = (_section(t, r"(?<!Powierzchnia )(?<!Pow\. )działk[ai]\s*(?:nr|numer)?\.?\s*:")
+                   or _one(r"(?<!Powierzchnia )(?<!Pow\. )działk[ai]\s*(?:nr|numer)?\.?\s*:\s*([^\n]+)", t))
     combo = _one(r"obręb i nr działk\w*\s*:\s*([^\n]+)", t)       # "Jastrzębia dz. 115/2 AM-2"
     if combo:
         obreb = obreb or re.split(r"\s+(?:dz\.|nr|\d)", combo, maxsplit=1)[0].strip(" ,")
@@ -230,8 +232,31 @@ def locate(http: Http, o: dict) -> None:
         o["lon"], o["lat"] = pl_to_ll(c.x, c.y)
         o["parcel_id"] = p["parcel_id"]
         o["located"] = "parcel"
+        outline_parcels(http, o, p)
     else:
         o["located"] = ""
+
+
+def outline_parcels(http: Http, o: dict, first: dict, max_parcels: int = 20) -> None:
+    """All parcels of the offer (a tender often sells the manor with its farmland): their outlines as
+    [[lon, lat], ...] rings (about 1 m precision) in o["parcels_ll"], their total area in o["parcels_ha"].
+    The parcels are looked up in the same gmina as the one already found, so a common obręb name does not
+    pull in another village's parcels."""
+    geoms = {first["parcel_id"]: first["parcel_geom"]}
+    for nr in list(dict.fromkeys(o.get("parcels") or []))[:max_parcels]:
+        if nr == first.get("parcel_no"):
+            continue
+        q = parcel_by_name(http, o["obreb"], nr, first.get("commune", ""), first.get("county", ""))
+        if q and q.get("parcel_geom") is not None and fold(q.get("commune", "")) == fold(first.get("commune", "")):
+            geoms[q["parcel_id"]] = q["parcel_geom"]
+    rings = []
+    for g in geoms.values():
+        for poly in getattr(g, "geoms", [g]):
+            ring = poly.simplify(1.0).exterior.coords
+            rings.append([[round(lon, 5), round(lat, 5)] for lon, lat in (pl_to_ll(x, y) for x, y in ring)])
+    o["parcels_ll"] = rings
+    o["parcels_found"] = len(geoms)
+    o["parcels_ha"] = round(sum(g.area for g in geoms.values()) / 10000, 2)
 
 
 def fetch(http: Http) -> list[dict]:

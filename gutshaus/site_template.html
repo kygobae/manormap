@@ -285,11 +285,11 @@ const T = {
 };
 // texts of the redesign (merged into T above)
 const T2 = {
- de:{dragHint:"Linie auf der Karte ziehen",tenderPast:"Der Ausschreibungstermin laut KOWR ({d}) ist vorbei; den nächsten Termin bei KOWR erfragen.",filtersBtn:"Filter & Liste",gradeF:"Note",close:"Schließen",cmpOn:"Damals & heute vergleichen",cmpOff:"Vergleich beenden",then:"Messtischblatt",now:"heute",
+ de:{offerPartial:" (davon {f} im Kataster gefunden und gezeichnet)",offerArea1:"1 Flurstück, {ha} ha – auf der Karte blau gestrichelt",offerArea:"{n} Flurstücke, {ha} ha – auf der Karte blau gestrichelt",dragHint:"Linie auf der Karte ziehen",tenderPast:"Der Ausschreibungstermin laut KOWR ({d}) ist vorbei; den nächsten Termin bei KOWR erfragen.",filtersBtn:"Filter & Liste",gradeF:"Note",close:"Schließen",cmpOn:"Damals & heute vergleichen",cmpOff:"Vergleich beenden",then:"Messtischblatt",now:"heute",
      onMtb:"Auf dem Messtischblatt vergleichen",lgStanding:"steht",lgRuin:"Ruine",lgLost:"verschwunden",lgUnknown:"unklar",lgVillage:"nur Dorf bekannt",deName:"deutsch"},
- pl:{dragHint:"Przeciągnij linię na mapie",tenderPast:"Podany przez KOWR termin przetargu ({d}) minął; o kolejny termin zapytaj KOWR.",filtersBtn:"Filtry i lista",gradeF:"Ocena",close:"Zamknij",cmpOn:"Porównaj dawniej i dziś",cmpOff:"Zakończ porównanie",then:"Messtischblatt",now:"dziś",
+ pl:{offerPartial:" (w ewidencji znaleziono i narysowano {f})",offerArea1:"1 działka, {ha} ha – na mapie niebieska linia przerywana",offerArea:"działki: {n}, {ha} ha – na mapie niebieska linia przerywana",dragHint:"Przeciągnij linię na mapie",tenderPast:"Podany przez KOWR termin przetargu ({d}) minął; o kolejny termin zapytaj KOWR.",filtersBtn:"Filtry i lista",gradeF:"Ocena",close:"Zamknij",cmpOn:"Porównaj dawniej i dziś",cmpOff:"Zakończ porównanie",then:"Messtischblatt",now:"dziś",
      onMtb:"Porównaj z mapą Messtischblatt",lgStanding:"istnieje",lgRuin:"ruina",lgLost:"nie istnieje",lgUnknown:"nieustalony",lgVillage:"znana tylko wieś",deName:"niem."},
- en:{dragHint:"Drag the line on the map",tenderPast:"KOWR's tender date ({d}) has passed; ask KOWR for the next one.",filtersBtn:"Filters & list",gradeF:"Grade",close:"Close",cmpOn:"Compare then & now",cmpOff:"End comparison",then:"Messtischblatt",now:"today",
+ en:{offerPartial:" ({f} of them found in the cadastre and drawn)",offerArea1:"1 parcel, {ha} ha – dashed blue on the map",offerArea:"{n} parcels, {ha} ha – dashed blue on the map",dragHint:"Drag the line on the map",tenderPast:"KOWR's tender date ({d}) has passed; ask KOWR for the next one.",filtersBtn:"Filters & list",gradeF:"Grade",close:"Close",cmpOn:"Compare then & now",cmpOff:"End comparison",then:"Messtischblatt",now:"today",
      onMtb:"Compare on the Messtischblatt",lgStanding:"stands",lgRuin:"ruin",lgLost:"gone",lgUnknown:"unclear",lgVillage:"village only",deName:"German"}};
 for(const l of Object.keys(T2)) Object.assign(T[l], T2[l]);
 
@@ -415,11 +415,27 @@ function cmpUi(){
 // KOWR offers matched to a site are shown on that site (badge + card); only unmatched ones get their own marker
 const OFFERS = Object.fromEntries(D.kowr.map(o => [o.id || o.url, o]));
 const MATCHED = new Set(VV.flatMap(v => v.sites.map(s => s.ku).filter(Boolean)));
+const ha = x => new Intl.NumberFormat(lng === "en" ? "en-GB" : lng, {maximumFractionDigits: 2}).format(x);
+const areaTxt = o => o.pl && o.pl.length
+  ? t((o.pn || o.pl.length) > 1 ? "offerArea" : "offerArea1").replace("{n}", o.pn || o.pl.length).replace("{ha}", ha(o.ha || o.pha))
+    + (o.pf && o.pn && o.pf < o.pn ? t("offerPartial").replace("{f}", o.pf) : "")
+  : (o.ha ? ha(o.ha) + " ha" : "");
 const offerHtml = o => `<div class="offer"><b>${TAG("#245b8f", "#eaf1f8", 12)}${esc(t("kowr"))}</b><br>${esc(o.t)}<br>`
-  + [o.ha ? esc(o.ha) + " ha" : "", o.reg ? esc(t("regL")) + " " + esc(o.reg) : ""].filter(Boolean).join(" · ")
+  + [esc(areaTxt(o)), o.reg ? esc(t("regL")) + " " + esc(o.reg) : ""].filter(Boolean).join(" · ")
   + (o.price ? `<br><b>${esc(t("priceL"))}: ${esc(zl(o.price))}</b>${o.disc ? ` · ${esc(t("discL"))} ${o.disc} %` : ""}` : "")
   + (o.tender ? `<br>${o.past ? `<i>${esc(t("tenderPast").replace("{d}", o.tender))}</i>` : `${esc(t("tender"))}: ${esc(o.tender)}`}` : "")
   + `<br><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(t(o.src === "schedule" ? "openSchedule" : "openCard"))}</a></div>`;
+// the tender area of every offer (all its parcels), dashed blue, from zoom 13
+const offerAreas = window.L.layerGroup().addTo(map);
+function drawOfferAreas(){
+  offerAreas.clearLayers();
+  if(map.getZoom() < 13) return;
+  const b = map.getBounds().pad(.3);
+  for(const o of D.kowr) if(o.pl && b.contains([o.lat, o.lon]))
+    for(const ring of o.pl)
+      window.L.polygon(ring, {color:"#245b8f", weight:2, dashArray:"6 5", fillColor:"#245b8f", fillOpacity:.07, interactive:false}).addTo(offerAreas);
+}
+map.on("zoomend moveend", drawOfferAreas);
 for(const o of D.kowr){
   if(MATCHED.has(o.id || o.url)) continue;
   window.L.marker([o.lat,o.lon], {title:o.t, icon: window.L.divIcon({className:"", html:`<div style="background:#245b8f;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25)">${TAG("#fff", "#245b8f", 13)}</div>`, iconSize:[24,24]})})
