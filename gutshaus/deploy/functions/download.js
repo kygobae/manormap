@@ -3,7 +3,7 @@
 const page = (title, text, refresh) => new Response(
   `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
   (refresh ? `<meta http-equiv="refresh" content="${refresh}">` : "") +
-  `<title>${title}</title><style>body{font:16px/1.6 system-ui,sans-serif;max-width:560px;margin:60px auto;padding:0 18px;color:#1d2321}h1{font-family:Georgia,serif;color:#7a4b2a}</style></head>` +
+  `<title>${title}</title><style>body{font:16px/1.6 system-ui,sans-serif;max-width:560px;margin:60px auto;padding:0 18px;color:#1d2321}h1{font-family:Georgia,serif;color:#33505f}</style></head>` +
   `<body><h1>${title}</h1><p>${text}</p></body></html>`,
   { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 
