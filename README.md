@@ -194,11 +194,11 @@ note and the order is logged in KV under `missing:<GF-ID>`.
 
 ## Future extensions
 
-- **KOWR monthly tender schedules.** Besides the heritage cards, each of KOWR's 16 regional branches publishes a monthly tender schedule ("harmonogram przetargów") as a PDF on gov.pl (e.g. [OT Szczecin](https://www.gov.pl/web/kowr/ot-szczecin2)). It covers all land KOWR sells or leases, including plots next to former manor sites that never get a heritage card. Each row gives the auction date, location (powiat/gmina/obręb/parcel numbers), possible use (MPZP/Studium), sale or lease, area and starting price; some branches also add GPS coordinates. **Why it isn't done yet:** every branch uses its own PDF layout, so this needs one parser per layout, or a general table extraction, plus validation against ULDK. **Plan:**
-  1. Collect the PDF links from the 16 branch pages.
-  2. Extract the rows and keep only sales.
-  3. Locate the parcels via ULDK.
-  4. Flag sites with a KOWR plot for sale within a set distance, and show the plots as their own map layer, with auction date and starting price.
+- **KOWR tender schedules: partly done.** `sources/kowr_schedules.py` reads the monthly tender schedules on the
+  branches' gov.pl pages (`ot-<branch>2`), keeps sales that mention a manor, palace, estate park or a monument
+  entry, and adds them to the KOWR offers with their starting price (cena wywoławcza) and any discount. It reads the
+  labelled, the slash and the bare-column layouts. Gaps: several branches (Białystok, Bydgoszcz, Częstochowa,
+  Gorzów, Kielce, Koszalin) publish no schedules on gov.pl, and new layouts may need another pattern.
 
 ## Contributing
 
