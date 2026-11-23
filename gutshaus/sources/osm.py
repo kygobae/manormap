@@ -401,6 +401,66 @@ def poland_outline(op: Overpass, tolerance_deg: float = 0.01):
 
 
 
+def poi_kind(tags: dict) -> str | None:
+    """The kind of a point of interest for config.SURROUNDINGS_RADIUS_M, or None."""
+    if tags.get("power") == "generator" and tags.get("generator:source") == "wind":
+        return "wind"
+    if tags.get("railway") in ("station", "halt"):
+        return "station"
+    a = tags.get("amenity")
+    if a == "school":
+        return "school"
+    if a in ("doctors", "clinic", "hospital"):
+        return "doctor"
+    if a == "pharmacy":
+        return "pharmacy"
+    if tags.get("shop") in ("supermarket", "convenience"):
+        return "shop"
+    return None
+
+
+def summarise_surroundings(here: Point, found: list[tuple[str, str, float]]) -> dict:
+    """[(kind, name, distance m)] -> {kind: {"count", "nearest_m", "name"}} within each kind's radius."""
+    out = {}
+    for kind, r in config.SURROUNDINGS_RADIUS_M.items():
+        hits = sorted((d, n) for k, n, d in found if k == kind and d <= r)
+        out[kind] = {"count": len(hits), "nearest_m": round(hits[0][0]) if hits else None,
+                     "name": hits[0][1] if hits else ""}
+    return out
+
+
+def surroundings(op: Overpass, lon: float, lat: float) -> dict:
+    R = config.SURROUNDINGS_RADIUS_M
+    at = f"{lat:.6f},{lon:.6f}"
+    q = (f'[out:json][timeout:120];('
+         f'nwr["power"="generator"]["generator:source"="wind"](around:{R["wind"]},{at});'
+         f'nwr["railway"~"^(station|halt)$"](around:{R["station"]},{at});'
+         f'nwr["amenity"~"^(school|doctors|clinic|hospital|pharmacy)$"](around:{R["school"]},{at});'
+         f'nwr["shop"~"^(supermarket|convenience)$"](around:{R["shop"]},{at});'
+         f'way["highway"~"^({"|".join(config.MAIN_ROADS)})$"](around:{R["main_road"]},{at});'
+         f'way["railway"="rail"](around:{R["railway"]},{at}););out tags geom qt;')
+    here = Point(*ll_to_pl(lon, lat))
+    found = []
+    for e in op.query(q).get("elements", []):
+        tags = e.get("tags", {})
+        kind = poi_kind(tags)
+        if tags.get("highway") in config.MAIN_ROADS:
+            kind = "main_road"
+        elif tags.get("railway") == "rail":
+            kind = None if tags.get("service") else "railway"
+        if not kind:
+            continue
+        if "lat" in e:
+            g = Point(*ll_to_pl(e["lon"], e["lat"]))
+        elif e.get("geometry"):
+            pts = [ll_to_pl(c["lon"], c["lat"]) for c in e["geometry"] if c]
+            g = LineString(pts) if len(pts) > 1 else Point(pts[0])
+        else:
+            continue
+        found.append((kind, tags.get("name", ""), here.distance(g)))
+    return summarise_surroundings(here, found)
+
+
 class OverpassOSM:
     """OSM backend using the public Overpass API (no download needed, but slow for big runs)."""
 
@@ -433,3 +493,6 @@ class OverpassOSM:
 
     def towns(self, area_pl):
         return towns(self.op, area_pl)
+
+    def surroundings(self, lon: float, lat: float) -> dict:
+        return surroundings(self.op, lon, lat)
