@@ -194,11 +194,12 @@ note and the order is logged in KV under `missing:<GF-ID>`.
 
 ## Future extensions
 
-- **KOWR tender schedules: partly done.** `sources/kowr_schedules.py` reads the monthly tender schedules on the
+- **KOWR tender schedules: done, with gaps.** `sources/kowr_schedules.py` reads the monthly tender schedules on the
   branches' gov.pl pages (`ot-<branch>2`), keeps sales that mention a manor, palace, estate park or a monument
   entry, and adds them to the KOWR offers with their starting price (cena wywoławcza) and any discount. It reads the
-  labelled, the slash and the bare-column layouts. Gaps: several branches (Białystok, Bydgoszcz, Częstochowa,
-  Gorzów, Kielce, Koszalin) publish no schedules on gov.pl, and new layouts may need another pattern.
+  labelled, the slash and the bare-column layouts, for all 17 branches (found via `/web/kowr/harmonogramy`).
+  Gaps: Warszawa's schedule table is an image inside the PDF (would need OCR), and new layouts may need another
+  pattern; a branch without a readable schedule is logged.
 
 ## Contributing
 

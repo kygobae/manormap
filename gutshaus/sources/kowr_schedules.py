@@ -1,8 +1,9 @@
 """Manors in KOWR's monthly tender schedules (harmonogram przetargów).
 
 Only KOWR's Wrocław branch publishes heritage property cards (see kowr.py). The other branches list everything they
-sell or lease in monthly tender schedules (PDF) on their gov.pl pages (`/web/kowr/ot-<branch>2`), each with its own
-table layout. Instead of one parser per layout we:
+sell or lease in monthly tender schedules (PDF) on their gov.pl pages, each with its own table layout. The pages are
+found via KOWR's overview `/web/kowr/harmonogramy` (their names vary: ot-koszalin1, ot-bialystok3, ...).
+Instead of one parser per layout we:
 
 1. split a schedule's text into rows at each tender date ("03.11.2026 10:00"),
 2. keep sale rows that mention a manor, palace, estate park or a monument register entry,
@@ -25,12 +26,13 @@ from ..http import Http
 
 log = logging.getLogger(__name__)
 
-BRANCH_URL = "https://www.gov.pl/web/kowr/ot-{branch}2"
+INDEX_URL = "https://www.gov.pl/web/kowr/harmonogramy"      # links every branch's schedule page
+BRANCH_URL = "https://www.gov.pl/web/kowr/ot-{branch}2"      # fallback name pattern
 SUBPAGE_RE = re.compile(r'href="(/web/kowr/harmonogram-przetargow-[^"#?]+)"')
 ATTACH_RE = re.compile(r'href="(?P<url>(?:https://www\.gov\.pl)?/attachment/[0-9a-f-]{36})"[^>]*>(?P<title>.*?)</a>', re.S)
 SCHEDULE_TITLE = re.compile(r"(?i)harm|przetarg")       # "Harmonogram …", "harm_rawski_2026-11" (Łódź)
 
-ROW_START = re.compile(r"\b(\d{1,2}\.\d{2}\.\d{4})\s*(?:r\.?)?,?\s*(?:godz\.?\s*)?(\d{1,2}[:.]\d{2})")
+ROW_START = re.compile(r"\b(\d{1,2}[.\-]\d{2}[.\-]\d{4})\s*(?:r\.?)?,?\s*(?:godz\.?\s*)?(\d{1,2}[:.]\d{2})")  # "05-11-2026" (Łódź)
 # A manor, not a place name: "dwór"/"dworski"/"folwark" in lower case as words of their own ("Nowy Dwór Gdański",
 # powiat "nowodworski", "Kuków-Folwark" are places); "zabytkowy" only with a register entry or a building type.
 HERITAGE = re.compile(r"(?i:rejestr\w*\s+zabytk|wpisan\w*\s+do\s+rejestru|zabytkow\w*\s+(?:dw|pa[lł]|park|zesp|obiekt|budyn))"
@@ -42,7 +44,7 @@ PRICE = re.compile(r"(\d{1,3}(?:[  ]\d{3})*,\d{2})\s*z[lł]")
 AREA = re.compile(r"(?<![\d,])(\d{1,4},\d{4})(?!\d)")                # hectares with four decimals
 # "pod nr A-88", "nr 123/45", or a bare "A-1950": a register number needs "nr" or a letter prefix, so the
 # price after "rejestru zabytków 24 400,00 zł" is not taken for one
-REGISTER = re.compile(r"(?i:rejestr\w*\s+zabytk\w*)\s*(?:(?i:pod)\s+)?(?:(?i:nr)\.?\s*([A-Z]{0,3}-?\s?\d[\w/\-.]*)|([A-Z]{1,3}-\d[\w/\-.]*))")
+REGISTER = re.compile(r"(?i:rejestr\w*\s+zabytk\w*)\s*(?:(?i:pod)\s+)?(?:(?i:nr)\.?\s*([A-Z]{0,3}[\-/]?\s?\d[\w/\-.]*)|([A-Z]{1,3}[\-/]\d[\w/\-.]*))")  # "A-88", "A/123"
 MODE = re.compile(r"(?i)(ustny|pisemny)?\s*(nieograniczony|ograniczony)")
 POWIAT_ADJ = re.compile(r"\b([a-ząćęłńóśźż]+(?:ski|cki|zki))\b")     # bare-column layouts: "kętrzyński"
 # slash layout (Wrocław, Malbork): "DOLNOŚLĄSKIE (2)/ świdnicki (19)/ Dobromierz (3_2)/ Szymanów (12)/ 289/8, 289/7,"
@@ -94,7 +96,7 @@ def parse_row(row: str) -> dict | None:
     mode = MODE.search(flat)
     area = AREA.search(flat)
     out = {
-        "date": d.group(1) if d else "", "time": d.group(2).replace(".", ":") if d else "",
+        "date": d.group(1).replace("-", ".") if d else "", "time": d.group(2).replace(".", ":") if d else "",
         "powiat": lab["powiat"], "gmina": lab["gmina"], "obreb": lab["obreb"],
         "parcels": re.findall(r"\b\d{1,5}(?:/\d{1,4})?\b", re.sub(r"\bAM-?\s*\d+\b", " ", parcels_txt)),
         "kind": re.sub(r"\s+", " ", kind.group(1)).strip() if kind else "",
@@ -167,12 +169,33 @@ def _attachments(page: str) -> list[tuple[str, str]]:
     return out
 
 
+def branch_pages(http: Http) -> list[tuple[str, str]]:
+    """[(branch, url)] from KOWR's overview of all branch schedule pages. Their names differ ("ot-koszalin1",
+    "ot-bialystok3", "ot-gorzow-wlkp---zielona-gora"), so they are read from there rather than guessed; if the
+    overview is unavailable, fall back to config.KOWR_BRANCHES with the common "ot-<branch>2" name."""
+    try:
+        page = http.get(INDEX_URL, cache=False).decode("utf-8", "ignore")
+        found = []
+        for path, text in re.findall(r'href="(/web/kowr/ot-[^"#?]+)"[^>]*>(.*?)</a>', page, re.S):
+            name = re.sub(r"\s+", " ", htmllib.unescape(re.sub(r"<[^>]+>", " ", text))).strip() or path.rsplit("/", 1)[-1]
+            if ("https://www.gov.pl" + path) not in {u for _, u in found}:
+                found.append((name, "https://www.gov.pl" + path))
+        if found:
+            return found
+        log.warning("KOWR schedules: no branch links on %s; using the configured branches", INDEX_URL)
+    except Exception as e:
+        log.warning("KOWR schedules: overview %s unavailable (%s); using the configured branches", INDEX_URL, e)
+    return [(b, BRANCH_URL.format(branch=b)) for b in config.KOWR_BRANCHES]
+
+
 def schedule_pdfs(http: Http, branches=None, per_page: int = 4) -> list[dict]:
-    """[{branch, title, url}] of the newest schedules on each branch page (and on monthly subpages, as in Poznań)."""
-    found = []
-    for b in branches or config.KOWR_BRANCHES:
+    """[{branch, title, url}] of the newest schedules on each branch page (and on monthly subpages, as in Poznań).
+    `branches`: config-style branch names to read instead of the overview (e.g. for a quick look at one branch)."""
+    found, empty = [], []
+    pages = [(b, BRANCH_URL.format(branch=b)) for b in branches] if branches else branch_pages(http)
+    for b, url in pages:
         try:
-            page = http.get(BRANCH_URL.format(branch=b), cache=False).decode("utf-8", "ignore")
+            page = http.get(url, cache=False).decode("utf-8", "ignore")
         except Exception as e:
             log.warning("KOWR %s: branch page unavailable (%s)", b, e)
             continue
@@ -185,8 +208,12 @@ def schedule_pdfs(http: Http, branches=None, per_page: int = 4) -> list[dict]:
             except Exception as e:
                 log.warning("KOWR %s: %s unavailable (%s)", b, sub, e)
         found += [{"branch": b, "title": t, "url": u} for u, t in pdfs]
+        if not pdfs:
+            empty.append(b)
         time.sleep(config.KOWR_PAUSE_S)
-    log.info("KOWR schedules: %d PDFs from %d branches", len(found), len({f["branch"] for f in found}))
+    log.info("KOWR schedules: %d PDFs from %d of %d branches", len(found), len({f["branch"] for f in found}), len(pages))
+    if empty:
+        log.warning("KOWR schedules: no schedule found for %s (page layout changed?)", ", ".join(empty))
     return found
 
 

@@ -246,6 +246,8 @@ class FakeHttp:
                     return uldk_response(f"{x},{y},2180")
                 return b"-1 brak wynikow"
             return uldk_response(params["xy"])
+        if "gov.pl/web/kowr/harmonogramy" in url:   # overview of the branch schedule pages (names vary)
+            return '<a href="/web/kowr/ot-koszalin1">OT Koszalin</a>'.encode()
         if "gov.pl/web/kowr/ot-" in url:   # branch page with its tender schedule
             return ('<a href="/attachment/33333333-3333-3333-3333-333333333333">Harmonogram przetargów '
                     'listopad 2026<span>harmonogram.pdf</span></a>').encode()
