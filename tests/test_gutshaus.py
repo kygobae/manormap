@@ -641,3 +641,17 @@ def test_schedule_rows(row, expect):
         assert o is None
     else:
         assert {k: o.get(k) for k in expect} == expect
+
+
+def test_public_filters(built):
+    """The map's filters: grade, condition, features and distance all narrow the result together (AND), and the
+    distance filter has the reference cities."""
+    import json, re
+    from gutshaus import config
+    cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
+    html = (built / "site" / "public" / "index.html").read_text(encoding="utf-8")
+    for el in ('id="kowrOnly"', 'id="parkOnly"', 'id="regOnly"', 'id="statuses"', 'id="ref"', 'id="km"', 'id="reset"'):
+        assert el in html, el
+    assert "shown.has(sg(s)) && F.status.has(s.status) && (!F.kowr || s.ku)" in html      # AND, not "KOWR overrides grade"
+    data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
+    assert data["cfg"]["refs"]["Berlin"] == list(config.REFERENCE_POINTS["Berlin"])

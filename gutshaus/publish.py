@@ -106,7 +106,7 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
             "cfg": {"name": config.SITE_NAME, "name_de": config.SITE_NAME_DE, "url": config.SITE_URL, "price": config.DOSSIER_PRICE,
                     "checkout": config.CHECKOUT_URL, "email": config.CONTACT_EMAIL,
                     "status_de": STATUS_DE, "sample": bool(sample_pdf) and config.SHOP_ENABLED,
-                    "shop": bool(config.SHOP_ENABLED)}}
+                    "shop": bool(config.SHOP_ENABLED), "refs": config.REFERENCE_POINTS}}
     html = (HERE / "site_template.html").read_text(encoding="utf-8")
     js = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     page = html.replace("/*__DATA__*/null", js)
