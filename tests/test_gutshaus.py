@@ -882,3 +882,21 @@ def test_share_pages_give_link_previews(built, monkeypatch):
     cfg = json.loads("\n".join(ln for ln in (built / "site" / "wrangler.jsonc").read_text(encoding="utf-8").splitlines()
                                if not ln.startswith("//")))
     assert cfg["assets"]["html_handling"] == "auto-trailing-slash"
+
+
+def test_status_overrides_from_the_ground(built, monkeypatch):
+    """STATUS_OVERRIDES corrects a site's state (an OSM 'Ruiny …' where only foundations remain); the grades follow
+    and the note reaches sites.json for the dossier. Foundations alone are no ruin evidence."""
+    import json
+    from gutshaus import config, grades
+    from gutshaus.classify import ruin_evidence
+    assert not ruin_evidence("pozostały fundamenty dworu | dwór") or ruin_evidence("ruiny dworu | dwór")
+    assert not ruin_evidence("fundamenty dworu | dwór | XIX w.")
+    ruin = next(s for s in grades.all_sites(built) if s["status"] == "ruin")
+    did = grades.dossier_id(ruin["uid"])
+    monkeypatch.setattr(config, "STATUS_OVERRIDES", {did: {"status": "lost", "note": "nur Fundamente erhalten"}})
+    cli.main(["--out-root", str(built), "build"])
+    s = next(x for x in json.loads((built / "poland" / "sites.json").read_text(encoding="utf-8"))["sites"]
+             if x["uid"] == ruin["uid"])
+    assert s["status"] == "lost" and s["status_data"] == "ruin" and s["status_note"] == "nur Fundamente erhalten"
+    assert grades.grade_of(s, "renovation") >= "C"                                 # nothing left to renovate: capped

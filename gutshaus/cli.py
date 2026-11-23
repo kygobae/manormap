@@ -210,6 +210,8 @@ def cmd_build(args):
             s.pop(k, None)
     if offers:
         kowr.match(sites, offers)
+    n_fixed = apply_status_overrides(sites, config.STATUS_OVERRIDES)
+    if offers or n_fixed:
         for s in sites:
             s.update(criteria.compute(s))
             s["score"], s["why"] = criteria.score(s), criteria.explain(s)
@@ -226,6 +228,27 @@ def cmd_build(args):
     outputs.write_index(root)
     print(f"{len(sites)} sites from {len(files)} powiats -> {out / 'review.html'}", flush=True)
     print(f"Start page: {root / 'index.html'}", flush=True)
+
+
+def apply_status_overrides(sites: list[dict], overrides: dict) -> int:
+    """config.STATUS_OVERRIDES: the state of a site as known on the ground (dossier ID or uid -> status, note)."""
+    from .grades import dossier_id
+    if not overrides:
+        return 0
+    n = 0
+    for s in sites:
+        o = overrides.get(dossier_id(s["uid"])) or overrides.get(s["uid"])
+        if not o:
+            continue
+        o = {"status": o} if isinstance(o, str) else o
+        if o.get("status"):
+            s["status_data"] = s.get("status_data") or s["status"]      # what the data said
+            s["status"] = o["status"]
+        s["status_note"] = o.get("note", "")
+        n += 1
+    if n:
+        log.info("Status corrected for %d site(s) from STATUS_OVERRIDES", n)
+    return n
 
 
 def cmd_powiats(args):

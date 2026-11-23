@@ -145,7 +145,8 @@ ESTATE_PATTERN = re.compile(
 )
 PARK_PATTERN = re.compile(r"park|ogr[oó]d", re.IGNORECASE)
 # Ruin words; they only count next to the house ("ruiny dworu"), see classify.ruin_evidence
-RUIN_PATTERN = re.compile(r"ruin|relikt|pozosta[lł]o|resztk|fundament", re.IGNORECASE)
+# Foundations alone are not a ruin: nothing stands, the site counts as lost (the dossier mentions remains)
+RUIN_PATTERN = re.compile(r"ruin|relikt|pozosta[lł]o|resztk", re.IGNORECASE)
 # Things we never want even if a keyword matches
 EXCLUDE_PATTERN = re.compile(
     r"ko[sś]ci[oó][lł]|cmentarz|kaplic|plebani|szko[lł]|dworzec|stacj|"
@@ -282,3 +283,7 @@ CHECKOUT_URL = ""
 CONTACT_EMAIL = ""
 # Sites kept off the public site (and out of bulk dossier runs) (one GF-ID or uid per line)
 RESERVED_FILE = "reserved.txt"
+# Corrections from knowledge on the ground, applied by `gutshaus build`: dossier ID or uid ->
+# {"status": "lost" | "ruin" | "standing" | "unknown", "note": "what is there"}. The data can be wrong (an OSM
+# object called "Ruiny …" where only foundations remain). Set them in your private gutshaus.json.
+STATUS_OVERRIDES: dict = {}
