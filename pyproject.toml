@@ -40,4 +40,4 @@ gutshaus = "gutshaus.cli:main"
 include = ["gutshaus*"]
 
 [tool.setuptools.package-data]
-gutshaus = ["*.html", "deploy/*", "deploy/functions/*"]
+gutshaus = ["*.html", "deploy/*", "deploy/functions/*", "fonts/*"]

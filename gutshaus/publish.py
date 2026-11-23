@@ -152,6 +152,8 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
     (pub / "legal.html").write_text(legal.replace("{{NAME}}", config.SITE_NAME).replace("{{EMAIL}}", config.CONTACT_EMAIL or "–"),
                                     encoding="utf-8")
     (pub / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8")
+    # the display face is served from the site itself: no font requests to third parties (GDPR)
+    shutil.copytree(HERE / "fonts", pub / "fonts")
     if sample_pdf and config.SHOP_ENABLED:
         shutil.copy(sample_pdf, pub / "sample.pdf")
     # Cloudflare Pages Functions (webhook + download): only with the shop; without it the site is purely static

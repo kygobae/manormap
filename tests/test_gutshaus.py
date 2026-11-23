@@ -643,6 +643,9 @@ def test_public_map_has_exact_sites_and_outlines_but_no_parcel_numbers(built, mo
     html = (pub / "index.html").read_text(encoding="utf-8")
     # OpenStreetMap by default (the site is served over https), plus orthophoto and Messtischblatt; no Geoportal TOPO
     assert "tile.openstreetmap.org" in html and "TOPO" not in html
+    # the display font is served by the site itself: no requests to Google Fonts (GDPR)
+    assert (pub / "fonts" / "fraunces-latin-ext-wght-normal.woff2").stat().st_size > 10000
+    assert "fonts.googleapis" not in html and "fonts.gstatic" not in html
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     status = {grades.dossier_id(s["uid"]): s["status"] for s in grades.all_sites(built)}
     items = [x for v in data["villages"] for x in v["sites"]]
