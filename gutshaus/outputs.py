@@ -141,7 +141,7 @@ def write_gpkg(sites: list[dict], area_ll, path: Path):
 def write_html(sites: list[dict], title: str, path: Path, areas_ll: list | None = None,
                poland: dict | None = None, index_href: str | None = None, offers: list | None = None):
     """sites: serialised dicts. areas_ll: search-area outlines (lon/lat geometries)."""
-    keep = set(csv_cols()) | {"parcel_ll", "text"}
+    keep = set(csv_cols()) | {"parcel_ll", "text", "status_note", "status_data"}
     data = {
         "title": title,
         "sites": [{k: v for k, v in s.items() if k in keep} for s in sites],
