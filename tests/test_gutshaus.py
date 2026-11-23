@@ -630,6 +630,10 @@ def test_kowr_tender_schedules(tmp_path, monkeypatch):
      "ograniczony nieużytki na dz. 33/15, 40/5 zespół pałacowo-parkowy wpisany do rejestru zabytków pod nr A-88 "
      "51,7914 2 468 000,00 zł", {"obreb": "Konotop", "heritage_parcels": ["33/15", "40/5"], "register": "A-88",
                                  "kind": "zespół pałacowo-parkowy", "price_pln": 2468000.0}),
+    # Łódź: dates with hyphens, upper-case "SPRZEDAŻ"
+    ("25-11-2026 12:00 KOWR bełchatowski Kleszczów Wola Grzymalina 12/3 SPRZEDAŻ nieograniczony nierolna zabudowana "
+     "dwór wpisany do rejestru zabytków pod nr A/123 2,5000 410 000,00", {"date": "25.11.2026", "kind": "dwór",
+                                                                       "register": "A/123", "parcels": ["12/3"]}),
     # place names are not manors: "Nowy Dwór Gdański", powiat "nowodworski"
     ("17.11.2026 09:00 SZ Malbork POMORSKIE (22)/ nowodworski (10)/ Nowy Dwór Gdański (2_5)/ Stobna (18)/ 1/51, "
      "sprzedaż licytacja przetarg nieograniczony NN-nierolna niezabudowana 0,1395 74500", None),
@@ -655,3 +659,21 @@ def test_public_filters(built):
     assert "shown.has(sg(s)) && F.status.has(s.status) && (!F.kowr || s.ku)" in html      # AND, not "KOWR overrides grade"
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     assert data["cfg"]["refs"]["Berlin"] == list(config.REFERENCE_POINTS["Berlin"])
+
+
+
+def test_kowr_branch_pages_from_overview(monkeypatch):
+    """Branch schedule pages are read from KOWR's overview (their names vary), with the configured names as fallback."""
+    from gutshaus.sources import kowr_schedules as ks
+    FakeHttp.calls = []
+    assert ks.branch_pages(FakeHttp()) == [("OT Koszalin", "https://www.gov.pl/web/kowr/ot-koszalin1")]
+    pdfs = ks.schedule_pdfs(FakeHttp())
+    assert pdfs and pdfs[0]["branch"] == "OT Koszalin"
+    assert any("ot-koszalin1" in c[1] for c in FakeHttp.calls)
+
+    class NoOverview(FakeHttp):
+        def get(self, url, params=None, **kw):
+            if "harmonogramy" in url:
+                raise RuntimeError("down")
+            return super().get(url, params, **kw)
+    assert ks.branch_pages(NoOverview()) == [("szczecin", "https://www.gov.pl/web/kowr/ot-szczecin2")]

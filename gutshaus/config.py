@@ -180,7 +180,8 @@ HTTP_TIMEOUT = (15, 180)   # (connect, read) seconds
 USER_AGENT = "gutshaus-finder/0.2 (+https://github.com/kygobae/manormap)"
 CONTEXT_BATCH = 40           # candidates per Overpass context query
 KOWR_MATCH_RADIUS_M = 500    # a KOWR offer this close to a site counts as "for sale"
-# KOWR branches whose monthly tender schedules are read (gov.pl/web/kowr/ot-<branch>2); Wrocław also has cards
+# KOWR branches, only used if the overview gov.pl/web/kowr/harmonogramy (which links every branch's schedule page)
+# is unavailable: then gov.pl/web/kowr/ot-<branch>2 is tried. Wrocław also has heritage cards.
 KOWR_BRANCHES = ["bialystok", "bydgoszcz", "czestochowa", "gorzow", "kielce", "koszalin", "krakow", "lodz", "lublin",
                  "olsztyn", "opole", "poznan", "pruszcz-gdanski", "rzeszow", "szczecin", "warszawa", "wroclaw"]
 KOWR_PAUSE_S = 1.0           # politeness pause between gov.pl requests
