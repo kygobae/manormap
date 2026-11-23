@@ -561,6 +561,8 @@ def test_public_map_has_exact_sites_but_no_parcels(built, monkeypatch):
     cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
     pub = built / "site" / "public"
     html = (pub / "index.html").read_text(encoding="utf-8")
+    # OpenStreetMap by default (the site is served over https), plus orthophoto and Messtischblatt; no Geoportal TOPO
+    assert "tile.openstreetmap.org" in html and "TOPO" not in html
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     status = {grades.dossier_id(s["uid"]): s["status"] for s in grades.all_sites(built)}
     items = [x for v in data["villages"] for x in v["sites"]]
