@@ -136,8 +136,9 @@ DEFAULT_POWIAT = "3209"  # powiat koszaliński
 # --- Candidate detection ---------------------------------------------------
 # Polish estate vocabulary (matched case-insensitively, also without diacritics)
 ESTATE_PATTERN = re.compile(
-    # not "podwórko" (courtyard) or "Zadworze" (behind the manor: a place name)
-    r"(?<!po)(?<!za)dw[oó]r(?!zec|ca|co)|dworsk|pa[lł]ac|folwar|maj[aą]t|rz[aą]dc[oó]wk|oficyn|"
+    # "dwór" only at the start of a word: not "podwórko" (courtyard), "Zadworze" (behind the manor: a place name)
+    # or "Dworakowski"; and not "dworzec" (station), "Dworzysko", "Dwory" (place names)
+    r"\bdw[oó]r(?!zec|ca|co|ak|zysk|y\b)|dworsk|pa[lł]ac|folwar|maj[aą]t|rz[aą]dc[oó]wk|oficyn|"
     r"zesp[oó][lł] (dworsk|pa[lł]acow|folwarcz)|park (pod)?dworsk|park pa[lł]acow|"
     r"gutshaus|herrenhaus|rittergut|schloss",
     re.IGNORECASE,
@@ -154,7 +155,11 @@ EXCLUDE_PATTERN = re.compile(
 # An OSM object that matches only by name is not an estate if it is one of these: settlements named
 # "Dwór", "Zadworze", "Kuków-Folwark" (place=*, mostly PRNG imports), roads, stations, shops, plants ...
 NON_ESTATE_KEYS = ("place", "highway", "railway", "public_transport", "amenity", "shop", "office", "power",
-                   "aeroway", "waterway", "boundary")
+                   "aeroway", "waterway", "boundary", "man_made", "route")
+# ... or a memorial, wayside cross, artwork or viewpoint named after the manor
+NON_ESTATE_HISTORIC = {"memorial", "monument", "wayside_cross", "wayside_shrine", "tomb", "milestone",
+                       "boundary_stone"}
+NON_ESTATE_TOURISM = {"artwork", "viewpoint", "information"}
 NON_ESTATE_BUILDINGS = {"industrial", "commercial", "retail", "warehouse", "garage", "garages", "shed", "service",
                         "church", "chapel", "school", "train_station", "transportation", "kiosk", "hangar"}
 OSM_HISTORIC_VALUES = ["manor", "castle", "estate", "ruins", "building", "palace"]

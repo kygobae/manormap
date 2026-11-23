@@ -40,6 +40,17 @@ def test_osm_relevance():
     assert not is_relevant_osm({"place": "village", "name": "Kuków-Folwark"})
     assert not is_relevant_osm({"building": "industrial", "name": "MEW Dwory"})
     assert not is_relevant_osm({"leisure": "playground", "name": "Dwór zabaw"})
+    assert not is_relevant_osm({"historic": "memorial", "name": "Por. Jerzy Dworakowski"})
+    assert not is_relevant_osm({"name": "Por. Jerzy Dworakowski"})                 # "dwór" inside a surname
+    assert not is_relevant_osm({"man_made": "water_tower", "name": "Zbiornik wody \"Wysoki Dwór\""})
+    assert not is_relevant_osm({"tourism": "viewpoint", "name": "widok na pałac Belwederski"})
+    assert not is_relevant_osm({"name": "BP Dworzysko", "building": "yes"})
+    assert not is_relevant_osm({"name": "Dwory Pętla"})
+    assert not is_relevant_osm({"name": "Młyn Wodny w Gzowicach-Folwarku", "building": "yes"})
+    assert is_relevant_osm({"name": "Pałac, obecnie szkoła", "building": "yes"})    # a school in a palace stays
+    assert is_relevant_osm({"name": "Nowy Dwór", "building": "yes"})
+    assert is_relevant_osm({"tourism": "hotel", "name": "Pałac Mierzęcin"})
+    assert is_relevant_osm({"historic": "monument", "building": "yes", "name": "Dawny dwór"})
     # ... but explicit tags still win, and a name-only dwór stays a candidate
     assert is_relevant_osm({"place": "isolated_dwelling", "historic": "manor", "name": "Dwór"})
     assert is_relevant_osm({"name": "Dwór Kowalskich", "building": "yes"})

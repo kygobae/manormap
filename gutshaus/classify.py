@@ -26,6 +26,7 @@ _HOUSE = re.compile(r"\b(dwor|dworek|palac|palacyk|zamek|gutshaus|herrenhaus|sch
 # The same in any case ("ruiny dworu", "relikty pałacu"), still without the adjectives
 _HOUSE_ANY = re.compile(r"\b(dwor|dworu|dworze|dworem|dworek|dworku|dworki|palac|palacu|palacem|palacyk\w*|"
                         r"zamek|zamku|gutshaus|herrenhaus|schloss)\b")
+_FARM_BUILDING = re.compile(r"\b(mlyn|wiatrak|spichl|stodol|obor[ay]\b|chlew)")
 _GONE = re.compile(r"nieistniej|nie istnieje|rozebran")  # "the former palace that no longer exists"
 
 
@@ -101,8 +102,12 @@ def is_relevant_osm(tags: dict) -> bool:
     # from here on only the name matches: drop settlements, roads, plants, shops ... that are merely called "Dwór"
     if any(k in tags for k in config.NON_ESTATE_KEYS) or tags.get("building") in config.NON_ESTATE_BUILDINGS:
         return False
+    if (tags.get("historic") in config.NON_ESTATE_HISTORIC and "building" not in tags) \
+            or tags.get("tourism") in config.NON_ESTATE_TOURISM:
+        return False
     if tags.get("leisure") not in (None, "park", "garden"):
         return False
-    text = " ".join(str(tags.get(k, "")) for k in ("name", "old_name", "name:de", "description", "heritage:name"))
+    text = fold(" ".join(str(tags.get(k, "")) for k in ("name", "old_name", "name:de", "description", "heritage:name")))
     f = text_flags(text)
-    return f["estate_kw"] and not f["excluded"]
+    # by name alone a mill or barn stays a mill or barn, even "Młyn w Gzowicach-Folwarku"
+    return f["estate_kw"] and not f["excluded"] and not _FARM_BUILDING.search(text)
