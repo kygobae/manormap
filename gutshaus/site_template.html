@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ManorMap</title>
-<meta name="description" content="Ehemalige Gutshäuser in Polen: Standorte und Noten für Neubau und Sanierung. Dawne dwory i pałace w Polsce. Former manor sites in Poland.">
+<meta name="description" content="Gutshäuser in Polen bewahren, wiederaufbauen, neu beleben: Karte mit Noten für Sanierung und Wiederaufbau. Dwory i pałace w Polsce. Manor houses in Poland.">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -79,7 +79,7 @@ footer a,.box a{color:var(--accent)}
   <div class="box">
     <input type="search" id="q" data-tp="search">
     <select id="vv"><option value="" data-t="allRegions"></option></select>
-    <div class="mode" id="mode"><button data-m="new"></button><button data-m="renovation"></button></div>
+    <div class="mode" id="mode"><button data-m="renovation"></button><button data-m="new"></button></div>
     <div class="grades" id="grades"></div>
     <details id="more">
       <summary><span data-t="moreF"></span> <span id="nActive" class="pill"></span></summary>
@@ -119,16 +119,16 @@ footer a,.box a{color:var(--accent)}
 const D = /*__DATA__*/null;
 const C = D.cfg;
 const T = {
- de:{tagline:"Ehemalige Gutshäuser in Polen – neu bauen, wo das Herrenhaus stand, oder retten, was übrig ist",
+ de:{tagline:"Gutshäuser in Polen – bewahren, wiederaufbauen, neu beleben",
   whatH:"Worum es geht",
-  what:"Nach 1945 verfielen in Polen Tausende Gutshäuser. Wir kombinieren historische Karten, das Denkmalregister, Luftbilder und Infrastrukturdaten und bewerten jeden Standort für einen Neubau und für eine Sanierung. Punkte zeigen die genaue Lage; ein Kreis heißt: nur das Dorf ist bekannt.",whatShop:" Flurstück, Karten und alle Daten stehen im Dossier.",
+  what:"Tausende Gutshäuser und Parks prägen bis heute die Landschaften Polens – ein gemeinsames Erbe von Polen und Deutschen. Manche stehen noch und warten auf neue Besitzer, von anderen sind nur Park und Allee geblieben. Wir verbinden historische Karten, das polnische Denkmalregister und aktuelle Geodaten und zeigen für jeden Ort, wie gut er sich für eine Sanierung oder einen Wiederaufbau eignet. Punkte zeigen die genaue Lage; ein Kreis heißt: nur das Dorf ist bekannt.",whatShop:" Flurstück, Karten und alle Daten stehen im Dossier.",
   search:"Dorf suchen (polnisch oder deutsch) …",allRegions:"Alle Woiwodschaften",sites:"Standorte",villages:"Dörfer",
   dossierH:"Das Standort-Dossier",dossier:"Automatisch erstellt, als PDF sofort nach dem Kauf. Auf Deutsch mit polnischer Zusammenfassung für Gemeinde, Notar oder Architekt.",
   includes:"<li>genaue Lage, Flurstücksnummer und -fläche</li><li>Luftbild und LiDAR-Relief mit Flurstücksgrenze</li><li>Leitungskarte; Entfernung zu Strom, Straße, Nachbarn, Wasser</li><li>Naturschutz, Flächennutzung, Denkmalregister</li><li>staatliches Verkaufsangebot (KOWR), falls vorhanden</li><li>Note mit Begründung und Checkliste der nächsten Schritte</li><li>Fördermöglichkeiten: Zuschüsse des Denkmalpflegers, des Kulturministeriums, der Woiwodschaft und der Gemeinde</li>",
   notIncluded:"Nicht enthalten: Bebauungsplan / WZ, Grundbuch, Auflagen des Denkmalpflegers, Anschlussbedingungen. Das Dossier sagt Ihnen, wo und wie Sie das prüfen.",
   sample:"Beispiel-Dossier ansehen (PDF)",gradesH:"Die Noten",
-  gradesText:"Zwei Noten pro Standort. <b>Neubau</b>: Das Herrenhaus ist verschwunden, Sie bauen an seiner Stelle neu. <b>Sanierung</b>: Sie retten, was steht – Ruine oder Gebäude; der Denkmaleintrag zählt hier positiv, weil nur dann Zuschüsse möglich sind. <b>A</b> sehr gute Ausgangslage · <b>B</b> gut · <b>C</b> mit Einschränkungen · <b>D</b> schwierig.",
-  mNew:"Neubau",mRen:"Sanierung",buy:"Dossier",kowr:"Staatliches Verkaufsangebot (KOWR)",tender:"Ausschreibung",openCard:"Angebot öffnen",
+  gradesText:"Zwei Noten pro Standort. <b>Sanierung</b>: Sie bewahren, was steht – Gebäude oder Ruine; der Denkmaleintrag zählt hier positiv, weil nur dann Zuschüsse möglich sind. <b>Wiederaufbau</b>: Vom Herrenhaus ist nichts geblieben, Sie bauen an seiner Stelle neu, im Park und mit Bezug auf das Alte. <b>A</b> sehr gute Ausgangslage · <b>B</b> gut · <b>C</b> mit Einschränkungen · <b>D</b> schwierig.",
+  mNew:"Wiederaufbau",mRen:"Sanierung",buy:"Dossier",kowr:"Staatliches Verkaufsangebot (KOWR)",tender:"Ausschreibung",openCard:"Angebot öffnen",
   park:"Park",reg:"Denkmal",hist:"Historische Karte (Messtischblatt)",forSale:"zum Verkauf",
   status:{lost:"Herrenhaus verschwunden",ruin:"Ruine",standing:"Gebäude steht",unlocated:"Lage im Dorf unklar",unknown:"unklar"},
   sources:"Daten: © OpenStreetMap-Mitwirkende (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Historische Karten: IH PAN / pastmaps (CC BY-NC).",
@@ -136,16 +136,16 @@ const T = {
   approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
   private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
   teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste mit polnischer Zusammenfassung."},
- pl:{tagline:"Dawne dwory i pałace w Polsce – zbudować nowy dom w miejscu dworu albo uratować to, co zostało",
+ pl:{tagline:"Dwory i pałace w Polsce – zachować, odbudować, ożywić",
   whatH:"O co chodzi",
-  what:"Po 1945 r. tysiące dworów w Polsce popadło w ruinę. Łączymy mapy historyczne, rejestr zabytków, ortofotomapy i dane o infrastrukturze i oceniamy każde miejsce pod kątem budowy nowego domu i remontu. Punkty pokazują dokładną lokalizację; okrąg oznacza, że znana jest tylko wieś.",whatShop:" Działka, mapy i wszystkie dane są w raporcie.",
+  what:"Tysiące dworów i parków do dziś kształtuje krajobraz Polski – to wspólne dziedzictwo Polaków i Niemców. Niektóre wciąż stoją i czekają na nowych właścicieli, z innych zostały tylko park i aleja. Łączymy mapy historyczne, polski rejestr zabytków i aktualne dane przestrzenne i pokazujemy dla każdego miejsca, na ile nadaje się do remontu lub odbudowy. Punkty pokazują dokładną lokalizację; okrąg oznacza, że znana jest tylko wieś.",whatShop:" Działka, mapy i wszystkie dane są w raporcie.",
   search:"Szukaj wsi (polska lub niemiecka nazwa) …",allRegions:"Wszystkie województwa",sites:"miejsc",villages:"wsi",
   dossierH:"Raport o lokalizacji",dossier:"Generowany automatycznie, PDF od razu po zakupie. Po niemiecku, z podsumowaniem po polsku dla gminy, notariusza lub architekta.",
   includes:"<li>dokładna lokalizacja, numer i powierzchnia działki</li><li>ortofotomapa i cieniowanie LiDAR z granicą działki</li><li>mapa uzbrojenia; odległość do linii energetycznej, drogi, sąsiadów, wody</li><li>ochrona przyrody, użytkowanie terenu, rejestr zabytków</li><li>oferta KOWR, jeśli istnieje</li><li>ocena z uzasadnieniem i lista kolejnych kroków</li><li>możliwości dofinansowania: dotacje konserwatora, ministerstwa, województwa i gminy</li>",
   notIncluded:"Raport nie obejmuje: MPZP / WZ, księgi wieczystej, wymagań konserwatora, warunków przyłączenia. Wskazuje, gdzie i jak to sprawdzić.",
   sample:"Przykładowy raport (PDF)",gradesH:"Oceny",
-  gradesText:"Dwie oceny dla każdego miejsca. <b>Budowa</b>: dworu już nie ma, budujesz nowy dom w jego miejscu. <b>Remont</b>: ratujesz to, co stoi – ruinę lub budynek; wpis do rejestru zabytków liczy się tu na plus, bo tylko wtedy możliwe są dotacje. <b>A</b> bardzo dobre warunki · <b>B</b> dobre · <b>C</b> z ograniczeniami · <b>D</b> trudne.",
-  mNew:"Budowa",mRen:"Remont",buy:"Raport",kowr:"Oferta sprzedaży KOWR",tender:"Przetarg",openCard:"Otwórz ofertę",
+  gradesText:"Dwie oceny dla każdego miejsca. <b>Remont</b>: zachowujesz to, co stoi – budynek lub ruinę; wpis do rejestru zabytków liczy się tu na plus, bo tylko wtedy możliwe są dotacje. <b>Odbudowa</b>: z dworu nic nie zostało, budujesz w jego miejscu, w parku i z nawiązaniem do dawnego założenia. <b>A</b> bardzo dobre warunki · <b>B</b> dobre · <b>C</b> z ograniczeniami · <b>D</b> trudne.",
+  mNew:"Odbudowa",mRen:"Remont",buy:"Raport",kowr:"Oferta sprzedaży KOWR",tender:"Przetarg",openCard:"Otwórz ofertę",
   park:"park",reg:"zabytek",hist:"Mapa historyczna (Messtischblatt)",forSale:"na sprzedaż",
   status:{lost:"dwór nie istnieje",ruin:"ruina",standing:"budynek istnieje",unlocated:"lokalizacja we wsi niepewna",unknown:"nieustalony"},
   sources:"Dane: © współtwórcy OpenStreetMap (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Mapy historyczne: IH PAN / pastmaps (CC BY-NC).",
@@ -153,16 +153,16 @@ const T = {
   approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
   private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
   teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna."},
- en:{tagline:"Former manor houses in Poland – build where the manor stood, or save what is left",
+ en:{tagline:"Manor houses in Poland – preserve, rebuild, revive",
   whatH:"What this is",
-  what:"After 1945 thousands of manor houses in Poland fell into ruin. We combine historical maps, the monument register, aerial imagery and infrastructure data and rate every site for a new build and for renovation. Dots show the exact site; a ring means only the village is known.",whatShop:" The parcel, maps and all data are in the dossier.",
+  what:"Thousands of manor houses and parks still shape Poland's landscapes – a heritage shared by Poles and Germans. Some still stand and are waiting for new owners; of others only the park and the avenue remain. We combine historical maps, the Polish monument register and current geodata and show for every place how well it suits renovation or rebuilding. Dots show the exact site; a ring means only the village is known.",whatShop:" The parcel, maps and all data are in the dossier.",
   search:"Search village (Polish or German name) …",allRegions:"All voivodeships",sites:"sites",villages:"villages",
   dossierH:"The site dossier",dossier:"Generated automatically, PDF right after purchase. In German with a Polish summary for the municipality, notary or architect.",
   includes:"<li>exact location, parcel number and area</li><li>aerial photo and LiDAR relief with the parcel outline</li><li>utility map; distance to power line, road, neighbours, water</li><li>nature protection, land use, monument register</li><li>state sale offer (KOWR), if any</li><li>grade with explanation and a checklist of next steps</li><li>funding options: grants from the heritage conservator, the ministry of culture, the voivodeship and the municipality</li>",
   notIncluded:"Not included: zoning plan / WZ, land register, conservator requirements, utility connection terms. The dossier tells you where and how to check them.",
   sample:"See a sample dossier (PDF)",gradesH:"Grades",
-  gradesText:"Two grades per site. <b>New build</b>: the manor is gone and you build a new house in its place. <b>Renovation</b>: you save what stands – a ruin or a building; a register entry counts in favour here, because only then are subsidies possible. <b>A</b> very good starting point · <b>B</b> good · <b>C</b> with limitations · <b>D</b> difficult.",
-  mNew:"New build",mRen:"Renovation",buy:"Dossier",kowr:"State sale offer (KOWR)",tender:"Tender",openCard:"Open offer",
+  gradesText:"Two grades per site. <b>Renovation</b>: you preserve what stands – a building or a ruin; a register entry counts in favour here, because only then are subsidies possible. <b>Rebuilding</b>: nothing of the manor is left and you build in its place, in the park and in keeping with what was there. <b>A</b> very good starting point · <b>B</b> good · <b>C</b> with limitations · <b>D</b> difficult.",
+  mNew:"Rebuilding",mRen:"Renovation",buy:"Dossier",kowr:"State sale offer (KOWR)",tender:"Tender",openCard:"Open offer",
   park:"park",reg:"listed",hist:"Historical map (Messtischblatt)",forSale:"for sale",
   status:{lost:"manor gone",ruin:"ruin",standing:"building stands",unlocated:"position in village unclear",unknown:"unclear"},
   sources:"Data: © OpenStreetMap contributors (ODbL), National Heritage Institute (NID), GUGiK/Geoportal, GDOŚ, KOWR. Historical maps: IH PAN / pastmaps (CC BY-NC).",
@@ -179,7 +179,7 @@ const t = k => T[lng][k];
 const VV = D.villages;
 const COL = {A:"#1a6b3c",B:"#4c9a5b",C:"#d39b2a",D:"#9aa19d"};
 const shown = new Set(["A","B","C"]);
-let mode = "new";
+let mode = "renovation";                    // renovation first, then rebuilding
 const vg = v => mode === "new" ? v.g : v.r;
 
 function buyUrl(id){
@@ -194,12 +194,12 @@ function popup(v, sites){
   if(!sites[0].lat) h += `<div class="small"><i>${esc(t("approx"))}</i></div>`;
   for(const s of sites){
     const tags = [t("status")[s.status]||s.status, s.park?t("park"):"", s.registered?t("reg"):"", s.kowr?t("forSale"):""].filter(Boolean).join(" · ");
-    h += `<div class="site"><span title="${esc(t("mNew"))}" class="g g${s.grade}">${s.grade}</span><span title="${esc(t("mRen"))}" class="g g${s.ren}">${s.ren}</span><span class="s">${esc(tags)}</span>
+    h += `<div class="site"><span title="${esc(t("mRen"))}" class="g g${s.ren}">${s.ren}</span><span title="${esc(t("mNew"))}" class="g g${s.grade}">${s.grade}</span><span class="s">${esc(tags)}</span>
       ${C.shop ? `<a class="buy" href="${esc(buyUrl(s.id))}" target="_blank" rel="noopener">${t("buy")} ${esc(C.price)}</a>` : ""}</div>`;
     if(s.ku && OFFERS[s.ku]) h += offerHtml(OFFERS[s.ku]);
     if(s.status === "standing" && !s.ku) h += `<div class="small">${esc(t("private"))}</div>`;  // KOWR sites are state property
   }
-  h += `<div class="small">${esc(t("mNew"))} · ${esc(t("mRen"))}${C.shop ? "<br>" + esc(sites.map(s=>s.id).join(", ")) : ""}</div>`;
+  h += `<div class="small">${esc(t("mRen"))} · ${esc(t("mNew"))}${C.shop ? "<br>" + esc(sites.map(s=>s.id).join(", ")) : ""}</div>`;
   if(!C.shop) h += `<div class="small teaser">${esc(t("teaser"))}</div>`;
   return h;
 }
