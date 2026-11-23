@@ -102,6 +102,65 @@ def parcel_outlines(villages_: list[dict], sites: list[dict]) -> dict[str, list]
     return out
 
 
+# ---------------------------------------------------------------- link previews
+SHARE_STATUS = {"de": {"lost": "Herrenhaus verschwunden", "ruin": "Ruine", "standing": "Gebäude steht",
+                       "unlocated": "Lage im Dorf unklar", "unknown": "Zustand unklar"},
+                "pl": {"lost": "dwór nie istnieje", "ruin": "ruina", "standing": "budynek istnieje",
+                       "unlocated": "lokalizacja we wsi niepewna", "unknown": "stan nieustalony"}}
+
+
+def share_page(v: dict, item: dict) -> str:
+    """/s/<dossier ID>: a tiny page whose title, description and image show up as the preview when the link is
+    shared (WhatsApp, Signal, Facebook, mail); people are sent straight on to the map with the site's card open.
+    Link previews only see the page the server sends, never a #fragment, hence one page per site."""
+    base = (config.SITE_URL or "").rstrip("/")
+    sid = item["id"]
+    place = v["v"] + (f" ({v['de']})" if v.get("de") else "")
+    title = f"{place} – {config.SITE_NAME}"
+    de = [f"Sanierung {item['ren']}", f"Wiederaufbau {item['grade']}", SHARE_STATUS["de"].get(item["status"], "")]
+    pl = [f"Remont {item['ren']}", f"Odbudowa {item['grade']}", SHARE_STATUS["pl"].get(item["status"], "")]
+    extra_de = [x for x, on in (("Park", item.get("park")), ("Denkmal", item.get("registered")),
+                                ("zum Verkauf (KOWR)", item.get("kowr"))) if on]
+    extra_pl = [x for x, on in (("park", item.get("park")), ("zabytek", item.get("registered")),
+                                ("na sprzedaż (KOWR)", item.get("kowr"))) if on]
+    where = f"gm. {v['gm']}, pow. {v['pw']}" if v.get("gm") else ""
+    desc = " · ".join(filter(None, de + extra_de)) + " | " + " · ".join(filter(None, pl + extra_pl)) + (f" — {where}" if where else "")
+    e = lambda x: htmllib.escape(x, quote=True)
+    target = f"/#{sid}"
+    return f"""<!DOCTYPE html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{e(title)}</title>
+<meta name="description" content="{e(desc)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{e(config.SITE_NAME)}">
+<meta property="og:title" content="{e(title)}">
+<meta property="og:description" content="{e(desc)}">
+<meta property="og:url" content="{e(base + '/s/' + sid)}">
+<meta property="og:image" content="{e(base + '/og.png')}">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{e(config.SITE_NAME)}: Gutshäuser in Polen · Dwory i pałace w Polsce">
+<meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="refresh" content="0; url={e(target)}">
+<script>location.replace({json.dumps(target)});</script>
+</head><body style="font-family:system-ui,sans-serif;padding:24px">
+<p><a href="{e(target)}">{e(place)} – {e(config.SITE_NAME)}</a></p>
+</body></html>
+"""
+
+
+def write_share_pages(vs: list[dict], pub: Path) -> int:
+    """One /s/<ID>.html per published site (reserved sites are not in `vs`, so they get none)."""
+    d = pub / "s"
+    d.mkdir(parents=True, exist_ok=True)
+    n = 0
+    for v in vs:
+        for item in v["sites"]:
+            (d / f"{item['id']}.html").write_text(share_page(v, item), encoding="utf-8")
+            n += 1
+    return n
+
+
 def offers(sites: list[dict], kowr_json: Path | None) -> list[dict]:
     if not kowr_json or not Path(kowr_json).exists():
         return []
@@ -136,7 +195,7 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
                     "shop": bool(config.SHOP_ENABLED), "refs": config.REFERENCE_POINTS}}
     html = (HERE / "site_template.html").read_text(encoding="utf-8")
     js = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    page = html.replace("/*__DATA__*/null", js)
+    page = html.replace("/*__DATA__*/null", js).replace("__SITE_URL__", (config.SITE_URL or "").rstrip("/"))
     if config.WEB_ANALYTICS_TOKEN:  # Cloudflare Web Analytics: no cookies, no personal data, no consent banner needed
         beacon = ('<script defer src="https://static.cloudflareinsights.com/beacon.min.js" '
                   f"data-cf-beacon='{json.dumps({'token': str(config.WEB_ANALYTICS_TOKEN)})}'></script>")
@@ -163,6 +222,8 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
     # script CDNs (GDPR); only the map tiles come from elsewhere
     shutil.copytree(HERE / "fonts", pub / "fonts")
     shutil.copytree(HERE / "vendor", pub / "vendor")
+    shutil.copy(HERE / "static" / "og.png", pub / "og.png")
+    write_share_pages(vs, pub)
     if sample_pdf and config.SHOP_ENABLED:
         shutil.copy(sample_pdf, pub / "sample.pdf")
     # Cloudflare Pages Functions (webhook + download): only with the shop; without it the site is purely static
@@ -199,7 +260,8 @@ def write_static_config(path: Path) -> None:
     if host and not host.endswith((".workers.dev", ".pages.dev")):
         routes = [{"pattern": h, "custom_domain": True} for h in (host, "www." + host.removeprefix("www."))]
     cfg = {"name": config.DEPLOY_NAME, "compatibility_date": "2026-11-01",
-           "assets": {"directory": "./public", "not_found_handling": "404-page"}}
+           # html_handling: /s/GF-1A2B3C4D serves s/GF-1A2B3C4D.html (the link-preview page of a site)
+           "assets": {"directory": "./public", "not_found_handling": "404-page", "html_handling": "auto-trailing-slash"}}
     if routes:
         cfg["routes"] = routes
     path.write_text(f"// {GENERATED}: the static site (SHOP_ENABLED off). Deploy: npx wrangler deploy\n"
