@@ -118,6 +118,10 @@ footer a,.sec a{color:var(--accent)}
 .btn.primary{background:var(--accent);color:var(--on-accent)}
 .btn.ghost{background:rgba(122,90,46,.1);color:var(--past)}
 .btn.ghost:hover{background:rgba(122,90,46,.16)}
+.btn.plain{background:rgba(24,32,28,.06);color:var(--ink)}.btn.plain:hover{background:rgba(24,32,28,.1)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions .btn{flex:1 1 auto}
+.linkbox{width:100%;font-size:.78rem;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+#toast{position:fixed;z-index:1200;left:50%;transform:translateX(-50%);bottom:calc(70px + env(safe-area-inset-bottom,0px));padding:8px 14px;font-size:.85rem;font-weight:700}
 .teaser{font-size:.78rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
 
 /* map markers */
@@ -225,6 +229,7 @@ footer a,.sec a{color:var(--accent)}
 
 <section class="card glass" id="card" hidden aria-live="polite"></section>
 <div class="cmp glass" id="cmp"><button class="btn ghost" id="cmpBtn" type="button"></button></div>
+<div id="toast" class="glass" role="status" hidden></div>
 <div id="divider" hidden role="separator" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" tabindex="0"><span class="knob" aria-hidden="true">‹›</span></div>
 
 <script>
@@ -285,11 +290,11 @@ const T = {
 };
 // texts of the redesign (merged into T above)
 const T2 = {
- de:{offerPartial:" (davon {f} im Kataster gefunden und gezeichnet)",offerArea1:"1 Flurstück, {ha} ha – auf der Karte blau gestrichelt",offerArea:"{n} Flurstücke, {ha} ha – auf der Karte blau gestrichelt",dragHint:"Linie auf der Karte ziehen",tenderPast:"Der Ausschreibungstermin laut KOWR ({d}) ist vorbei; den nächsten Termin bei KOWR erfragen.",filtersBtn:"Filter & Liste",gradeF:"Note",close:"Schließen",cmpOn:"Damals & heute vergleichen",cmpOff:"Vergleich beenden",then:"Messtischblatt",now:"heute",
+ de:{share:"Teilen",copied:"Link kopiert",shareTitle:"{place} – Gutshaus Finder",offerPartial:" (davon {f} im Kataster gefunden und gezeichnet)",offerArea1:"1 Flurstück, {ha} ha – auf der Karte blau gestrichelt",offerArea:"{n} Flurstücke, {ha} ha – auf der Karte blau gestrichelt",dragHint:"Linie auf der Karte ziehen",tenderPast:"Der Ausschreibungstermin laut KOWR ({d}) ist vorbei; den nächsten Termin bei KOWR erfragen.",filtersBtn:"Filter & Liste",gradeF:"Note",close:"Schließen",cmpOn:"Damals & heute vergleichen",cmpOff:"Vergleich beenden",then:"Messtischblatt",now:"heute",
      onMtb:"Auf dem Messtischblatt vergleichen",lgStanding:"steht",lgRuin:"Ruine",lgLost:"verschwunden",lgUnknown:"unklar",lgVillage:"nur Dorf bekannt",deName:"deutsch"},
- pl:{offerPartial:" (w ewidencji znaleziono i narysowano {f})",offerArea1:"1 działka, {ha} ha – na mapie niebieska linia przerywana",offerArea:"działki: {n}, {ha} ha – na mapie niebieska linia przerywana",dragHint:"Przeciągnij linię na mapie",tenderPast:"Podany przez KOWR termin przetargu ({d}) minął; o kolejny termin zapytaj KOWR.",filtersBtn:"Filtry i lista",gradeF:"Ocena",close:"Zamknij",cmpOn:"Porównaj dawniej i dziś",cmpOff:"Zakończ porównanie",then:"Messtischblatt",now:"dziś",
+ pl:{share:"Udostępnij",copied:"Link skopiowany",shareTitle:"{place} – ManorMap",offerPartial:" (w ewidencji znaleziono i narysowano {f})",offerArea1:"1 działka, {ha} ha – na mapie niebieska linia przerywana",offerArea:"działki: {n}, {ha} ha – na mapie niebieska linia przerywana",dragHint:"Przeciągnij linię na mapie",tenderPast:"Podany przez KOWR termin przetargu ({d}) minął; o kolejny termin zapytaj KOWR.",filtersBtn:"Filtry i lista",gradeF:"Ocena",close:"Zamknij",cmpOn:"Porównaj dawniej i dziś",cmpOff:"Zakończ porównanie",then:"Messtischblatt",now:"dziś",
      onMtb:"Porównaj z mapą Messtischblatt",lgStanding:"istnieje",lgRuin:"ruina",lgLost:"nie istnieje",lgUnknown:"nieustalony",lgVillage:"znana tylko wieś",deName:"niem."},
- en:{offerPartial:" ({f} of them found in the cadastre and drawn)",offerArea1:"1 parcel, {ha} ha – dashed blue on the map",offerArea:"{n} parcels, {ha} ha – dashed blue on the map",dragHint:"Drag the line on the map",tenderPast:"KOWR's tender date ({d}) has passed; ask KOWR for the next one.",filtersBtn:"Filters & list",gradeF:"Grade",close:"Close",cmpOn:"Compare then & now",cmpOff:"End comparison",then:"Messtischblatt",now:"today",
+ en:{share:"Share",copied:"Link copied",shareTitle:"{place} – ManorMap",offerPartial:" ({f} of them found in the cadastre and drawn)",offerArea1:"1 parcel, {ha} ha – dashed blue on the map",offerArea:"{n} parcels, {ha} ha – dashed blue on the map",dragHint:"Drag the line on the map",tenderPast:"KOWR's tender date ({d}) has passed; ask KOWR for the next one.",filtersBtn:"Filters & list",gradeF:"Grade",close:"Close",cmpOn:"Compare then & now",cmpOff:"End comparison",then:"Messtischblatt",now:"today",
      onMtb:"Compare on the Messtischblatt",lgStanding:"stands",lgRuin:"ruin",lgLost:"gone",lgUnknown:"unclear",lgVillage:"village only",deName:"German"}};
 for(const l of Object.keys(T2)) Object.assign(T[l], T2[l]);
 
@@ -452,8 +457,37 @@ function showCard(html){
   c.querySelector(".x").onclick = closeCard;
   c.querySelectorAll("[data-cmp]").forEach(b => b.onclick = () => {
     const [la, lo] = b.dataset.cmp.split(",").map(Number); map.setView([la, lo], 16); setCompare(true); });
+  c.querySelectorAll("[data-share]").forEach(b => b.onclick = () => shareSite(b.dataset.share, b));
 }
-function closeCard(){ $("card").hidden = true; cardFor = null; selected = null; drawMarkers(); }
+function closeCard(){ $("card").hidden = true; cardFor = null; selected = null; setLink(""); drawMarkers(); }
+
+// ---------------------------------------------------------------- share: manormap.eu/#GF-1A2B3C4D opens that site
+const SHARE_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>`;
+const siteUrl = id => location.origin + location.pathname + "#" + id;
+function setLink(id){                                  // the address bar shows the open site's link (no hashchange)
+  try { history.replaceState(null, "", id ? "#" + id : location.pathname + location.search); } catch(e) {}
+}
+let toastTimer = null;
+function toast(msg){
+  const el = $("toast"); el.textContent = msg; el.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 2200);
+}
+async function shareSite(id, btn){
+  const v = cardFor && cardFor[0], url = siteUrl(id);
+  const title = v ? t("shareTitle").replace("{place}", v.v + (v.de ? ` (${v.de})` : "")) : document.title;
+  if(navigator.share && matchMedia("(pointer:coarse)").matches){   // phones: the system share sheet
+    try { await navigator.share({title, url}); return; } catch(e) { if(e.name === "AbortError") return; }
+  }
+  try {                                                // some browsers never answer: give up after 1.5 s
+    const timeout = new Promise((_, no) => setTimeout(() => no(new Error("timeout")), 1500));
+    await Promise.race([navigator.clipboard.writeText(url), timeout]);
+    toast(t("copied")); return;
+  } catch(e) {}
+  // no clipboard access: show the link, selected, to copy by hand
+  const box = document.createElement("input");
+  box.className = "linkbox"; box.value = url; box.readOnly = true; box.setAttribute("aria-label", t("share"));
+  btn.closest(".actions").after(box); box.focus(); box.select();
+}
 function siteHtml(s){
   const chip = (k, cls="") => `<span class="${cls}">${esc(k)}</span>`;
   const tags = [s.park ? chip(t("park")) : "", s.registered ? chip(t("reg")) : "", s.kowr ? chip(t("forSale"), "sale") : ""].join("");
@@ -463,13 +497,15 @@ function siteHtml(s){
   if(tags) h += `<div class="chips">${tags}</div>`;
   if(s.ku && OFFERS[s.ku]) h += offerHtml(OFFERS[s.ku]);
   if(s.status === "standing" && !s.ku) h += `<div class="small">${esc(t("private"))}</div>`;  // KOWR sites are state property
-  if(s.lat) h += `<button class="btn ghost" type="button" data-cmp="${s.lat},${s.lon}">${icon("ruin", "currentColor", 15)} ${esc(t("onMtb"))}</button>`;
+  h += `<div class="actions"><button class="btn plain" type="button" data-share="${esc(s.id)}">${SHARE_ICON} ${esc(t("share"))}</button>`
+    + (s.lat ? `<button class="btn ghost" type="button" data-cmp="${s.lat},${s.lon}">${icon("ruin", "currentColor", 15)} ${esc(t("onMtb"))}</button>` : "") + `</div>`;
   if(C.shop) h += `<a class="btn primary" href="${esc(buyUrl(s.id))}" target="_blank" rel="noopener">${t("buy")} ${esc(C.price)}</a><div class="small">${esc(s.id)}</div>`;
   return h + `</div>`;
 }
 function openCard(v, sites){
   cardFor = [v, sites];
   selected = sites.length === 1 && sites[0].lat ? sites[0] : null;
+  setLink(sites.length === 1 ? sites[0].id : "");
   let h = `<div><p class="place">${esc(v.v)}</p><p class="meta">${v.de ? `${esc(t("deName"))} <b>${esc(v.de)}</b> · ` : ""}gm. ${esc(v.gm)} · pow. ${esc(v.pw)}</p></div>`;
   if(!sites[0].lat) h += `<div class="small"><i>${esc(t("approx"))}</i></div>`;
   h += sites.map(siteHtml).join("");
@@ -639,9 +675,24 @@ $("kowrOnly").onchange = e => {
 document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("card").hidden) closeCard(); });
 if(matchMedia("(max-width:760px)").matches) $("intro").open = false;
 $("title").textContent = C.name;
-// #lat,lon,zoom[,messtischblatt|ortho] (links from dossiers)
+// #GF-1A2B3C4D (shared site) or #lat,lon,zoom[,messtischblatt|ortho] (links from dossiers)
+function openShared(id){
+  for(const v of VV) for(const s of v.sites) if(s.id === id){
+    if(!shown.has(sg(s))){                              // the shared site is shown even if its grade is filtered out
+      shown.add(sg(s));
+      $("grades").querySelectorAll(".gchip").forEach(b => b.setAttribute("aria-pressed", shown.has(b.dataset.g)));
+      render();
+    }
+    map.setView(s.lat ? [s.lat, s.lon] : [v.lat, v.lon], s.lat ? 16 : 13);
+    openCard(v, [s]);
+    return true;
+  }
+  return false;
+}
 function fromHash(){
-  const p = location.hash.slice(1).split(",");
+  const h = decodeURIComponent(location.hash.slice(1));
+  if(/^GF-[0-9A-F]{8}$/i.test(h)){ if(!openShared(h.toUpperCase())) setLink(""); return; }
+  const p = h.split(",");
   if(p.length >= 3 && !isNaN(+p[0])){
     map.setView([+p[0], +p[1]], +p[2]);
     if(p[3]==="messtischblatt"){ map.removeLayer(osm); map.removeLayer(ortho); mtb.addTo(map); }
