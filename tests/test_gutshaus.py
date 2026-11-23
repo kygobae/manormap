@@ -272,6 +272,28 @@ def test_local_osm_backend(tmp_path, monkeypatch):
     assert '"poland": {' in html.replace('"poland":{', '"poland": {')
 
 
+def _check_surroundings(got):
+    from fake_services import SURROUNDINGS_EXPECTED
+    for kind, (count, nearest) in SURROUNDINGS_EXPECTED.items():
+        assert got[kind]["count"] == count, kind
+        assert (got[kind]["nearest_m"] is None) == (nearest is None), kind
+        if nearest:
+            assert abs(got[kind]["nearest_m"] - nearest) <= 25, (kind, got[kind])
+    assert got["school"]["name"] == "Szkoła Podstawowa" and got["shop"]["name"] == "Market Wzorowo"
+
+
+def test_surroundings_from_both_backends(tmp_path, monkeypatch):
+    """Wind turbines, main roads, railways and services around a site: same answer from Overpass and the extract."""
+    from fake_services import SITE_A, osm_fixture_xml
+    from gutshaus.sources import osm, osm_local
+    _check_surroundings(osm.OverpassOSM(FakeHttp()).surroundings(*SITE_A))
+    monkeypatch.setattr(cli, "Http", FakeHttp)
+    pbf = tmp_path / "test.osm"
+    pbf.write_text(osm_fixture_xml(), encoding="utf-8")
+    cli.main(["--out-root", str(tmp_path), "osm-extract", "--pbf", str(pbf)])
+    _check_surroundings(osm_local.LocalOSM(tmp_path / "_osm" / "osm.gpkg").surroundings(*SITE_A))
+
+
 def test_migrates_old_layout(tmp_path, monkeypatch):
     """Folders from older versions (output/<teryt>) move to output/powiats/<teryt>."""
     monkeypatch.setattr(cli, "Http", FakeHttp)

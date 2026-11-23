@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 GEOFABRIK_URL = "https://download.geofabrik.de/europe/poland-latest.osm.pbf"
 KEYS = ("building", "highway", "power", "natural", "waterway", "landuse", "leisure", "place", "historic",
-        "boundary", "name", "old_name", "castle_type", "heritage", "ruins")
+        "boundary", "name", "old_name", "castle_type", "heritage", "ruins", "railway", "amenity", "shop")
 PUBLIC_ROADS = set(osm_remote.PUBLIC_ROADS.split("|"))
 LANDCOVER = {**{("landuse", v): "forest" for v in ("forest",)},
              **{("natural", v): "forest" for v in ("wood", "scrub")},
@@ -91,12 +91,15 @@ class _Writer:
             layer = "water"
         elif layer == "candidates":
             gdf = gdf.set_geometry(gdf.geometry.representative_point())
+        elif layer == "poi_areas":  # schools, shops ... mapped as areas: one point each, in the pois layer
+            gdf = gdf.set_geometry(gdf.geometry.representative_point())
+            layer = "pois"
         elif layer == "parks":
             gdf["park_x"], gdf["park_y"] = gdf.geometry.centroid.x, gdf.geometry.centroid.y
         gdf["geometry"] = shapely.force_2d(gdf.geometry.values)
         pyogrio.write_dataframe(gdf, self.path, layer=layer, driver="GPKG",
                                 append=layer in self.counts,
-                                promote_to_multi=layer not in ("candidates", "places", "buildings"))
+                                promote_to_multi=layer not in ("candidates", "places", "buildings", "pois"))
         self.counts[layer] = self.counts.get(layer, 0) + len(gdf)
 
     def close(self):
@@ -156,6 +159,9 @@ def _node(o, tags, wkb, w):
                                                "alt_names": "|".join(tags[k] for k in ("name:pl", "official_name") if k in tags)})
     if is_relevant_osm(tags):
         w.add("candidates", wkb.create_point(o), _cand_props("node", o.id, tags))
+    kind = osm_remote.poi_kind(tags)
+    if kind:
+        w.add("pois", wkb.create_point(o), {"kind": kind, "name": tags.get("name", "")})
 
 
 def _way(o, tags, wkb, w):
@@ -166,6 +172,8 @@ def _way(o, tags, wkb, w):
         w.add("power", wkb.create_linestring(o), {"power": pw})
     elif ww in ("river", "canal"):
         w.add("water", wkb.create_linestring(o), {"kind": ww})
+    elif tags.get("railway") == "rail" and not tags.get("service"):
+        w.add("rail", wkb.create_linestring(o), {})
 
 
 def _area(o, tags, wkb, w):
@@ -173,6 +181,9 @@ def _area(o, tags, wkb, w):
     oid = o.orig_id()
     if "building" in tags:
         w.add("buildings", wkb.create_multipolygon(o), {})
+    poi = osm_remote.poi_kind(tags)  # not `kind`: that is way/relation here
+    if poi:
+        w.add("poi_areas", wkb.create_multipolygon(o), {"kind": poi, "name": tags.get("name", "")})
     if tags.get("leisure") in ("park", "garden"):
         w.add("parks", wkb.create_multipolygon(o), {"name": tags.get("name", "")})
     if tags.get("natural") == "water":
@@ -353,6 +364,26 @@ class LocalOSM:
                 r["dist_building_m"], r["buildings_500m"] = 1500, 0
             out[s["uid"]] = r
         return out
+
+    def surroundings(self, lon: float, lat: float) -> dict:
+        """Wind turbines, main roads, railways and everyday services around one point (see config)."""
+        x, y = ll_to_pl(lon, lat)
+        here = Point(x, y)
+        R = config.SURROUNDINGS_RADIUS_M
+        if "pois" not in self._layers():
+            raise RuntimeError("the OSM extract has no pois layer yet: run `gutshaus osm-extract` again")
+        found = []
+        pois = self._read("pois", here.buffer(max(R.values())).bounds)
+        for row in pois.itertuples():
+            found.append((row.kind, row.name or "", here.distance(row.geometry)))
+        roads = self._read("roads", here.buffer(R["main_road"]).bounds,
+                           where="highway IN (" + ",".join(f"'{h}'" for h in config.MAIN_ROADS) + ")")
+        found += [("main_road", "", here.distance(g)) for g in roads.geometry]
+        found += [("railway", "", here.distance(g)) for g in self._read("rail", here.buffer(R["railway"]).bounds).geometry]
+        return osm_remote.summarise_surroundings(here, found)
+
+    def _layers(self) -> set[str]:
+        return {name for name, _ in pyogrio.list_layers(self.path)}
 
     def towns(self, area_pl, pad_m: float = 40000) -> list[tuple]:
         df = self._read("places", area_pl.buffer(pad_m).bounds, where="place IN ('city','town')")

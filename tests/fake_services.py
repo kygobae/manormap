@@ -266,6 +266,8 @@ class FakeHttp:
     def post(self, url, data=None, **kw):
         q = data["data"]
         FakeHttp.calls.append(("POST", url, q[:40]))
+        if '"generator:source"="wind"' in q:
+            return json.dumps(overpass_surroundings()).encode()
         if '"power"~' in q:  # before the boundary check: also contains relation[...] + out geom
             return json.dumps(overpass_infra()).encode()
         if "relation(49715)" in q:
@@ -292,6 +294,33 @@ class FakeHttp:
         if "around:" in q:
             return json.dumps(overpass_context()).encode()
         raise RuntimeError("unexpected overpass query")
+
+
+# ------------------------------------------------------------ surroundings of Przykładowo
+SURROUNDINGS_TAGS = {"wind": {"power": "generator", "generator:source": "wind"}, "school": {"amenity": "school"},
+                     "station": {"railway": "halt"}, "doctor": {"amenity": "doctors"}}
+SURROUNDINGS_POINTS = [("wind", "", 2000, 0), ("wind", "", 2400, 0), ("wind", "", 3500, 0),   # the third is too far
+                       ("school", "Szkoła Podstawowa", 0, 6000), ("station", "Wzorowo", 0, -8000),
+                       ("doctor", "", 20000, 0)]                                            # too far
+# expected: wind 2 (nearest 2000), school 6000, station 8000, shop 4000 (area), main road 1200, railway 1500
+SURROUNDINGS_EXPECTED = {"wind": (2, 2000), "school": (1, 6000), "station": (1, 8000), "shop": (1, 4000),
+                         "main_road": (1, 1200), "railway": (1, 1500), "doctor": (0, None), "pharmacy": (0, None)}
+
+
+def overpass_surroundings():
+    sx, sy = ll_to_pl(*SITE_A)
+    def ll(dx, dy):
+        lo, la = pl_to_ll(sx + dx, sy + dy)
+        return {"lon": lo, "lat": la}
+    els = [{"type": "node", "id": 800 + i, **ll(dx, dy), "tags": SURROUNDINGS_TAGS[k] | ({"name": n} if n else {})}
+           for i, (k, n, dx, dy) in enumerate(SURROUNDINGS_POINTS)]
+    els.append({"type": "way", "id": 850, "tags": {"shop": "supermarket", "name": "Market Wzorowo"},
+                "geometry": [ll(3980, -20), ll(3980, 20), ll(4020, 20), ll(4020, -20), ll(3980, -20)]})
+    els.append({"type": "way", "id": 851, "tags": {"highway": "primary"}, "geometry": [ll(-3000, 1200), ll(3000, 1200)]})
+    els.append({"type": "way", "id": 852, "tags": {"railway": "rail"}, "geometry": [ll(-3000, -1500), ll(3000, -1500)]})
+    els.append({"type": "way", "id": 853, "tags": {"railway": "rail", "service": "siding"},
+                "geometry": [ll(-3000, -300), ll(3000, -300)]})
+    return {"elements": els}
 
 
 # ------------------------------------------------------------ local OSM fixture
@@ -347,6 +376,13 @@ def osm_fixture_xml() -> str:
     way([ll(100, -500), ll(100, 500)], {"power": "line"})
     way([ll(-400, 30), ll(400, 30)], {"highway": "unclassified"})
     way([ll(2500, -300), ll(2500, 300)], {"waterway": "river"})
+    # surroundings of Przykładowo (see SURROUNDINGS below)
+    for kind, name, dx, dy in SURROUNDINGS_POINTS:
+        node(*pl_to_ll(sx + dx, sy + dy), SURROUNDINGS_TAGS[kind] | ({"name": name} if name else {}))
+    way(ring_ll(pl_to_ll(sx + 4000, sy), 20), {"shop": "supermarket", "name": "Market Wzorowo", "building": "retail"}, closed=True)
+    way([ll(-3000, 1200), ll(3000, 1200)], {"highway": "primary"})
+    way([ll(-3000, -1500), ll(3000, -1500)], {"railway": "rail"})
+    way([ll(-3000, -300), ll(3000, -300)], {"railway": "rail", "service": "siding"})   # a siding is no railway line
     # places
     for name, lonlat in PLACES.items():
         node(*lonlat, {"place": "village", "name": name})

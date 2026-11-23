@@ -180,6 +180,11 @@ HTTP_TIMEOUT = (15, 180)   # (connect, read) seconds
 USER_AGENT = "gutshaus-finder/0.2 (+https://github.com/kygobae/manormap)"
 CONTEXT_BATCH = 40           # candidates per Overpass context query
 KOWR_MATCH_RADIUS_M = 500    # a KOWR offer this close to a site counts as "for sale"
+# Surroundings of one site (dossier): kind -> search radius in metres. Everyday services, and what may disturb
+# (wind turbines, main roads, railways). See osm.poi_kind for the OSM tags of each kind.
+SURROUNDINGS_RADIUS_M = {"wind": 3000, "main_road": 2000, "railway": 2000, "station": 15000, "school": 15000,
+                         "doctor": 15000, "pharmacy": 15000, "shop": 15000}
+MAIN_ROADS = ("motorway", "trunk", "primary")
 # KOWR branches, only used if the overview gov.pl/web/kowr/harmonogramy (which links every branch's schedule page)
 # is unavailable: then gov.pl/web/kowr/ot-<branch>2 is tried. Wrocław also has heritage cards.
 KOWR_BRANCHES = ["bialystok", "bydgoszcz", "czestochowa", "gorzow", "kielce", "koszalin", "krakow", "lodz", "lublin",
