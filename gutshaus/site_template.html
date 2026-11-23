@@ -6,8 +6,8 @@
 <title>ManorMap</title>
 <meta name="description" content="Gutshäuser in Polen bewahren, wiederaufbauen, neu beleben: Karte mit Noten für Sanierung und Wiederaufbau. Dwory i pałace w Polsce. Manor houses in Poland.">
 <link rel="preload" href="fonts/fraunces-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
 <style>
 /* Modern strategy: a full-screen map with floating glass panels; the serif only for places, icons for the manor's state. */
 @font-face{font-family:"Fraunces";font-style:normal;font-weight:400 700;font-display:swap;
@@ -133,10 +133,17 @@ footer a,.sec a{color:var(--accent)}
 
 /* then / now */
 .cmp{position:fixed;z-index:940;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14px;font-size:.8rem;font-weight:700}
-.cmp input{width:200px;accent-color:var(--past)}
+.cmp .small{font-weight:500}
 .cmp .end{color:var(--past)}
-#divider{position:fixed;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--past);z-index:400;pointer-events:none;box-shadow:0 0 0 1px rgba(255,255,255,.7)}
-#divider::after{content:"";position:absolute;top:50%;left:50%;width:22px;height:22px;margin:-11px;border-radius:50%;background:var(--past);border:2px solid #fff}
+/* the then/now line: a 32 px grab zone around a 3 px line with a knob; drag it anywhere along its height */
+#divider{position:fixed;top:0;bottom:0;width:32px;margin-left:-16px;z-index:400;cursor:ew-resize;touch-action:none;background:transparent}
+#divider::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:3px;margin-left:-1.5px;background:var(--past);box-shadow:0 0 0 1px rgba(255,255,255,.75)}
+#divider .knob{position:absolute;top:50%;left:50%;width:38px;height:38px;margin:-19px;border-radius:50%;background:var(--past);border:2.5px solid #fff;
+  box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font:700 15px/1 var(--font-ui);letter-spacing:-1px;transition:transform .12s}
+#divider:hover .knob,#divider.drag .knob,#divider:focus-visible .knob{transform:scale(1.12)}
+#divider:focus-visible{outline:none}
+#divider:focus-visible .knob{box-shadow:0 0 0 3px rgba(122,90,46,.45),0 3px 10px rgba(0,0,0,.3)}
+@media (prefers-reduced-motion:reduce){#divider .knob{transition:none}}
 
 /* leaflet chrome in the same style */
 .leaflet-control-layers,.leaflet-bar{border:1px solid var(--line)!important;border-radius:12px!important;box-shadow:var(--shadow)!important;overflow:hidden}
@@ -158,7 +165,7 @@ footer a,.sec a{color:var(--accent)}
   .side:not(.open) .scroll{display:none}
   .sheetbtn{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;padding:10px 16px;font-weight:700;cursor:pointer}
   .card{left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;max-height:62vh}
-  .cmp{bottom:calc(64px + env(safe-area-inset-bottom,0px))}.cmp input{width:130px}
+  .cmp{bottom:calc(64px + env(safe-area-inset-bottom,0px))}.cmp .small{display:none}
   .leaflet-bottom.leaflet-right{bottom:60px}
 }
 </style>
@@ -218,7 +225,7 @@ footer a,.sec a{color:var(--accent)}
 
 <section class="card glass" id="card" hidden aria-live="polite"></section>
 <div class="cmp glass" id="cmp"><button class="btn ghost" id="cmpBtn" type="button"></button></div>
-<div id="divider" hidden></div>
+<div id="divider" hidden role="separator" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" tabindex="0"><span class="knob" aria-hidden="true">‹›</span></div>
 
 <script>
 const D = /*__DATA__*/null;
@@ -278,11 +285,11 @@ const T = {
 };
 // texts of the redesign (merged into T above)
 const T2 = {
- de:{filtersBtn:"Filter & Liste",gradeF:"Note",close:"Schließen",cmpOn:"Damals & heute vergleichen",cmpOff:"Vergleich beenden",then:"Messtischblatt",now:"heute",
+ de:{dragHint:"Linie auf der Karte ziehen",tenderPast:"Der Ausschreibungstermin laut KOWR ({d}) ist vorbei; den nächsten Termin bei KOWR erfragen.",filtersBtn:"Filter & Liste",gradeF:"Note",close:"Schließen",cmpOn:"Damals & heute vergleichen",cmpOff:"Vergleich beenden",then:"Messtischblatt",now:"heute",
      onMtb:"Auf dem Messtischblatt vergleichen",lgStanding:"steht",lgRuin:"Ruine",lgLost:"verschwunden",lgUnknown:"unklar",lgVillage:"nur Dorf bekannt",deName:"deutsch"},
- pl:{filtersBtn:"Filtry i lista",gradeF:"Ocena",close:"Zamknij",cmpOn:"Porównaj dawniej i dziś",cmpOff:"Zakończ porównanie",then:"Messtischblatt",now:"dziś",
+ pl:{dragHint:"Przeciągnij linię na mapie",tenderPast:"Podany przez KOWR termin przetargu ({d}) minął; o kolejny termin zapytaj KOWR.",filtersBtn:"Filtry i lista",gradeF:"Ocena",close:"Zamknij",cmpOn:"Porównaj dawniej i dziś",cmpOff:"Zakończ porównanie",then:"Messtischblatt",now:"dziś",
      onMtb:"Porównaj z mapą Messtischblatt",lgStanding:"istnieje",lgRuin:"ruina",lgLost:"nie istnieje",lgUnknown:"nieustalony",lgVillage:"znana tylko wieś",deName:"niem."},
- en:{filtersBtn:"Filters & list",gradeF:"Grade",close:"Close",cmpOn:"Compare then & now",cmpOff:"End comparison",then:"Messtischblatt",now:"today",
+ en:{dragHint:"Drag the line on the map",tenderPast:"KOWR's tender date ({d}) has passed; ask KOWR for the next one.",filtersBtn:"Filters & list",gradeF:"Grade",close:"Close",cmpOn:"Compare then & now",cmpOff:"End comparison",then:"Messtischblatt",now:"today",
      onMtb:"Compare on the Messtischblatt",lgStanding:"stands",lgRuin:"ruin",lgLost:"gone",lgUnknown:"unclear",lgVillage:"village only",deName:"German"}};
 for(const l of Object.keys(T2)) Object.assign(T[l], T2[l]);
 
@@ -361,7 +368,9 @@ function clipPast(){
   if(!comparing) return;
   const nw = map.containerPointToLayerPoint([0, 0]), size = map.getSize(), x = nw.x + size.x * cmpFrac;
   pastPane.style.clip = `rect(${nw.y}px, ${x}px, ${nw.y + size.y}px, ${nw.x}px)`;
-  $("divider").style.left = (map.getContainer().getBoundingClientRect().left + size.x * cmpFrac) + "px";
+  const dv = $("divider");
+  dv.style.left = (map.getContainer().getBoundingClientRect().left + size.x * cmpFrac) + "px";
+  dv.setAttribute("aria-valuenow", Math.round(cmpFrac * 100));
 }
 map.on("move zoom resize", clipPast);
 function setCompare(on){
@@ -372,11 +381,36 @@ function setCompare(on){
 }
 function cmpUi(){
   $("cmp").innerHTML = comparing
-    ? `<span class="end">${esc(t("then"))}</span><input type="range" id="cmpR" min="0" max="100" value="${Math.round(cmpFrac*100)}" aria-label="${esc(t("cmpOn"))}"><span>${esc(t("now"))}</span><button class="btn ghost" id="cmpBtn" type="button" aria-label="${esc(t("cmpOff"))}">✕</button>`
+    ? `<span class="end">◂ ${esc(t("then"))}</span><span class="small">${esc(t("dragHint"))}</span><span>${esc(t("now"))} ▸</span><button class="btn ghost" id="cmpBtn" type="button" aria-label="${esc(t("cmpOff"))}" title="${esc(t("cmpOff"))}">✕</button>`
     : `<button class="btn ghost" id="cmpBtn" type="button">${icon("ruin", "currentColor", 16)} ${esc(t("cmpOn"))}</button>`;
   $("cmpBtn").onclick = () => setCompare(!comparing);
-  const r = $("cmpR"); if(r) r.oninput = () => { cmpFrac = r.value / 100; clipPast(); };
+  $("divider").setAttribute("aria-label", t("dragHint"));
 }
+// drag the line itself (mouse, touch, pen); arrow keys move it when it has focus
+(() => {
+  const dv = $("divider");
+  const setX = clientX => {
+    const r = map.getContainer().getBoundingClientRect();
+    cmpFrac = Math.min(.98, Math.max(.02, (clientX - r.left) / r.width));
+    clipPast();
+  };
+  let dragging = false;
+  dv.addEventListener("pointerdown", e => {
+    e.preventDefault(); dragging = true;
+    try { dv.setPointerCapture(e.pointerId); } catch(err) {}
+    dv.classList.add("drag"); map.dragging.disable(); setX(e.clientX);
+  });
+  window.addEventListener("pointermove", e => { if(dragging) setX(e.clientX); });
+  const end = () => { if(!dragging) return; dragging = false; dv.classList.remove("drag"); map.dragging.enable(); };
+  window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
+  dv.addEventListener("keydown", e => {
+    const step = e.shiftKey ? .1 : .02;
+    if(e.key === "ArrowLeft" || e.key === "ArrowRight"){
+      e.preventDefault(); cmpFrac = Math.min(.98, Math.max(.02, cmpFrac + (e.key === "ArrowLeft" ? -step : step))); clipPast();
+    }
+    if(e.key === "Escape") setCompare(false);
+  });
+})();
 
 // KOWR offers matched to a site are shown on that site (badge + card); only unmatched ones get their own marker
 const OFFERS = Object.fromEntries(D.kowr.map(o => [o.id || o.url, o]));
@@ -384,7 +418,7 @@ const MATCHED = new Set(VV.flatMap(v => v.sites.map(s => s.ku).filter(Boolean)))
 const offerHtml = o => `<div class="offer"><b>${TAG("#245b8f", "#eaf1f8", 12)}${esc(t("kowr"))}</b><br>${esc(o.t)}<br>`
   + [o.ha ? esc(o.ha) + " ha" : "", o.reg ? esc(t("regL")) + " " + esc(o.reg) : ""].filter(Boolean).join(" · ")
   + (o.price ? `<br><b>${esc(t("priceL"))}: ${esc(zl(o.price))}</b>${o.disc ? ` · ${esc(t("discL"))} ${o.disc} %` : ""}` : "")
-  + (o.tender ? `<br>${esc(t("tender"))}: ${esc(o.tender)}` : "")
+  + (o.tender ? `<br>${o.past ? `<i>${esc(t("tenderPast").replace("{d}", o.tender))}</i>` : `${esc(t("tender"))}: ${esc(o.tender)}`}` : "")
   + `<br><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(t(o.src === "schedule" ? "openSchedule" : "openCard"))}</a></div>`;
 for(const o of D.kowr){
   if(MATCHED.has(o.id || o.url)) continue;

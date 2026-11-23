@@ -282,6 +282,9 @@ class LocalOSM:
                     index.setdefault(fold(nm), []).append((row.geometry.x, row.geometry.y))
         parks = self._layer("parks")
         pxy = np.column_stack([parks["park_x"].values, parks["park_y"].values]) if len(parks) else np.empty((0, 2))
+        main = places[places["place"].isin(osm_remote.MAIN_PLACES)] if "place" in places.columns else places
+        rxy = np.column_stack([main.geometry.x.values, main.geometry.y.values]) if len(main) else np.empty((0, 2))
+        R = config.NID_PLACE_RADIUS_M
         out, missing = [], set()
         for r in records:
             hits = index.get(fold(r["village"]))
@@ -291,8 +294,13 @@ class LocalOSM:
             vx, vy = hits[0]
             r = dict(r)
             d = np.hypot(pxy[:, 0] - vx, pxy[:, 1] - vy) if len(pxy) else np.array([])
-            if len(d) and d.min() <= config.NID_PLACE_RADIUS_M:
-                r["x"], r["y"] = map(float, pxy[d.argmin()])
+            near = [tuple(map(float, pxy[i])) for i in np.flatnonzero(d <= R)] if len(d) else []
+            rivals = [tuple(map(float, p)) for p in rxy[np.hypot(rxy[:, 0] - vx, rxy[:, 1] - vy) <= 2 * R + 1]] if len(rxy) else []
+            best = osm_remote.park_for_village((vx, vy), near, rivals, R)
+            r["village_xy"] = (float(vx), float(vy))
+            r["rivals_xy"] = [p for p in rivals if ((p[0] - vx) ** 2 + (p[1] - vy) ** 2) ** 0.5 > 1]
+            if best:
+                r["x"], r["y"] = best
                 r["location"] = "osm park near village"
             else:
                 r["x"], r["y"] = vx, vy

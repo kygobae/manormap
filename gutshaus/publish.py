@@ -17,6 +17,7 @@ from pathlib import Path
 
 from . import config
 from .grades import STATUS_DE, dossier_id, grade_of
+from .sources import kowr
 
 log = logging.getLogger(__name__)
 
@@ -106,10 +107,12 @@ def offers(sites: list[dict], kowr_json: Path | None) -> list[dict]:
         return []
     raw = json.loads(Path(kowr_json).read_text(encoding="utf-8"))
     raw = raw.get("offers", raw) if isinstance(raw, dict) else raw
+    # a card's planned tender period can lie in the past while the card is still online: say so instead of
+    # showing the old date as if it were coming
     return [{"id": o.get("uid") or o.get("url"), "t": o.get("title"), "url": o.get("url"), "lat": o.get("lat"),
              "lon": o.get("lon"), "ha": o.get("area_ha"), "tender": o.get("tender"), "place": o.get("place"),
              "price": o.get("price_pln"), "disc": o.get("discount_pct"), "reg": o.get("register"),
-             "src": o.get("source") or "card"}
+             "src": o.get("source") or "card", "past": kowr.tender_passed(o.get("tender"))}
             for o in raw if o.get("lat") is not None]
 
 
@@ -152,8 +155,10 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
     (pub / "legal.html").write_text(legal.replace("{{NAME}}", config.SITE_NAME).replace("{{EMAIL}}", config.CONTACT_EMAIL or "–"),
                                     encoding="utf-8")
     (pub / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8")
-    # the display face is served from the site itself: no font requests to third parties (GDPR)
+    # the display face and Leaflet (1.9.4, BSD-2-Clause) are served from the site itself: no requests to font or
+    # script CDNs (GDPR); only the map tiles come from elsewhere
     shutil.copytree(HERE / "fonts", pub / "fonts")
+    shutil.copytree(HERE / "vendor", pub / "vendor")
     if sample_pdf and config.SHOP_ENABLED:
         shutil.copy(sample_pdf, pub / "sample.pdf")
     # Cloudflare Pages Functions (webhook + download): only with the shop; without it the site is purely static

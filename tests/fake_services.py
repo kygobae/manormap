@@ -188,7 +188,7 @@ E-mail: zabytki.szczecin@kowr.gov.pl
     # a branch tender schedule (Szczecin layout): a header row, the card's manor with a price (same obręb and
     # parcel: merged into the card), a manor known only from the schedule, and a lease (ignored)
     "33333333-3333-3333-3333-333333333333": """Lp. Data i godzina rozpoczęcia przetargu Miejsce przeprowadzenia przetargu
-1 03.11.2026 10:00
+1 03.11.2099 10:00
 KOWR OT
 w Szczecinie
 Powiat koszaliński,
@@ -200,7 +200,7 @@ parkowy wpisany do
 rejestru zabytków
 pod nr A-1000
 4,8000 4,5000 1 250 000,00 zł
-2 24.11.2026 10:00
+2 24.11.2099 10:00
 KOWR OT
 w Szczecinie
 Powiat koszaliński,
@@ -209,7 +209,7 @@ obręb Stary Kłos
 dz. nr 5/1
 sprzedaż ustny nieograniczony dwór wpisany do rejestru zabytków pod nr A-2000
 1,2000 1,2000 330 000,00 zł
-3 25.11.2026 09:00
+3 25.11.2099 09:00
 KOWR OT
 w Szczecinie
 Powiat koszaliński,
