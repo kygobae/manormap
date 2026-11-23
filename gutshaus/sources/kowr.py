@@ -109,6 +109,38 @@ def _parcels(s: str) -> list[str]:
     return PARCEL_RE.findall(s)
 
 
+_ROMAN = {"I": 1, "II": 2, "III": 3, "IV": 4}
+_QUARTER = re.compile(r"\b(IV|I{1,3})\s*(?:[-–]\s*(IV|I{1,3}))?\s*kwarta\w*\s+(\d{4})", re.I)
+_HALF = re.compile(r"\b(I{1,2})\s*(?:[-–]\s*(I{1,2}))?\s*p[oó][lł]rocz\w*\s+(\d{4})", re.I)
+_DATE = re.compile(r"\b(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})\b")
+_YEAR = re.compile(r"\b(20\d{2})\s*r?\b")
+
+
+def tender_end(text: str | None) -> tuple[int, int, int] | None:
+    """The last day a tender text refers to, as (year, month, day): "IV kwartał 2025 r" -> (2025, 12, 31),
+    "I-II kwartał 2026" -> (2026, 6, 30), "03.11.2026 10:00; 24.11.2026 10:00" -> (2026, 11, 24),
+    "II półrocze 2026" -> (2026, 12, 31), "2027 r." -> (2027, 12, 31). None if it names no time."""
+    t = text or ""
+    ends = []
+    for m in _DATE.finditer(t):
+        ends.append((int(m.group(3)), int(m.group(2)), int(m.group(1))))
+    for m in _QUARTER.finditer(t):
+        q = _ROMAN[(m.group(2) or m.group(1)).upper()]
+        ends.append((int(m.group(3)), 3 * q, (31, 30, 30, 31)[q - 1]))
+    for m in _HALF.finditer(t):
+        h = _ROMAN[(m.group(2) or m.group(1)).upper()]
+        ends.append((int(m.group(3)), 6 * h, 30 if h == 1 else 31))
+    if not ends:
+        ends += [(int(y), 12, 31) for y in _YEAR.findall(t)]
+    return max(ends) if ends else None
+
+
+def tender_passed(text: str | None, today: tuple[int, int, int] | None = None) -> bool:
+    """True when every time the tender text names lies in the past (so the date shown would mislead)."""
+    end = tender_end(text)
+    return end is not None and end < (today or tuple(time.localtime()[:3]))
+
+
 def parse_card(text: str) -> dict:
     t = clean_text(text)
     head = re.search(r"^\s*([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻ\- ]{2,}),\s*gm(?:ina|\.)\s*([^\n]+)", t, re.M)

@@ -646,6 +646,10 @@ def test_public_map_has_exact_sites_and_outlines_but_no_parcel_numbers(built, mo
     # the display font is served by the site itself: no requests to Google Fonts (GDPR)
     assert (pub / "fonts" / "fraunces-latin-ext-wght-normal.woff2").stat().st_size > 10000
     assert "fonts.googleapis" not in html and "fonts.gstatic" not in html
+    # Leaflet is served by the site too (no unpkg); its CSS images come along
+    assert "unpkg.com" not in html and 'src="vendor/leaflet/leaflet.js"' in html
+    assert (pub / "vendor" / "leaflet" / "leaflet.js").stat().st_size > 100000
+    assert (pub / "vendor" / "leaflet" / "images" / "layers.png").exists()
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     status = {grades.dossier_id(s["uid"]): s["status"] for s in grades.all_sites(built)}
     items = [x for v in data["villages"] for x in v["sites"]]
@@ -686,6 +690,7 @@ def test_kowr_offer_shown_on_its_site(built, monkeypatch):
     linked = [x for v in data["villages"] for x in v["sites"] if x.get("ku")]
     ids = {o["id"] for o in data["kowr"]}
     assert linked and all(x["ku"] in ids and x["kowr"] for x in linked)
+    assert all(o["past"] is False for o in data["kowr"])                   # fixture tenders lie in 2027 and 2099
     assert 'id="kowrOnly"' in html and "MATCHED.has(o.id || o.url)" in html
 
 
@@ -698,7 +703,7 @@ def test_kowr_tender_schedules(tmp_path, monkeypatch):
     monkeypatch.setattr("gutshaus.config.ULDK_PAUSE_S", 0)
     offers = kowr.fetch(FakeHttp())
     card = next(o for o in offers if o["title"] == "Pałac Przykładowo")
-    assert card["price_pln"] == 1250000.0 and card["register"] == "A-1000" and "03.11.2026" in card["tender"]
+    assert card["price_pln"] == 1250000.0 and card["register"] == "A-1000" and "03.11.2099" in card["tender"]
     sched = [o for o in offers if o.get("source") == "schedule"]
     assert [o["obreb"] for o in sched] == ["Stary Kłos"]                       # the lease row is not an offer
     s = sched[0]
@@ -768,3 +773,71 @@ def test_kowr_branch_pages_from_overview(monkeypatch):
                 raise RuntimeError("down")
             return super().get(url, params, **kw)
     assert ks.branch_pages(NoOverview()) == [("szczecin", "https://www.gov.pl/web/kowr/ot-szczecin2")]
+
+
+@pytest.mark.parametrize("text,end", [
+    ("IV kwartał 2025 r", (2025, 12, 31)),
+    ("I-II kwartał 2026 r", (2026, 6, 30)),
+    ("III kwartał 2026 r", (2026, 9, 30)),
+    ("I kwartał 2027 r.", (2027, 3, 31)),
+    ("II półrocze 2026", (2026, 12, 31)),
+    ("03.11.2026 10:00 (ustny nieograniczony); 24.11.2026 10:00", (2026, 11, 24)),
+    ("2027 r.", (2027, 12, 31)),
+    ("do uzgodnienia", None),
+    ("", None),
+])
+def test_kowr_tender_end(text, end):
+    from gutshaus.sources import kowr
+    assert kowr.tender_end(text) == end
+
+
+def test_stale_kowr_offers():
+    """A card's tender period in the past is flagged, not shown as coming; schedule offers whose tenders are all
+    past are dropped (the fallback used to keep the last past tender)."""
+    from gutshaus.sources import kowr, kowr_schedules as ks
+    today = (2026, 11, 23)
+    assert kowr.tender_passed("IV kwartał 2025 r", today) and kowr.tender_passed("III kwartał 2026 r", today)
+    assert not kowr.tender_passed("IV kwartał 2026 r", today) and not kowr.tender_passed("brak", today)
+    row = dict(obreb="Szymanów", parcels=["289/8"], mode="", price_pln=281200.0, kind="pałac")
+    past = ks.merge([{**row, "date": "05.11.2026", "time": "11:00"}], today)
+    both = ks.merge([{**row, "date": "05.11.2026", "time": "11:00"}, {**row, "date": "03.12.2026", "time": "11:00"}], today)
+    assert past == [] and [t["date"] for t in both[0]["tenders"]] == ["03.12.2026"]
+
+
+def test_register_entry_not_in_the_neighbours_park():
+    """Sulisławice's register entry used to land in Wiśniowa's manor park (the nearest park, but nearer Wiśniowa)."""
+    from gutshaus.sources.osm import park_for_village
+    sulislawice, wisniowa = (0, 0), (300, 600)
+    park_wisniowa, park_own = (250, 500), (-400, -900)
+    assert park_for_village(sulislawice, [park_wisniowa], [sulislawice, wisniowa], 1500) is None
+    assert park_for_village(sulislawice, [park_wisniowa, park_own], [sulislawice, wisniowa], 1500) == park_own
+    assert park_for_village(wisniowa, [park_wisniowa], [sulislawice, wisniowa], 1500) == park_wisniowa
+
+
+def test_site_sits_on_the_house_not_the_park_centre():
+    """A park and the palace in it become one site; the site point (and so its parcel) is the palace's."""
+    from gutshaus.pipeline import merge
+    park = {"uid": "osm:way/1", "source": "osm", "name": "Zespół pałacowo-parkowy", "text": "name=Zespół pałacowo-parkowy | leisure=park",
+            "x": 1000.0, "y": 1000.0, "registered": False, "location": "exact"}
+    palace = {"uid": "osm:way/2", "source": "osm", "name": "Pałac Wiśniowa", "text": "name=Pałac Wiśniowa | historic=castle | building=residential",
+              "x": 925.0, "y": 1010.0, "registered": True, "location": "exact"}
+    guess = {"uid": "nid:3", "source": "nid", "name": "park pałacowy, Sulisławice", "text": "park pałacowy | park | Sulisławice",
+             "x": 1000.0, "y": 1000.0, "registered": True, "location": "osm park near village"}
+    (s,) = merge([park, palace, guess])
+    assert (s["x"], s["y"]) == (925.0, 1010.0) and s["uid"] == "osm:way/1"       # dossier ID stays the same
+    (s,) = merge([park])
+    assert (s["x"], s["y"]) == (1000.0, 1000.0)                                    # no house: the park as before
+
+
+def test_village_entry_joins_only_a_site_in_its_own_village():
+    """Sulisławice's register entry (village level) does not join the Wiśniowa palace 736 m away, which lies
+    nearer Wiśniowa; it does join a site in Sulisławice."""
+    from gutshaus.pipeline import merge
+    palace = {"uid": "osm:way/2", "source": "osm", "name": "Pałac Wiśniowa", "text": "name=Pałac Wiśniowa | historic=castle | building=yes",
+              "x": 736.0, "y": 0.0, "registered": True, "location": "exact"}
+    entry = {"uid": "nid:3", "source": "nid", "name": "park pałacowy, Sulisławice", "text": "park pałacowy | park | Sulisławice",
+             "x": 0.0, "y": 0.0, "registered": True, "location": "village centre", "village_xy": (0.0, 0.0), "rivals_xy": [(900.0, 100.0)]}
+    sites = merge([palace, entry])
+    assert len(sites) == 2 and next(s for s in sites if s["uid"] == "osm:way/2")["name"] == "Pałac Wiśniowa"
+    own = {**palace, "uid": "osm:way/4", "name": "Dwór Sulisławice", "x": 200.0}
+    assert len(merge([own, entry])) == 1

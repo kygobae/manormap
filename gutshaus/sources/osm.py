@@ -141,6 +141,21 @@ def candidate_from_tags(kind: str, oid: int, lon: float, lat: float, tags: dict,
     }
 
 
+MAIN_PLACES = ("city", "town", "village", "hamlet")
+
+
+def park_for_village(village: tuple, parks: list[tuple], rivals: list[tuple], radius: float) -> tuple | None:
+    """The nearest park within `radius` of the village that is not closer to another village (EPSG:2180 points).
+    A register entry for village A must not land in the manor park of neighbouring village B."""
+    vx, vy = village
+    d = lambda a, b: ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+    others = [r for r in rivals if d(r, village) > 1]
+    for p in sorted((p for p in parks if d(p, village) <= radius), key=lambda p: d(p, village)):
+        if all(d(p, village) <= d(p, r) for r in others):
+            return p
+    return None
+
+
 def locate_records(op: Overpass, records: list[dict], area_pl) -> list[dict]:
     """Give village-only register records a position: nearest OSM park to the
     village node if there is one within NID_PLACE_RADIUS_M, else the village node."""
@@ -152,9 +167,12 @@ def locate_records(op: Overpass, records: list[dict], area_pl) -> list[dict]:
 node["place"~"^(city|town|village|hamlet|isolated_dwelling|locality|neighbourhood|suburb)$"]{f};
 out;"""
     places: dict[str, list] = {}
+    rivals = []
     for e in op.query(q).get("elements", []):
         if not near.contains(Point(*ll_to_pl(e["lon"], e["lat"]))):
             continue
+        if e.get("tags", {}).get("place") in MAIN_PLACES:
+            rivals.append(ll_to_pl(e["lon"], e["lat"]))
         for key in ("name", "name:pl", "official_name"):
             if e.get("tags", {}).get(key):
                 places.setdefault(fold(e["tags"][key]), []).append((e["lon"], e["lat"]))
@@ -174,9 +192,8 @@ out;"""
         data = op.query("[out:json][timeout:300];\n(\n" + "\n".join(stmts) + "\n);\nout center;")
         centres = [ll_to_pl(e["center"]["lon"], e["center"]["lat"]) for e in data.get("elements", []) if "center" in e]
         for k in batch:
-            vx, vy = ll_to_pl(*villages[k])
-            best = min(centres, key=lambda c: (c[0] - vx) ** 2 + (c[1] - vy) ** 2, default=None)
-            if best and ((best[0] - vx) ** 2 + (best[1] - vy) ** 2) ** 0.5 <= R:
+            best = park_for_village(ll_to_pl(*villages[k]), centres, rivals, R)
+            if best:
                 parks[k] = best
     out, missing = [], set()
     for r in records:
@@ -185,6 +202,9 @@ out;"""
             missing.add(r["village"])
             continue
         r = dict(r)
+        vxy = ll_to_pl(*villages[k])
+        r["village_xy"] = vxy
+        r["rivals_xy"] = [p for p in rivals if 1 < ((p[0] - vxy[0]) ** 2 + (p[1] - vxy[1]) ** 2) ** 0.5 <= 3 * R]
         if k in parks:
             r["x"], r["y"] = parks[k]
             r["location"] = "osm park near village"

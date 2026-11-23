@@ -134,8 +134,11 @@ def title_of(o: dict) -> str:
     return f"{kind[:1].upper()}{kind[1:]}, {place}".strip(", ")
 
 
-def merge(offers: list[dict]) -> list[dict]:
-    """One offer per property: rows with the same obręb and first parcel are tenders of the same property."""
+def merge(offers: list[dict], today: tuple[int, int, int] | None = None) -> list[dict]:
+    """One offer per property: rows with the same obręb and first parcel are tenders of the same property.
+    Only future tenders count; a property whose tenders are all past is left out (sold, or it comes back in a
+    newer schedule)."""
+    today = today or tuple(time.localtime()[:3])
     by_key: dict[tuple, dict] = {}
     for o in offers:
         key = (fold(o.get("obreb") or " ".join(o.get("place_words", []))), (o.get("parcels") or [""])[0])
@@ -150,8 +153,9 @@ def merge(offers: list[dict]) -> list[dict]:
     for o in by_key.values():
         day = lambda t: tuple(int(x) for x in reversed(t["date"].split(".")))
         o["tenders"].sort(key=lambda t: day(t) + (t["time"],))
-        today = tuple(time.localtime()[:3])                       # offers are reloaded daily: drop past tenders
-        o["tenders"] = [t for t in o["tenders"] if day(t) >= today] or o["tenders"][-1:]
+        o["tenders"] = [t for t in o["tenders"] if day(t) >= today]   # offers are reloaded daily: drop past tenders
+        if not o["tenders"]:
+            continue
         o["tender"] = "; ".join(f"{t['date']} {t['time']}" + (f" ({t['mode']})" if t["mode"] else "") for t in o["tenders"])
         prices = [t["price_pln"] for t in o["tenders"] if t["price_pln"]]
         o["price_pln"] = min(prices) if prices else None        # the lowest current starting price

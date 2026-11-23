@@ -6,7 +6,7 @@ import logging
 from shapely.geometry import Point
 
 from . import config, criteria
-from .classify import house_mapped_as_building, register_names_house, ruin_evidence, text_flags
+from .classify import fragments, house_mapped_as_building, register_names_house, ruin_evidence, text_flags
 from .sources import gdos, osm
 from .geo import pl_to_ll
 
@@ -33,7 +33,7 @@ def merge(cands: list[dict]) -> list[dict]:
                     break
         else:
             exact = [(Point(s["x"], s["y"]).distance(pt), i) for i, s in enumerate(sites)
-                     if s.get("location", "exact") == "exact"]
+                     if s.get("location", "exact") == "exact" and in_own_village(c, s)]
             near = [t for t in exact if t[0] <= config.NID_ATTACH_RADIUS_M]
             if near:
                 target = sites[min(near)[1]]
@@ -46,10 +46,13 @@ def merge(cands: list[dict]) -> list[dict]:
             s["sources"] = {c["source"]}
             s["names"] = [c["name"]]
             s["nid_names"] = [c["name"]] if c["source"] == "nid" else []
+            s["_pts"] = [(point_rank(c), c["x"], c["y"])]
             sites.append(s)
         else:
             t = target
             t["members"].append(c["uid"])
+            if c.get("location", "exact") == "exact":      # a village-level guess never moves a site
+                t["_pts"].append((point_rank(c), c["x"], c["y"]))
             t["sources"].add(c["source"])
             t["names"].append(c["name"])
             if c["source"] == "nid":
@@ -64,6 +67,9 @@ def merge(cands: list[dict]) -> list[dict]:
             if t.get("area_geom") is None and c.get("area_geom") is not None:
                 t["area_geom"] = c["area_geom"]
     for s in sites:
+        # the site sits on the house when a member is the house (not on a park's centre or the first member):
+        # the parcel, the "standing/lost" check and the map marker all start from this point
+        rank, s["x"], s["y"] = min(s.pop("_pts"), key=lambda p: p[0])
         # the register's wording first ("park dworski, Dąbrowa"), OSM names as fallback
         s["name"] = best_name(s["nid_names"]) if s["nid_names"] else best_name(s["names"])
         others = [n for n in dict.fromkeys(s["names"]) if n != s["name"]]
@@ -72,6 +78,28 @@ def merge(cands: list[dict]) -> list[dict]:
         s["lon"], s["lat"] = pl_to_ll(s["x"], s["y"])
     log.info("Merged %d candidates into %d sites", len(cands), len(sites))
     return sites
+
+
+def in_own_village(c: dict, site: dict) -> bool:
+    """A register entry known only by its village may join a site that is not closer to another village."""
+    v, rivals = c.get("village_xy"), c.get("rivals_xy") or []
+    if not v:
+        return True
+    d = lambda a: ((a[0] - site["x"]) ** 2 + (a[1] - site["y"]) ** 2) ** 0.5
+    return all(d(v) <= d(r) for r in rivals)
+
+
+def point_rank(c: dict) -> int:
+    """Which member's position the site takes: 0 the house drawn as a building, 1 the house as a point or a ruin,
+    2 anything else (park, farm building, register entry). min() keeps the first of equal rank."""
+    if c.get("source") != "osm":
+        return 2
+    if house_mapped_as_building(c["text"]):
+        return 0
+    tags = next((t for t, _ in fragments(c["text"]) if t is not None), {})
+    if tags.get("historic") in ("manor", "palace", "castle") or tags.get("castle_type") or ruin_evidence(c["text"]):
+        return 1
+    return 2
 
 
 def best_name(names: list[str]) -> str:
