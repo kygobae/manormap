@@ -234,9 +234,14 @@ def load_overrides(path=None) -> str | None:
 
 # --- Grades -------------------------------------------------------------------
 # Grade from the default-weight score (0-100). Shown on the public site and in dossiers.
-# Calibrated on the national run of 2026-11 (10,873 sites): A is meant to be rare (about 4 % of sites per
-# profile). Unlocated sites score about 56 (mostly unknown values) and so get D. Recheck after big data changes.
+# A is meant to be rare (about 5 % of sites per profile). Unlocated sites score about 56 (mostly unknown values)
+# and so get D. Recheck after big data changes.
+# New build (GRADES): calibrated 2026-11-22. After the 2026-11-23 clean-up only 216 manors are "lost" and standing
+# ones and ruins are capped at C, so new-build A is genuinely rare (43 sites, 0.5 %): left as is on purpose.
 GRADES = [("A", 85), ("B", 75), ("C", 62), ("D", 0)]
+# Renovation scores run higher since a standing house counts fully (1.0): recalibrated 2026-11-23 on 8,657 sites
+# to A 5.0 %, B 18.6 %, C 30.3 %, D 46.1 %.
+GRADES_BY_PROFILE = {"new": GRADES, "renovation": [("A", 90), ("B", 82), ("C", 68), ("D", 0)]}
 # Snapshot before any gutshaus.json overrides: public grades never depend on personal weights.
 DEFAULT_WEIGHTS = {c["key"]: c["weight"] for c in CRITERIA}
 # Two public grades: building new where the manor stood, or renovating what is left.

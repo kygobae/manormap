@@ -17,9 +17,14 @@ def dossier_id(uid: str) -> str:
     return "GF-" + hashlib.sha1(uid.encode()).hexdigest()[:8].upper()
 
 
-def grade(score: float | None) -> str:
+def thresholds(profile: str = "new") -> list[tuple[str, int]]:
+    """[(grade, lowest score), ...] of a profile; new build uses config.GRADES."""
+    return config.GRADES if profile == "new" else config.GRADES_BY_PROFILE.get(profile, config.GRADES)
+
+
+def grade(score: float | None, profile: str = "new") -> str:
     s = score or 0
-    return next(g for g, lo in config.GRADES if s >= lo)
+    return next(g for g, lo in thresholds(profile) if s >= lo)
 
 
 def public_score(site: dict, profile: str = "new") -> int:
@@ -29,7 +34,7 @@ def public_score(site: dict, profile: str = "new") -> int:
 
 
 def grade_of(site: dict, profile: str = "new") -> str:
-    g = grade(public_score(site, profile))
+    g = grade(public_score(site, profile), profile)
     if profile == "renovation" and site.get("status") == "lost":  # nothing left to renovate
         g = max(g, config.RENOVATION_CAP_LOST)
     if profile == "new" and site.get("status") in ("standing", "ruin"):  # the manor or its walls occupy its place
