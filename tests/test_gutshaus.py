@@ -457,6 +457,8 @@ def test_publish_site(built, monkeypatch):
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     ids = [x["id"] for v in data["villages"] for x in v["sites"]]
     assert keep in ids and grades.dossier_id(sites[0]["uid"]) not in ids and len(ids) == len(sites) - 1
+    outlines = json.loads((built / "site" / "public" / "parcels.json").read_text(encoding="utf-8"))
+    assert grades.dossier_id(sites[0]["uid"]) not in outlines                # a reserved site's parcel stays private
     assert all(x["ren"] in "ABCD" for v in data["villages"] for x in v["sites"]) and all(v["r"] for v in data["villages"])
     for s in sites:                                                       # no parcel data on the public site
         if s.get("parcel_id"):
@@ -553,9 +555,10 @@ def test_public_village_names_are_places(precinct, name, commune, expected):
     assert village_of({"precinct": precinct, "name": name, "commune": commune}) == expected
 
 
-def test_public_map_has_exact_sites_but_no_parcels(built, monkeypatch):
-    """Located sites carry their exact position (it is public in OSM and the register); sites known only by their
-    village do not. No parcel numbers. Analytics only with a token, and then the privacy text says so."""
+def test_public_map_has_exact_sites_and_outlines_but_no_parcel_numbers(built, monkeypatch):
+    """Located sites carry their exact position and parcel outline (both public in OSM, the register and Geoportal);
+    sites known only by their village do not. No parcel numbers. Analytics only with a token, and then the privacy
+    text says so."""
     import json, re
     from gutshaus import config, grades
     cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
@@ -568,6 +571,12 @@ def test_public_map_has_exact_sites_but_no_parcels(built, monkeypatch):
     items = [x for v in data["villages"] for x in v["sites"]]
     assert items and all(("lat" in x) == (status[x["id"]] != "unlocated") for x in items)
     assert any("lat" in x for x in items) and any("lat" not in x for x in items)
+    outlines = json.loads((pub / "parcels.json").read_text(encoding="utf-8"))
+    located = {x["id"] for x in items if "lat" in x}
+    assert outlines and set(outlines) <= located
+    assert all(len(r) >= 4 and r[0] == r[-1] and 49 < r[0][0] < 55 and 14 < r[0][1] < 25 for r in outlines.values())
+    parcel_ids = [s["parcel_id"] for s in grades.all_sites(built) if s.get("parcel_id")]
+    assert parcel_ids and not any(p in html or p in json.dumps(outlines) for p in parcel_ids)
     assert "cloudflareinsights" not in html
     assert "keine Cookies und kein Tracking" in (pub / "legal.html").read_text(encoding="utf-8")
     monkeypatch.setattr(config, "WEB_ANALYTICS_TOKEN", "abc123")
