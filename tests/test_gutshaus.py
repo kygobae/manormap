@@ -66,7 +66,7 @@ def test_manor_on_or_next_to_the_parcel_counts_as_standing():
     from shapely.geometry import Point, box
     from gutshaus.pipeline import classify_status, manor_on_parcel
     from gutshaus.sources.osm import summarise_context
-    site = {"text": "dwór", "name": "dwór", "location": "osm park near village"}
+    site = {"text": "park dworski", "name": "park dworski", "location": "osm park near village"}
     pt = Point(0, 0)
     parcel = box(-100, -100, 300, 100)                                  # point near the west end
     on_parcel = ({"building": "yes"}, box(240, -10, 260, 10))           # 400 m², 240 m away, on the parcel
@@ -79,6 +79,45 @@ def test_manor_on_or_next_to_the_parcel_counts_as_standing():
     assert manor_on_parcel(ctx, parcel) == "next_to_parcel" and classify_status(site, ctx, parcel) == "standing"
     far = summarise_context(pt, [({"building": "yes"}, box(380, -10, 400, 10))])          # 390 m: too far to matter
     assert manor_on_parcel(far, box(-100, -100, 500, 100)) == "" and classify_status(site, far, box(-100, -100, 500, 100)) == "lost"
+
+
+@pytest.mark.parametrize("text,ruin", [
+    ("name=Ruiny dworu | historic=ruins", True),
+    ("name=Pałac | historic=manor | building=yes | ruins=yes", True),
+    ("ruina pałacu | pałac | XVIII w. | Włostów | gm. Lipnik", True),
+    ("name=Resztki pałacu | historic=memorial", True),
+    ("name=Zamek Ujazdowski | historic=castle | building=castle | castle_type=stately | ruins=no", False),
+    ("pozostałości parku dworskiego | park | koniec XV w. | Olchowa", False),   # the park's remains, not the house
+    ("relikty folwarku | zespół - folwark | XIX w. | Wiejce", False),
+    ("name=Stodoła folwarczna z XIX wieku | historic=ruins | heritage=2", False),  # a barn
+    ("ruina kaplicy dworskiej | kaplica | XVIII w. | Morawica", False),
+    ("name=Domek Ogrodnika | description=Fragment zabudowań nieistniejącego Pałacu | building=yes | ruins=yes",
+     False),                                                                    # the palace itself is gone
+    ("name=Park pałacowy | leisure=park || name=Ruiny pałacu | historic=ruins", True),  # any member counts
+])
+def test_ruin_evidence(text, ruin):
+    from gutshaus.classify import ruin_evidence
+    assert ruin_evidence(text) == ruin
+
+
+def test_small_mapped_manor_stands_and_guessed_places_are_not_lost():
+    from shapely.geometry import Point, box
+    from gutshaus.pipeline import classify_status
+    from gutshaus.sources.osm import summarise_context
+    empty = summarise_context(Point(0, 0), [({"building": "yes"}, box(45, -2, 55, 2))])   # only a shed
+    dworek = {"text": "name=Dworek w Smardzowicach | historic=house | building=yes || dwór | dwór | 1930 r.",
+              "name": "dwór", "location": "exact"}
+    assert classify_status(dworek, empty) == "standing"           # under 250 m², but mapped as the house
+    tower = {"text": "name=Wieża w Stołpiu | historic=castle | building=yes | castle_type=manor | ruins=no",
+             "name": "Wieża w Stołpiu", "location": "exact"}
+    assert classify_status(tower, empty) == "standing"
+    guessed = {"text": "dwór | dwór | 1. poł. XIX w. | Kolonia Niedzielsko | gm. Wieluń", "name": "dwór",
+               "location": "osm park near village"}
+    assert classify_status(guessed, empty) == "unknown"            # the register lists the house: our guess is off
+    assert classify_status({**guessed, "location": "exact"}, empty) == "lost"
+    park = {"text": "park dworski | park | XIX w. | Smolno", "name": "park dworski",
+            "location": "osm park near village"}
+    assert classify_status(park, empty) == "lost"                  # only the park is listed: the house is likely gone
 
 
 def test_uldk_parse():

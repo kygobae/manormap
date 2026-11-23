@@ -143,7 +143,8 @@ ESTATE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 PARK_PATTERN = re.compile(r"park|ogr[oó]d", re.IGNORECASE)
-RUIN_PATTERN = re.compile(r"ruin|relikt|pozosta[lł]o|trwa[lł]a ruina|fundament", re.IGNORECASE)
+# Ruin words; they only count next to the house ("ruiny dworu"), see classify.ruin_evidence
+RUIN_PATTERN = re.compile(r"ruin|relikt|pozosta[lł]o|resztk|fundament", re.IGNORECASE)
 # Things we never want even if a keyword matches
 EXCLUDE_PATTERN = re.compile(
     r"ko[sś]ci[oó][lł]|cmentarz|kaplic|plebani|szko[lł]|dworzec|stacj|"

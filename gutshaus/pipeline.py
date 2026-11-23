@@ -6,7 +6,7 @@ import logging
 from shapely.geometry import Point
 
 from . import config, criteria
-from .classify import text_flags
+from .classify import house_mapped_as_building, register_names_house, ruin_evidence, text_flags
 from .sources import gdos, osm
 from .geo import pl_to_ll
 
@@ -59,7 +59,7 @@ def merge(cands: list[dict]) -> list[dict]:
             for k in ("nid_ref", "osm_ref", "name_de"):
                 if c.get(k) and c[k] not in (t.get(k) or ""):
                     t[k] = ";".join(filter(None, [t.get(k), c[k]]))
-            for k in ("osm_is_park", "osm_is_ruin"):
+            for k in ("osm_is_park",):
                 t[k] = t.get(k) or c.get(k, False)
             if t.get("area_geom") is None and c.get("area_geom") is not None:
                 t["area_geom"] = c["area_geom"]
@@ -94,14 +94,18 @@ def manor_on_parcel(ctx: dict, parcel_geom) -> str:
 
 
 def classify_status(site: dict, ctx: dict, parcel_geom=None) -> str:
-    flags = text_flags(site["text"] + " " + site["name"])
-    if site.get("location", "exact").startswith("village"):
+    location = site.get("location", "exact")
+    if location.startswith("village"):
         return "unlocated"  # register entry known only by village: find it on the Messtischblatt
-    if flags["ruin_kw"] or site.get("osm_is_ruin"):
+    if ruin_evidence(site["text"]):
         return "ruin"
-    if ctx.get("big_buildings") or manor_on_parcel(ctx, parcel_geom):
+    if ctx.get("big_buildings") or manor_on_parcel(ctx, parcel_geom) or house_mapped_as_building(site["text"]):
         return "standing"
     if ctx.get("big_buildings_wide"):  # a big building 100-200 m away may well be the manor
+        return "unknown"
+    if location != "exact" and register_names_house(site["text"]):
+        # the register lists the house itself, but we only guessed its place (a park near the village):
+        # finding no building there says more about the guess than about the house
         return "unknown"
     return "lost" if ctx else "unknown"
 
