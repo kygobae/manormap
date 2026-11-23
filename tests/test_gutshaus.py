@@ -510,6 +510,9 @@ def test_renovation_grade():
     assert grades.public_score(ruin, "renovation") < grades.public_score(standing, "renovation")
     assert grades.public_score(ruin) < grades.public_score(lost) and grades.grade_of(ruin) == "C"
     assert [grades.grade(x) for x in (85, 84, 75, 74, 62, 61)] == ["A", "B", "B", "C", "C", "D"]
+    # renovation scores run higher (a standing house counts fully), so its thresholds are higher
+    assert [grades.grade(x, "renovation") for x in (90, 89, 82, 81, 68, 67)] == ["A", "B", "B", "C", "C", "D"]
+    assert grades.thresholds("new") == grades.thresholds() and grades.thresholds("renovation")[0][1] > 85
 
 
 def test_unlocated_sites_get_d(built):
