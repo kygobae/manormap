@@ -138,7 +138,6 @@ def candidate_from_tags(kind: str, oid: int, lon: float, lat: float, tags: dict,
         "registered": bool(tags.get("heritage") or tags.get("ref:nid")),
         "location": "exact",
         "osm_is_park": tags.get("leisure") in ("park", "garden"),
-        "osm_is_ruin": tags.get("historic") == "ruins" or tags.get("ruins") == "yes",
     }
 
 

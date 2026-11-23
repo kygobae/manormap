@@ -86,9 +86,9 @@ GDOS_LAYERS = {
 # `ramp`: (full_at, zero_at) distance in metres, linear in between.
 CRITERIA = [
     {"key": "gone", "label": "Manor gone (room to build)", "weight": 3,
-     "help": "lost 1 · ruin 0.9 · unlocated 0.6 · standing 0.15"},
+     "help": "lost 1 · unlocated 0.6 · unknown 0.5 · ruin 0.3 · standing 0.15"},
     {"key": "remains", "label": "Manor remains (to renovate)", "weight": 0,
-     "help": "ruin 1 · standing 0.8 · lost 0 · unlocated/unknown ? (used by the renovation grade)"},
+     "help": "standing 1 · ruin 0.6 · lost 0 · unlocated/unknown ? (used by the renovation grade)"},
     {"key": "park", "label": "Historic park on site", "weight": 2,
      "help": "park mapped nearby or named in the register"},
     {"key": "power", "label": "Power line nearby", "weight": 2, "ramp": (150, 2000),
@@ -136,14 +136,16 @@ DEFAULT_POWIAT = "3209"  # powiat koszaliński
 # --- Candidate detection ---------------------------------------------------
 # Polish estate vocabulary (matched case-insensitively, also without diacritics)
 ESTATE_PATTERN = re.compile(
-    # not "podwórko" (courtyard) or "Zadworze" (behind the manor: a place name)
-    r"(?<!po)(?<!za)dw[oó]r(?!zec|ca|co)|dworsk|pa[lł]ac|folwar|maj[aą]t|rz[aą]dc[oó]wk|oficyn|"
+    # "dwór" only at the start of a word: not "podwórko" (courtyard), "Zadworze" (behind the manor: a place name)
+    # or "Dworakowski"; and not "dworzec" (station), "Dworzysko", "Dwory" (place names)
+    r"\bdw[oó]r(?!zec|ca|co|ak|zysk|y\b)|dworsk|pa[lł]ac|folwar|maj[aą]t|rz[aą]dc[oó]wk|oficyn|"
     r"zesp[oó][lł] (dworsk|pa[lł]acow|folwarcz)|park (pod)?dworsk|park pa[lł]acow|"
     r"gutshaus|herrenhaus|rittergut|schloss",
     re.IGNORECASE,
 )
 PARK_PATTERN = re.compile(r"park|ogr[oó]d", re.IGNORECASE)
-RUIN_PATTERN = re.compile(r"ruin|relikt|pozosta[lł]o|trwa[lł]a ruina|fundament", re.IGNORECASE)
+# Ruin words; they only count next to the house ("ruiny dworu"), see classify.ruin_evidence
+RUIN_PATTERN = re.compile(r"ruin|relikt|pozosta[lł]o|resztk|fundament", re.IGNORECASE)
 # Things we never want even if a keyword matches
 EXCLUDE_PATTERN = re.compile(
     r"ko[sś]ci[oó][lł]|cmentarz|kaplic|plebani|szko[lł]|dworzec|stacj|"
@@ -153,7 +155,11 @@ EXCLUDE_PATTERN = re.compile(
 # An OSM object that matches only by name is not an estate if it is one of these: settlements named
 # "Dwór", "Zadworze", "Kuków-Folwark" (place=*, mostly PRNG imports), roads, stations, shops, plants ...
 NON_ESTATE_KEYS = ("place", "highway", "railway", "public_transport", "amenity", "shop", "office", "power",
-                   "aeroway", "waterway", "boundary")
+                   "aeroway", "waterway", "boundary", "man_made", "route")
+# ... or a memorial, wayside cross, artwork or viewpoint named after the manor
+NON_ESTATE_HISTORIC = {"memorial", "monument", "wayside_cross", "wayside_shrine", "tomb", "milestone",
+                       "boundary_stone"}
+NON_ESTATE_TOURISM = {"artwork", "viewpoint", "information"}
 NON_ESTATE_BUILDINGS = {"industrial", "commercial", "retail", "warehouse", "garage", "garages", "shed", "service",
                         "church", "chapel", "school", "train_station", "transportation", "kiosk", "hangar"}
 OSM_HISTORIC_VALUES = ["manor", "castle", "estate", "ruins", "building", "palace"]
@@ -237,7 +243,7 @@ PROFILES = {
                    "water": 0.5, "forsale": 1.5},
 }
 RENOVATION_CAP_LOST = "C"  # best renovation grade when the manor is gone
-NEW_CAP_STANDING = "C"     # best new-build grade while the manor still stands (no room in its place)
+NEW_CAP_STANDING = "C"     # best new-build grade while the manor stands or is a ruin (no free room in its place)
 
 # Shop: buy buttons, the dossier section and the Cloudflare Functions (webhook, download). Off until the dossier
 # is ready to sell; switch on with {"SHOP_ENABLED": true} in gutshaus.json.
