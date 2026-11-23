@@ -189,8 +189,11 @@ CONTEXT_BATCH = 40           # candidates per Overpass context query
 KOWR_MATCH_RADIUS_M = 500    # a KOWR offer this close to a site counts as "for sale"
 # Surroundings of one site (dossier): kind -> search radius in metres. Everyday services, and what may disturb
 # (wind turbines, main roads, railways). See osm.poi_kind for the OSM tags of each kind.
-SURROUNDINGS_RADIUS_M = {"wind": 3000, "main_road": 2000, "railway": 2000, "station": 15000, "school": 15000,
-                         "doctor": 15000, "pharmacy": 15000, "shop": 15000}
+SURROUNDINGS_RADIUS_M = {"wind": 3000, "main_road": 2000, "railway": 2000, "livestock": 1000, "station": 15000,
+                         "school": 15000, "doctor": 15000, "pharmacy": 15000, "shop": 15000}
+# a livestock building counts (smell, noise, traffic) from this footprint: a large barn, not a hobby stable
+LIVESTOCK_MIN_M2 = 800
+LIVESTOCK_BUILDINGS = ("cowshed", "sty", "chicken_coop", "stable")
 MAIN_ROADS = ("motorway", "trunk", "primary")
 # KOWR branches, only used if the overview gov.pl/web/kowr/harmonogramy (which links every branch's schedule page)
 # is unavailable: then gov.pl/web/kowr/ot-<branch>2 is tried. Wrocław also has heritage cards.

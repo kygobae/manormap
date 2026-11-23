@@ -304,7 +304,8 @@ SURROUNDINGS_POINTS = [("wind", "", 2000, 0), ("wind", "", 2400, 0), ("wind", ""
                        ("doctor", "", 20000, 0)]                                            # too far
 # expected: wind 2 (nearest 2000), school 6000, station 8000, shop 4000 (area), main road 1200, railway 1500
 SURROUNDINGS_EXPECTED = {"wind": (2, 2000), "school": (1, 6000), "station": (1, 8000), "shop": (1, 4000),
-                         "main_road": (1, 1200), "railway": (1, 1500), "doctor": (0, None), "pharmacy": (0, None)}
+                         "main_road": (1, 1200), "railway": (1, 1500), "doctor": (0, None), "pharmacy": (0, None),
+                         "livestock": (1, 590)}                 # the 1,600 m² cowshed; the small stable does not count
 
 
 def overpass_surroundings():
@@ -318,6 +319,10 @@ def overpass_surroundings():
                 "geometry": [ll(3980, -20), ll(3980, 20), ll(4020, 20), ll(4020, -20), ll(3980, -20)]})
     els.append({"type": "way", "id": 851, "tags": {"highway": "primary"}, "geometry": [ll(-3000, 1200), ll(3000, 1200)]})
     els.append({"type": "way", "id": 852, "tags": {"railway": "rail"}, "geometry": [ll(-3000, -1500), ll(3000, -1500)]})
+    els.append({"type": "way", "id": 854, "tags": {"building": "cowshed"},
+                "geometry": [ll(580, -20), ll(580, 20), ll(620, 20), ll(620, -20), ll(580, -20)]})
+    els.append({"type": "way", "id": 855, "tags": {"building": "stable"},
+                "geometry": [ll(295, -5), ll(295, 5), ll(305, 5), ll(305, -5), ll(295, -5)]})
     els.append({"type": "way", "id": 853, "tags": {"railway": "rail", "service": "siding"},
                 "geometry": [ll(-3000, -300), ll(3000, -300)]})
     return {"elements": els}
@@ -381,6 +386,8 @@ def osm_fixture_xml() -> str:
         node(*pl_to_ll(sx + dx, sy + dy), SURROUNDINGS_TAGS[kind] | ({"name": name} if name else {}))
     way(ring_ll(pl_to_ll(sx + 4000, sy), 20), {"shop": "supermarket", "name": "Market Wzorowo", "building": "retail"}, closed=True)
     way([ll(-3000, 1200), ll(3000, 1200)], {"highway": "primary"})
+    way(ring_ll(pl_to_ll(sx + 600, sy), 20), {"building": "cowshed"}, closed=True)       # 1,600 m²: counts
+    way(ring_ll(pl_to_ll(sx + 300, sy), 5), {"building": "stable"}, closed=True)          # 100 m²: does not
     way([ll(-3000, -1500), ll(3000, -1500)], {"railway": "rail"})
     way([ll(-3000, -300), ll(3000, -300)], {"railway": "rail", "service": "siding"})   # a siding is no railway line
     # places

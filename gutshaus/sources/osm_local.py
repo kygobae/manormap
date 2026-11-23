@@ -91,15 +91,15 @@ class _Writer:
             layer = "water"
         elif layer == "candidates":
             gdf = gdf.set_geometry(gdf.geometry.representative_point())
-        elif layer == "poi_areas":  # schools, shops ... mapped as areas: one point each, in the pois layer
+        elif layer == "poi_areas":  # schools, shops, barns ... mapped as areas: one point each, with the area
+            gdf["area_m2"] = gdf.geometry.area.round(0)      # livestock barns count only when large
             gdf = gdf.set_geometry(gdf.geometry.representative_point())
-            layer = "pois"
         elif layer == "parks":
             gdf["park_x"], gdf["park_y"] = gdf.geometry.centroid.x, gdf.geometry.centroid.y
         gdf["geometry"] = shapely.force_2d(gdf.geometry.values)
         pyogrio.write_dataframe(gdf, self.path, layer=layer, driver="GPKG",
                                 append=layer in self.counts,
-                                promote_to_multi=layer not in ("candidates", "places", "buildings", "pois"))
+                                promote_to_multi=layer not in ("candidates", "places", "buildings", "pois", "poi_areas"))
         self.counts[layer] = self.counts.get(layer, 0) + len(gdf)
 
     def close(self):
@@ -381,9 +381,11 @@ class LocalOSM:
         if "pois" not in self._layers():
             raise RuntimeError("the OSM extract has no pois layer yet: run `gutshaus osm-extract` again")
         found = []
-        pois = self._read("pois", here.buffer(max(R.values())).bounds)
-        for row in pois.itertuples():
-            found.append((row.kind, row.name or "", here.distance(row.geometry)))
+        box = here.buffer(max(R.values())).bounds
+        for row in self._read("pois", box).itertuples():                  # mapped as points: no area
+            found.append((row.kind, row.name or "", here.distance(row.geometry), None))
+        for row in self._read("poi_areas", box).itertuples():             # mapped as areas
+            found.append((row.kind, row.name or "", here.distance(row.geometry), row.area_m2))
         roads = self._read("roads", here.buffer(R["main_road"]).bounds,
                            where="highway IN (" + ",".join(f"'{h}'" for h in config.MAIN_ROADS) + ")")
         found += [("main_road", "", here.distance(g)) for g in roads.geometry]

@@ -436,14 +436,19 @@ def poi_kind(tags: dict) -> str | None:
         return "pharmacy"
     if tags.get("shop") in ("supermarket", "convenience"):
         return "shop"
+    if tags.get("building") in config.LIVESTOCK_BUILDINGS:
+        return "livestock"                       # kept only from config.LIVESTOCK_MIN_M2 (see summarise_surroundings)
     return None
 
 
-def summarise_surroundings(here: Point, found: list[tuple[str, str, float]]) -> dict:
-    """[(kind, name, distance m)] -> {kind: {"count", "nearest_m", "name"}} within each kind's radius."""
+def summarise_surroundings(here: Point, found: list[tuple]) -> dict:
+    """[(kind, name, distance m[, area m²])] -> {kind: {"count", "nearest_m", "name"}} within each kind's radius.
+    Livestock buildings count only from config.LIVESTOCK_MIN_M2 (an area of None, from a mapped point, does not)."""
     out = {}
+    big = lambda f: f[0] != "livestock" or (len(f) > 3 and (f[3] or 0) >= config.LIVESTOCK_MIN_M2)
+    found = [f for f in found if big(f)]
     for kind, r in config.SURROUNDINGS_RADIUS_M.items():
-        hits = sorted((d, n) for k, n, d in found if k == kind and d <= r)
+        hits = sorted((f[2], f[1]) for f in found if f[0] == kind and f[2] <= r)
         out[kind] = {"count": len(hits), "nearest_m": round(hits[0][0]) if hits else None,
                      "name": hits[0][1] if hits else ""}
     return out
@@ -458,7 +463,8 @@ def surroundings(op: Overpass, lon: float, lat: float) -> dict:
          f'nwr["amenity"~"^(school|doctors|clinic|hospital|pharmacy)$"](around:{R["school"]},{at});'
          f'nwr["shop"~"^(supermarket|convenience)$"](around:{R["shop"]},{at});'
          f'way["highway"~"^({"|".join(config.MAIN_ROADS)})$"](around:{R["main_road"]},{at});'
-         f'way["railway"="rail"](around:{R["railway"]},{at}););out tags geom qt;')
+         f'way["railway"="rail"](around:{R["railway"]},{at});'
+         f'way["building"~"^({"|".join(config.LIVESTOCK_BUILDINGS)})$"](around:{R["livestock"]},{at}););out tags geom qt;')
     here = Point(*ll_to_pl(lon, lat))
     found = []
     for e in op.query(q).get("elements", []):
@@ -470,14 +476,18 @@ def surroundings(op: Overpass, lon: float, lat: float) -> dict:
             kind = None if tags.get("service") else "railway"
         if not kind:
             continue
+        area = None
         if "lat" in e:
             g = Point(*ll_to_pl(e["lon"], e["lat"]))
         elif e.get("geometry"):
             pts = [ll_to_pl(c["lon"], c["lat"]) for c in e["geometry"] if c]
             g = LineString(pts) if len(pts) > 1 else Point(pts[0])
+            if len(pts) >= 4 and pts[0] == pts[-1]:
+                from shapely.geometry import Polygon
+                area = Polygon(pts).area
         else:
             continue
-        found.append((kind, tags.get("name", ""), here.distance(g)))
+        found.append((kind, tags.get("name", ""), here.distance(g), area))
     return summarise_surroundings(here, found)
 
 
