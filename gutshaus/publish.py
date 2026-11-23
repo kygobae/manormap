@@ -112,7 +112,11 @@ def offers(sites: list[dict], kowr_json: Path | None) -> list[dict]:
     return [{"id": o.get("uid") or o.get("url"), "t": o.get("title"), "url": o.get("url"), "lat": o.get("lat"),
              "lon": o.get("lon"), "ha": o.get("area_ha"), "tender": o.get("tender"), "place": o.get("place"),
              "price": o.get("price_pln"), "disc": o.get("discount_pct"), "reg": o.get("register"),
-             "src": o.get("source") or "card", "past": kowr.tender_passed(o.get("tender"))}
+             "src": o.get("source") or "card", "past": kowr.tender_passed(o.get("tender")),
+             # the whole tender area (often the manor with its farmland): KOWR publishes these parcels itself
+             "pl": [[[lat, lon] for lon, lat in ring] for ring in o.get("parcels_ll") or []],
+             "pn": len(o.get("parcels") or []) or o.get("parcels_found"), "pf": o.get("parcels_found"),
+             "pha": o.get("parcels_ha")}
             for o in raw if o.get("lat") is not None]
 
 
