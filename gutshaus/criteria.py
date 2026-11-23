@@ -7,8 +7,10 @@ from __future__ import annotations
 
 from . import config
 
-GONE = {"lost": 1.0, "ruin": 0.9, "unlocated": 0.6, "unknown": 0.5, "standing": 0.15}
-REMAINS = {"ruin": 1.0, "standing": 0.8, "lost": 0.0}  # unlocated/unknown -> None (unknown)
+# A ruin is the hardest case for both grades: usually a listed monument whose walls the conservator decides about,
+# so a new house has to work around or into them, and a renovation rebuilds far more than it repairs.
+GONE = {"lost": 1.0, "unlocated": 0.6, "unknown": 0.5, "ruin": 0.3, "standing": 0.15}
+REMAINS = {"standing": 1.0, "ruin": 0.6, "lost": 0.0}  # unlocated/unknown -> None (unknown)
 LANDUSE = {"agri": 1.0, "built": 0.9, "unknown": 0.5, "forest": 0.15}
 
 

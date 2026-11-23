@@ -32,7 +32,7 @@ def grade_of(site: dict, profile: str = "new") -> str:
     g = grade(public_score(site, profile))
     if profile == "renovation" and site.get("status") == "lost":  # nothing left to renovate
         g = max(g, config.RENOVATION_CAP_LOST)
-    if profile == "new" and site.get("status") == "standing":    # the manor still occupies its place
+    if profile == "new" and site.get("status") in ("standing", "ruin"):  # the manor or its walls occupy its place
         g = max(g, config.NEW_CAP_STANDING)
     return g
 

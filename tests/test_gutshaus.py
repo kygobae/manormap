@@ -479,12 +479,14 @@ def test_renovation_grade():
             "land_cover": "agri", "c_protection": 1.0, "parcel_ha": 3}
     lost, ruin = {**base, "status": "lost"}, {**base, "status": "ruin"}
     assert grades.grade_of(lost) == "A" and grades.grade_of(lost, "renovation") == "C"   # nothing to renovate
-    assert grades.grade_of(ruin, "renovation") == "A"
-    unreg = {**ruin, "registered": False}
-    assert grades.public_score(unreg, "renovation") < grades.public_score(ruin, "renovation")  # no subsidies
     standing = {**base, "status": "standing"}
     assert grades.public_score(standing) >= 85 and grades.grade_of(standing) == "C"   # no room while it stands
     assert grades.grade_of(standing, "renovation") == "A"
+    unreg = {**standing, "registered": False}
+    assert grades.public_score(unreg, "renovation") < grades.public_score(standing, "renovation")  # no subsidies
+    # a ruin is the hardest case: worse than a standing house to renovate, capped like it for a new build
+    assert grades.public_score(ruin, "renovation") < grades.public_score(standing, "renovation")
+    assert grades.public_score(ruin) < grades.public_score(lost) and grades.grade_of(ruin) == "C"
     assert [grades.grade(x) for x in (85, 84, 75, 74, 62, 61)] == ["A", "B", "B", "C", "C", "D"]
 
 

@@ -86,9 +86,9 @@ GDOS_LAYERS = {
 # `ramp`: (full_at, zero_at) distance in metres, linear in between.
 CRITERIA = [
     {"key": "gone", "label": "Manor gone (room to build)", "weight": 3,
-     "help": "lost 1 · ruin 0.9 · unlocated 0.6 · standing 0.15"},
+     "help": "lost 1 · unlocated 0.6 · unknown 0.5 · ruin 0.3 · standing 0.15"},
     {"key": "remains", "label": "Manor remains (to renovate)", "weight": 0,
-     "help": "ruin 1 · standing 0.8 · lost 0 · unlocated/unknown ? (used by the renovation grade)"},
+     "help": "standing 1 · ruin 0.6 · lost 0 · unlocated/unknown ? (used by the renovation grade)"},
     {"key": "park", "label": "Historic park on site", "weight": 2,
      "help": "park mapped nearby or named in the register"},
     {"key": "power", "label": "Power line nearby", "weight": 2, "ramp": (150, 2000),
@@ -243,7 +243,7 @@ PROFILES = {
                    "water": 0.5, "forsale": 1.5},
 }
 RENOVATION_CAP_LOST = "C"  # best renovation grade when the manor is gone
-NEW_CAP_STANDING = "C"     # best new-build grade while the manor still stands (no room in its place)
+NEW_CAP_STANDING = "C"     # best new-build grade while the manor stands or is a ruin (no free room in its place)
 
 # Shop: buy buttons, the dossier section and the Cloudflare Functions (webhook, download). Off until the dossier
 # is ready to sell; switch on with {"SHOP_ENABLED": true} in gutshaus.json.
