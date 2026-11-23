@@ -216,7 +216,7 @@ def test_run_all_and_build(tmp_path, monkeypatch):
     import json, re
     data = json.loads(re.search(r"const D = (\{.*?\});\n", index, re.S).group(1))
     assert {r["teryt"] for r in data["rows"]} == {"3209", "3206"} and data["national"] and data["total"] == 2
-    assert [o["title"] for o in data["kowr"]] == ["Pałac Przykładowo", "Dwór Nigdzie"]
+    assert [o["title"] for o in data["kowr"]] == ["Pałac Przykładowo", "Dwór Nigdzie", "Dwór, Stary Kłos"]
     national = root / "poland" / "candidates.csv"
     with national.open(encoding="utf-8-sig") as f:
         rows = list(csv.DictReader(f))
@@ -309,7 +309,8 @@ def test_kowr_offers_flag_sites(tmp_path, monkeypatch):
     cache = tmp_path / "root" / "_kowr.json"
     import json
     offers = json.loads(cache.read_text(encoding="utf-8"))
-    assert len(offers) == 2 and offers[0]["lat"] and not offers[1].get("lat")    # 2nd card: parcel not found
+    assert len(offers) == 3 and offers[0]["lat"] and not offers[1].get("lat")    # 2nd card: parcel not found
+    assert offers[2]["source"] == "schedule"                                   # manor from a tender schedule
     html = (tmp_path / "p" / "review.html").read_text(encoding="utf-8")
     assert "KOWR heritage offers" in html and "Pałac Przykładowo" in html
 
@@ -592,6 +593,51 @@ def test_kowr_offer_shown_on_its_site(built, monkeypatch):
     html = (built / "site" / "public" / "index.html").read_text(encoding="utf-8")
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     linked = [x for v in data["villages"] for x in v["sites"] if x.get("ku")]
-    urls = {o["url"] for o in data["kowr"]}
-    assert linked and all(x["ku"] in urls and x["kowr"] for x in linked)
-    assert 'id="kowrOnly"' in html and "MATCHED.has(o.url)" in html
+    ids = {o["id"] for o in data["kowr"]}
+    assert linked and all(x["ku"] in ids and x["kowr"] for x in linked)
+    assert 'id="kowrOnly"' in html and "MATCHED.has(o.id || o.url)" in html
+
+
+def test_kowr_tender_schedules(tmp_path, monkeypatch):
+    """Manors from the branches' tender schedules: only sales with a manor or a monument entry; a property that
+    also has a card adds its tenders and starting price to the card; schedule-only manors become their own offers."""
+    from gutshaus.sources import kowr, kowr_schedules as ks
+    from fake_services import KOWR_CARDS
+    monkeypatch.setattr(kowr, "pdf_text", lambda raw: KOWR_CARDS[raw.decode()])
+    monkeypatch.setattr("gutshaus.config.ULDK_PAUSE_S", 0)
+    offers = kowr.fetch(FakeHttp())
+    card = next(o for o in offers if o["title"] == "Pałac Przykładowo")
+    assert card["price_pln"] == 1250000.0 and card["register"] == "A-1000" and "03.11.2026" in card["tender"]
+    sched = [o for o in offers if o.get("source") == "schedule"]
+    assert [o["obreb"] for o in sched] == ["Stary Kłos"]                       # the lease row is not an offer
+    s = sched[0]
+    assert s["title"] == "Dwór, Stary Kłos" and s["price_pln"] == 330000.0 and s["parcels"] == ["5/1"]
+    assert s["gmina"] == "Wzorowo" and s["powiat"] == "koszaliński" and s["area_ha"] == 1.2
+    assert not s.get("lat")                                                    # the fake ULDK does not know it
+
+
+@pytest.mark.parametrize("row,expect", [
+    # slash layout (Wrocław): price without "zł", 50 % discount, parcels end with ", "
+    ("05.11.2026 11:00 SZ Świdnica DOLNOŚLĄSKIE (2)/ świdnicki (19)/ Dobromierz (3_2)/ Szymanów (12)/ 289/8, 289/7, "
+     "3,6806 3,4606 281200,00sprzedaż licytacja przetarg nieograniczony ZA-wpisana do rejestru zabytków obniżka 50% 5",
+     {"obreb": "Szymanów", "gmina": "Dobromierz", "parcels": ["289/8", "289/7"], "price_pln": 281200.0, "discount_pct": 50}),
+    # bare columns (Olsztyn): words before the parcel go to ULDK; the price is not a register number
+    ("03.11.2026 10:00 SZ Kętrzyn kętrzyński Barciany Kiemławki Wielkie 1/6 0,0524 nierolna dwór wpisany do rejestru "
+     "zabytków 24 400,00 zł sprzedaż nieograniczony", {"powiat": "kętrzyński", "parcels": ["1/6"], "register": "",
+                                                       "place_words": ["Barciany", "Kiemławki", "Wielkie"]}),
+    # a large farm offer: the manor's own parcels ("na dz. 33/15, 40/5 zespół …") are located first
+    ("3.11.2026 10:00 Powiat choszczeński, gmina Drawno obręb Konotop dz. nr 20, 22/2, 33/15, 40/5 sprzedaż ustny "
+     "ograniczony nieużytki na dz. 33/15, 40/5 zespół pałacowo-parkowy wpisany do rejestru zabytków pod nr A-88 "
+     "51,7914 2 468 000,00 zł", {"obreb": "Konotop", "heritage_parcels": ["33/15", "40/5"], "register": "A-88",
+                                 "kind": "zespół pałacowo-parkowy", "price_pln": 2468000.0}),
+    # place names are not manors: "Nowy Dwór Gdański", powiat "nowodworski"
+    ("17.11.2026 09:00 SZ Malbork POMORSKIE (22)/ nowodworski (10)/ Nowy Dwór Gdański (2_5)/ Stobna (18)/ 1/51, "
+     "sprzedaż licytacja przetarg nieograniczony NN-nierolna niezabudowana 0,1395 74500", None),
+])
+def test_schedule_rows(row, expect):
+    from gutshaus.sources import kowr_schedules as ks
+    o = ks.parse_row(row)
+    if expect is None:
+        assert o is None
+    else:
+        assert {k: o.get(k) for k in expect} == expect

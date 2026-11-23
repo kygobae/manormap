@@ -206,7 +206,7 @@ def cmd_build(args):
     http = Http(root / ".cache")
     offers = load_kowr(args, http)
     for s in sites:
-        for k in ("kowr_offer", "kowr_url", "kowr_tender"):
+        for k in ("kowr_offer", "kowr_url", "kowr_tender", "kowr_uid"):
             s.pop(k, None)
     if offers:
         kowr.match(sites, offers)

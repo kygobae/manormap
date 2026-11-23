@@ -174,8 +174,38 @@ def parcel_by_name(http: Http, obreb: str, number: str, gmina: str = "", powiat:
     return best[1] if best else None
 
 
+def locate(http: Http, o: dict) -> None:
+    """Position an offer at its first findable parcel (ULDK by obręb name + number, checked against gmina/powiat).
+    Schedules with bare columns give a run of words instead of gmina and obręb: try its tails as the obręb name."""
+    p = None
+    names = [o["obreb"]] if o.get("obreb") else []
+    words = o.get("place_words") or []
+    names += [" ".join(words[i:]) for i in range(len(words))]      # "Barciany Kiemławki Wielkie" -> tails
+    nrs = list(dict.fromkeys((o.get("heritage_parcels") or []) + (o.get("parcels") or [])))  # the manor's parcels first
+    for name in names:
+        for nr in nrs[:3]:
+            p = parcel_by_name(http, name, nr, o.get("gmina", ""), o.get("powiat", ""))
+            if p and (not words or fold(o.get("powiat", "")) in fold(p["county"])):
+                o["obreb"] = o.get("obreb") or name
+                o["gmina"] = o.get("gmina") or p["commune"]
+                break
+            p = None
+        if p:
+            break
+    if p and p.get("parcel_geom") is not None:
+        c = p["parcel_geom"].centroid
+        o["x"], o["y"] = c.x, c.y
+        o["lon"], o["lat"] = pl_to_ll(c.x, c.y)
+        o["parcel_id"] = p["parcel_id"]
+        o["located"] = "parcel"
+    else:
+        o["located"] = ""
+
+
 def fetch(http: Http) -> list[dict]:
-    """All current KOWR heritage offers, parsed and located."""
+    """All current KOWR heritage offers: the Wrocław branch's property cards plus manors in all branches' monthly
+    tender schedules. A schedule entry for a property that also has a card adds its tenders and price to the card."""
+    from . import kowr_schedules
     offers = []
     for card in list_cards(http):
         try:
@@ -184,23 +214,24 @@ def fetch(http: Http) -> list[dict]:
             log.warning("KOWR card %s unreadable: %s", card["url"], e)
             continue
         o = parse_card(text)
-        o.update({"title": card["title"], "url": card["url"]})
+        o.update({"title": card["title"], "url": card["url"], "source": "card"})
         o["uid"] = "kowr:" + card["url"].rsplit("/", 1)[-1]
-        p = None
-        for nr in o["parcels"][:3]:
-            p = parcel_by_name(http, o["obreb"], nr, o["gmina"], o["powiat"])
-            if p:
-                break
-        if p and p.get("parcel_geom") is not None:
-            c = p["parcel_geom"].centroid
-            o["x"], o["y"] = c.x, c.y
-            o["lon"], o["lat"] = pl_to_ll(c.x, c.y)
-            o["parcel_id"] = p["parcel_id"]
-            o["located"] = "parcel"
-        else:
-            o["located"] = ""
+        locate(http, o)
         offers.append(o)
-    log.info("KOWR: %d offers parsed, %d located", len(offers), sum(1 for o in offers if o.get("lat")))
+    log.info("KOWR: %d cards parsed, %d located", len(offers), sum(1 for o in offers if o.get("lat")))
+    try:
+        scheduled = kowr_schedules.fetch(http, pdf_text, lambda o: locate(http, o))
+    except Exception as e:
+        log.warning("KOWR schedules unavailable (%s); cards only", e)
+        scheduled = []
+    by_obreb = {fold(o["obreb"]): o for o in offers if o.get("obreb")}
+    for s in scheduled:
+        card = by_obreb.get(fold(s.get("obreb") or ""))
+        if card and set(s.get("parcels", [])) & set(card.get("parcels", [])):
+            card.update({k: s[k] for k in ("tenders", "price_pln", "register") if s.get(k)})
+            card["tender"] = s["tender"] or card.get("tender", "")
+        else:
+            offers.append(s)
     return offers
 
 
@@ -238,6 +269,7 @@ def match(sites: list[dict], offers: list[dict], radius_m: float | None = None) 
         if hit:
             s["kowr_offer"] = hit.get("title") or hit.get("place")
             s["kowr_url"] = hit["url"]
+            s["kowr_uid"] = hit.get("uid") or hit["url"]   # schedules: several offers share one PDF
             s["kowr_tender"] = hit.get("tender", "")
             n += 1
     return n

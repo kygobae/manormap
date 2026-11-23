@@ -185,6 +185,39 @@ Krajowy Ośrodek Wsparcia Rolnictwa
 tel. 91 81 44 200
 E-mail: zabytki.szczecin@kowr.gov.pl
 """,
+    # a branch tender schedule (Szczecin layout): a header row, the card's manor with a price (same obręb and
+    # parcel: merged into the card), a manor known only from the schedule, and a lease (ignored)
+    "33333333-3333-3333-3333-333333333333": """Lp. Data i godzina rozpoczęcia przetargu Miejsce przeprowadzenia przetargu
+1 03.11.2026 10:00
+KOWR OT
+w Szczecinie
+Powiat koszaliński,
+gmina Wzorowo
+obręb Przykładowo
+dz. nr 17, 18
+sprzedaż ustny nieograniczony rolna zabudowana zespół pałacowo-
+parkowy wpisany do
+rejestru zabytków
+pod nr A-1000
+4,8000 4,5000 1 250 000,00 zł
+2 24.11.2026 10:00
+KOWR OT
+w Szczecinie
+Powiat koszaliński,
+gmina Wzorowo
+obręb Stary Kłos
+dz. nr 5/1
+sprzedaż ustny nieograniczony dwór wpisany do rejestru zabytków pod nr A-2000
+1,2000 1,2000 330 000,00 zł
+3 25.11.2026 09:00
+KOWR OT
+w Szczecinie
+Powiat koszaliński,
+gmina Wzorowo
+obręb Nowy Dwór
+dz. nr 9
+dzierżawa ustny nieograniczony rolna 12,0000 40 dt
+""",
     "22222222-2222-2222-2222-222222222222": """Oddział Terenowy we Wrocławiu
 NIGDZIE, gmina Nigdzie
 Lokalizacja
@@ -213,6 +246,9 @@ class FakeHttp:
                     return uldk_response(f"{x},{y},2180")
                 return b"-1 brak wynikow"
             return uldk_response(params["xy"])
+        if "gov.pl/web/kowr/ot-" in url:   # branch page with its tender schedule
+            return ('<a href="/attachment/33333333-3333-3333-3333-333333333333">Harmonogram przetargów '
+                    'listopad 2026<span>harmonogram.pdf</span></a>').encode()
         if "gov.pl/web/kowr" in url:
             return KOWR_HTML.encode()
         if "gov.pl/attachment/" in url:

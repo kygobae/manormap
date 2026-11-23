@@ -77,7 +77,7 @@ def site_item(did: str, s: dict) -> dict:
     if s.get("status") != "unlocated" and s.get("lat") is not None:
         item["lat"], item["lon"] = round(s["lat"], 5), round(s["lon"], 5)
     if s.get("kowr_url"):
-        item["ku"] = s["kowr_url"]  # the matched KOWR offer (D.kowr[].url): shown in this site's popup, not separately
+        item["ku"] = s.get("kowr_uid") or s["kowr_url"]  # the matched KOWR offer (D.kowr[].url): shown in this site's popup, not separately
     return item
 
 
@@ -86,8 +86,10 @@ def offers(sites: list[dict], kowr_json: Path | None) -> list[dict]:
         return []
     raw = json.loads(Path(kowr_json).read_text(encoding="utf-8"))
     raw = raw.get("offers", raw) if isinstance(raw, dict) else raw
-    return [{"t": o.get("title"), "url": o.get("url"), "lat": o.get("lat"), "lon": o.get("lon"),
-             "ha": o.get("area_ha"), "tender": o.get("tender"), "place": o.get("place")}
+    return [{"id": o.get("uid") or o.get("url"), "t": o.get("title"), "url": o.get("url"), "lat": o.get("lat"),
+             "lon": o.get("lon"), "ha": o.get("area_ha"), "tender": o.get("tender"), "place": o.get("place"),
+             "price": o.get("price_pln"), "disc": o.get("discount_pct"), "reg": o.get("register"),
+             "src": o.get("source") or "card"}
             for o in raw if o.get("lat") is not None]
 
 

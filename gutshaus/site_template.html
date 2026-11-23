@@ -112,7 +112,7 @@ const T = {
   park:"Park",reg:"Denkmal",hist:"Historische Karte (Messtischblatt)",forSale:"zum Verkauf",
   status:{lost:"Herrenhaus verschwunden",ruin:"Ruine",standing:"Gebäude steht",unlocated:"Lage im Dorf unklar",unknown:"unklar"},
   sources:"Daten: © OpenStreetMap-Mitwirkende (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Historische Karten: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
+  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
   approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
   private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
   teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste mit polnischer Zusammenfassung."},
@@ -129,7 +129,7 @@ const T = {
   park:"park",reg:"zabytek",hist:"Mapa historyczna (Messtischblatt)",forSale:"na sprzedaż",
   status:{lost:"dwór nie istnieje",ruin:"ruina",standing:"budynek istnieje",unlocated:"lokalizacja we wsi niepewna",unknown:"nieustalony"},
   sources:"Dane: © współtwórcy OpenStreetMap (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Mapy historyczne: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
+  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
   approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
   private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
   teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna."},
@@ -146,7 +146,7 @@ const T = {
   park:"park",reg:"listed",hist:"Historical map (Messtischblatt)",forSale:"for sale",
   status:{lost:"manor gone",ruin:"ruin",standing:"building stands",unlocated:"position in village unclear",unknown:"unclear"},
   sources:"Data: © OpenStreetMap contributors (ODbL), National Heritage Institute (NID), GUGiK/Geoportal, GDOŚ, KOWR. Historical maps: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",kowrOnly:"Only with a state sale offer (KOWR)",
+  optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
   approx:"Location known only at village level – look for the estate on the Messtischblatt.",
   private:"The building stands and is usually lived in: private property, please visit only with permission.",
   teaser:"Site dossier (coming soon): parcel and area, aerial, LiDAR and utility maps with the parcel outline, distances, nature protection, funding and a checklist with a Polish summary."}
@@ -199,13 +199,18 @@ function ctl(){
                                      {[t("kowr")]:kowrLayer}).addTo(map);
 }
 // KOWR offers matched to a site are shown on that site (badge + popup); only unmatched ones get their own marker
-const OFFERS = Object.fromEntries(D.kowr.map(o => [o.url, o]));
+const OFFERS = Object.fromEntries(D.kowr.map(o => [o.id || o.url, o]));
 const MATCHED = new Set(VV.flatMap(v => v.sites.map(s => s.ku).filter(Boolean)));
 // price tag, not a currency: neutral for a Polish state sale shown in three languages
 const TAG = (fill, hole, px) => `<svg viewBox="0 0 24 24" width="${px}" height="${px}" aria-hidden="true"><path fill="${fill}" d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.8" fill="${hole}"/></svg>`;
-const offerHtml = o => `<div class="offer"><b>${TAG("#245b8f", "#eef3f8", 11)}${esc(t("kowr"))}</b><br>${esc(o.t)}<br>${o.ha?esc(o.ha)+" ha":""}${o.ha&&o.tender?" · ":""}${o.tender?esc(t("tender"))+": "+esc(o.tender):""}<br><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(t("openCard"))}</a></div>`;
+const zl = n => new Intl.NumberFormat(lng === "en" ? "en-GB" : lng, {maximumFractionDigits: 0}).format(n) + " zł";
+const offerHtml = o => `<div class="offer"><b>${TAG("#245b8f", "#eef3f8", 11)}${esc(t("kowr"))}</b><br>${esc(o.t)}<br>`
+  + [o.ha ? esc(o.ha) + " ha" : "", o.reg ? esc(t("regL")) + " " + esc(o.reg) : ""].filter(Boolean).join(" · ")
+  + (o.price ? `<br><b>${esc(t("priceL"))}: ${esc(zl(o.price))}</b>${o.disc ? ` · ${esc(t("discL"))} ${o.disc} %` : ""}` : "")
+  + (o.tender ? `<br>${esc(t("tender"))}: ${esc(o.tender)}` : "")
+  + `<br><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(t(o.src === "schedule" ? "openSchedule" : "openCard"))}</a></div>`;
 for(const o of D.kowr){
-  if(MATCHED.has(o.url)) continue;
+  if(MATCHED.has(o.id || o.url)) continue;
   window.L.marker([o.lat,o.lon], {title:o.t, icon: window.L.divIcon({className:"", html:`<div style="background:#245b8f;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid #fff">${TAG("#fff", "#245b8f", 13)}</div>`, iconSize:[24,24]})})
    .bindPopup(() => offerHtml(o))
    .addTo(kowrLayer);
