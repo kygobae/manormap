@@ -52,7 +52,15 @@ footer a,.box a{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){.kpin::before{animation:none}}
 .offer{margin-top:6px;padding:6px 8px;background:#eef3f8;border-left:3px solid var(--sale);border-radius:4px;font-size:12px}
 .offer svg{vertical-align:-1px;margin-right:3px}
-.kfilter{display:flex;align-items:center;gap:6px;margin:6px 0 2px;font-size:13px;cursor:pointer}
+.kfilter{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;cursor:pointer}
+#more{margin:8px 0 4px;border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+#more summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)}
+.pill{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:600;text-align:center}
+.pill:empty{display:none}
+.fgroup{margin:8px 0}.fh{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:2px}
+#statuses label{display:flex;align-items:center;gap:6px;font-size:13px;margin:3px 0;cursor:pointer}
+.dist{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.dist input[type=range]{flex:1;min-width:120px}
+.linkbtn{border:0;background:none;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit;font-size:12px;padding:0}
 @media(max-width:800px){main{grid-template-columns:1fr;grid-template-rows:55vh auto;height:auto}#map{height:55vh}aside{order:2}}
 </style>
 </head>
@@ -73,7 +81,19 @@ footer a,.box a{color:var(--accent)}
     <select id="vv"><option value="" data-t="allRegions"></option></select>
     <div class="mode" id="mode"><button data-m="new"></button><button data-m="renovation"></button></div>
     <div class="grades" id="grades"></div>
-    <label class="kfilter"><input type="checkbox" id="kowrOnly"> <span class="g" style="background:var(--sale);display:inline-flex;align-items:center;justify-content:center;height:18px"><svg viewBox="0 0 24 24" width="9" height="9" aria-hidden="true"><path fill="#fff" d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.8" fill="#245b8f"/></svg></span> <span data-t="kowrOnly"></span></label>
+    <details id="more">
+      <summary><span data-t="moreF"></span> <span id="nActive" class="pill"></span></summary>
+      <div class="fgroup"><div class="fh" data-t="statusF"></div><div id="statuses"></div></div>
+      <div class="fgroup"><div class="fh" data-t="featF"></div>
+        <label class="kfilter"><input type="checkbox" id="kowrOnly"> <span class="g" style="background:var(--sale);display:inline-flex;align-items:center;justify-content:center;height:18px"><svg viewBox="0 0 24 24" width="9" height="9" aria-hidden="true"><path fill="#fff" d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.8" fill="#245b8f"/></svg></span> <span data-t="kowrOnly"></span></label>
+        <label class="kfilter"><input type="checkbox" id="parkOnly"> <span data-t="parkOnly"></span></label>
+        <label class="kfilter"><input type="checkbox" id="regOnly"> <span data-t="regOnly"></span></label>
+      </div>
+      <div class="fgroup"><div class="fh" data-t="distF"></div>
+        <div class="dist"><select id="ref"></select> <input type="range" id="km" min="50" max="800" step="25" value="800"> <span id="kmL" class="small"></span></div>
+      </div>
+      <button id="reset" class="linkbtn" data-t="reset"></button>
+    </details>
     <div class="small" id="count"></div>
   </div>
   <ul id="list"></ul>
@@ -112,7 +132,7 @@ const T = {
   park:"Park",reg:"Denkmal",hist:"Historische Karte (Messtischblatt)",forSale:"zum Verkauf",
   status:{lost:"Herrenhaus verschwunden",ruin:"Ruine",standing:"Gebäude steht",unlocated:"Lage im Dorf unklar",unknown:"unklar"},
   sources:"Daten: © OpenStreetMap-Mitwirkende (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Historische Karten: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
+  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
   approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
   private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
   teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste mit polnischer Zusammenfassung."},
@@ -129,7 +149,7 @@ const T = {
   park:"park",reg:"zabytek",hist:"Mapa historyczna (Messtischblatt)",forSale:"na sprzedaż",
   status:{lost:"dwór nie istnieje",ruin:"ruina",standing:"budynek istnieje",unlocated:"lokalizacja we wsi niepewna",unknown:"nieustalony"},
   sources:"Dane: © współtwórcy OpenStreetMap (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Mapy historyczne: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
+  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
   approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
   private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
   teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna."},
@@ -146,7 +166,7 @@ const T = {
   park:"park",reg:"listed",hist:"Historical map (Messtischblatt)",forSale:"for sale",
   status:{lost:"manor gone",ruin:"ruin",standing:"building stands",unlocated:"position in village unclear",unknown:"unclear"},
   sources:"Data: © OpenStreetMap contributors (ODbL), National Heritage Institute (NID), GUGiK/Geoportal, GDOŚ, KOWR. Historical maps: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
+  optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
   approx:"Location known only at village level – look for the estate on the Messtischblatt.",
   private:"The building stands and is usually lived in: private property, please visit only with permission.",
   teaser:"Site dossier (coming soon): parcel and area, aerial, LiDAR and utility maps with the parcel outline, distances, nature protection, funding and a checklist with a Polish summary."}
@@ -226,15 +246,35 @@ for(const g of "ABCD"){
   gradesEl.appendChild(lab);
 }
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ł/g,"l");
+const STATUSES = ["lost", "ruin", "standing", "unknown", "unlocated"];
+const REFS = C.refs || {};
+const toRad = d => d * Math.PI / 180;
+function km(s, v, F){                                // straight-line distance to the chosen city
+  if(!F.ref) return 0;
+  const [la, lo] = REFS[F.ref], la2 = s.lat ?? v.lat, lo2 = s.lon ?? v.lon;
+  const a = Math.sin(toRad(la2-la)/2)**2 + Math.cos(toRad(la))*Math.cos(toRad(la2))*Math.sin(toRad(lo2-lo)/2)**2;
+  return 12742 * Math.asin(Math.sqrt(a));
+}
+function filters(){
+  const status = new Set(STATUSES.filter(k => document.getElementById("st_"+k).checked));
+  const f = {status, kowr: document.getElementById("kowrOnly").checked, park: document.getElementById("parkOnly").checked,
+             reg: document.getElementById("regOnly").checked, ref: document.getElementById("ref").value,
+             km: +document.getElementById("km").value};
+  if(f.km >= 800) f.ref = "";                          // slider at the end = any distance
+  f.active = (status.size < STATUSES.length) + f.kowr + f.park + f.reg + !!f.ref;
+  return f;
+}
 function render(){
   const q = norm(document.getElementById("q").value), vv = vvSel.value;
-  const kowrOnly = document.getElementById("kowrOnly").checked;
-  const keep = s => kowrOnly ? !!s.ku : shown.has(sg(s));   // "for sale" shows every offer, whatever its grade
-  const list = VV.filter(v => v.sites.some(keep) && (!vv || v.vv===vv) && (!q || norm(v.v).includes(q) || norm(v.de).includes(q)));
+  const F = filters();
+  // every filter narrows the result (AND): "for sale" + grade A shows the A-graded sites for sale
+  const keep = (s, v) => shown.has(sg(s)) && F.status.has(s.status) && (!F.kowr || s.ku) && (!F.park || s.park)
+                         && (!F.reg || s.registered) && (!F.ref || km(s, v, F) <= F.km);
+  const list = VV.filter(v => v.sites.some(s => keep(s, v)) && (!vv || v.vv===vv) && (!q || norm(v.v).includes(q) || norm(v.de).includes(q)));
   markers.clearLayers();
   let n = 0;
   for(const v of list){
-    const sites = v.sites.filter(keep);
+    const sites = v.sites.filter(s => keep(s, v));
     n += sites.length;
     let first = null;
     for(const s of sites.filter(s => s.lat)){              // located: a dot at the exact site
@@ -255,11 +295,13 @@ function render(){
     layers[v.v+v.gm] = first;
   }
   document.getElementById("count").textContent = `${list.length} ${t("villages")} · ${n} ${t("sites")}`;
+  document.getElementById("nActive").textContent = F.active || "";
   const ul = document.getElementById("list"); ul.innerHTML = "";
-  list.sort((a,b) => vg(a).localeCompare(vg(b)) || a.v.localeCompare(b.v));
+  const vkm = v => Math.min(...v.sites.filter(s => keep(s, v)).map(s => km(s, v, F)));
+  list.sort(F.ref ? (a,b) => vkm(a) - vkm(b) : (a,b) => vg(a).localeCompare(vg(b)) || a.v.localeCompare(b.v));
   for(const v of list.slice(0, 200)){
     const li = document.createElement("li");
-    li.innerHTML = `<span class="g g${vg(v)}">${vg(v)}</span><span class="n">${esc(v.v)} ${v.de?`<span class="de">${esc(v.de)}</span>`:""}<br><span class="small">${esc(v.pw)}</span></span><span class="small">${v.sites.filter(keep).length}</span>`;
+    li.innerHTML = `<span class="g g${vg(v)}">${vg(v)}</span><span class="n">${esc(v.v)} ${v.de?`<span class="de">${esc(v.de)}</span>`:""}<br><span class="small">${esc(v.pw)}</span></span><span class="small">${F.ref ? Math.round(vkm(v)) + " km" : v.sites.filter(s => keep(s, v)).length}</span>`;
     li.onclick = () => { const m = layers[v.v+v.gm]; map.setView(m.getLatLng(), 15); m.openPopup(); };
     ul.appendChild(li);
   }
@@ -272,6 +314,8 @@ function lang(l){
   document.querySelectorAll("[data-t]").forEach(e => e.innerHTML = t(e.dataset.t));
   if(C.shop) document.querySelectorAll('[data-t="what"]').forEach(e => e.innerHTML += t("whatShop"));
   document.querySelectorAll("[data-tp]").forEach(e => e.placeholder = t(e.dataset.tp));
+  document.querySelectorAll("[data-st]").forEach(e => e.textContent = t("status")[e.dataset.st]);
+  if(typeof kmLabel === "function") kmLabel();
   document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.l===l));
   document.getElementById("shop").hidden = !C.shop;
   document.getElementById("sample").innerHTML = C.sample ? `<a href="sample.pdf" target="_blank">${t("sample")}</a>` : "";
@@ -284,10 +328,29 @@ document.getElementById("q").oninput = render;
 document.querySelectorAll("#mode button").forEach(b => b.onclick = () => {
   mode = b.dataset.m; document.querySelectorAll("#mode button").forEach(x => x.classList.toggle("on", x===b)); render(); });
 vvSel.onchange = render;
+const stBox = document.getElementById("statuses");
+for(const k of STATUSES){
+  const lab = document.createElement("label");
+  lab.innerHTML = `<input type="checkbox" id="st_${k}" checked> <span data-st="${k}"></span>`;
+  lab.querySelector("input").onchange = render;
+  stBox.appendChild(lab);
+}
+const refSel = document.getElementById("ref");
+for(const r of Object.keys(REFS)) refSel.add(new Option(r, r));
+const kmEl = document.getElementById("km"), kmL = document.getElementById("kmL");
+const kmLabel = () => { kmL.textContent = +kmEl.value >= 800 ? t("anyDist") : "≤ " + kmEl.value + " km"; };
+kmEl.oninput = () => { kmLabel(); render(); };
+refSel.onchange = render;
+for(const id of ["parkOnly", "regOnly"]) document.getElementById(id).onchange = render;
+document.getElementById("reset").onclick = () => {
+  for(const k of STATUSES) document.getElementById("st_"+k).checked = true;
+  for(const id of ["kowrOnly", "parkOnly", "regOnly"]) document.getElementById(id).checked = false;
+  kmEl.value = 800; kmLabel(); render();
+};
 document.getElementById("kowrOnly").onchange = e => {
   render();
-  if(!e.target.checked) return;                    // zoom to the sites that are for sale
-  const pts = VV.flatMap(v => v.sites.filter(s => s.ku && s.lat).map(s => [s.lat, s.lon]));
+  if(!e.target.checked) return;                    // zoom to the sites for sale that pass all filters
+  const pts = markers.getLayers().map(m => m.getLatLng());
   if(pts.length) map.fitBounds(pts, {padding:[40,40], maxZoom:12});
 };
 document.getElementById("title").textContent = C.name;
