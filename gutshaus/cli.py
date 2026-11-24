@@ -1,4 +1,4 @@
-"""Gutshaus-Finder command line.
+"""ManorMap command line.
 
   gutshaus osm-extract                download + extract the Poland OSM file once (recommended)
   gutshaus check                      test the data services from this machine
@@ -333,8 +333,8 @@ def cmd_publish(args):
     out = Path(args.out or root / "site")
     n = publish.publish(sites, out, reserved, root / "_kowr.json", Path(args.sample) if args.sample else None)
     print(f"{n['villages']} villages, {n['sites']} sites ({len(reserved)} reserved) -> {out / 'public' / 'index.html'}")
-    if not config.CHECKOUT_URL:
-        print("Note: CHECKOUT_URL is not set in gutshaus.json, so buy buttons fall back to e-mail.")
+    if config.SHOP_ENABLED and not config.CHECKOUT_URL:
+        print("Note: SHOP_ENABLED is on but CHECKOUT_URL is not set, so buy buttons fall back to e-mail.")
 
 
 def main(argv=None):

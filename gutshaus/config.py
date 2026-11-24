@@ -184,7 +184,7 @@ MAX_PARCEL_HA = 30
 
 # --- Network ----------------------------------------------------------------
 HTTP_TIMEOUT = (15, 180)   # (connect, read) seconds
-USER_AGENT = "gutshaus-finder/0.2 (+https://github.com/kygobae/manormap)"
+USER_AGENT = "manormap/0.2 (+https://github.com/kygobae/manormap)"
 CONTEXT_BATCH = 40           # candidates per Overpass context query
 KOWR_MATCH_RADIUS_M = 500    # a KOWR offer this close to a site counts as "for sale"
 # Surroundings of one site (dossier): kind -> search radius in metres. Everyday services, and what may disturb
@@ -275,10 +275,8 @@ WEB_ANALYTICS_AUTO = False
 LEGAL_NOTICE: list = []
 DOSSIER_PRICE = "49 €"
 # Public site and shop (set in gutshaus.json; placeholders until you have them)
-# Brand: ManorMap is the umbrella name (site title in PL/EN, legal page); "Gutshaus Finder"
-# stays the German product name (German site title, dossier).
+# Brand: ManorMap in every language (site, legal page, dossier)
 SITE_NAME = "ManorMap"
-SITE_NAME_DE = "Gutshaus Finder"
 SITE_URL = "https://manormap.eu"
 # Lemon Squeezy checkout link of the dossier variant, e.g. https://yourstore.lemonsqueezy.com/checkout/buy/<variant-uuid>
 # (the site adds ?checkout[custom][dossier]=GF-XXXXXXXX)

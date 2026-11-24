@@ -12,5 +12,5 @@
     "water": 0.5,
     "register": 0.5
   },
-  "USER_AGENT": "gutshaus-finder (your-email@example.org)"
+  "USER_AGENT": "manormap (your-email@example.org)"
 }
