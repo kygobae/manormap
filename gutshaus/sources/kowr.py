@@ -19,10 +19,11 @@ import re
 import time
 from pathlib import Path
 
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
+from shapely.ops import unary_union
 
 from .. import config
-from ..geo import fold, pl_to_ll
+from ..geo import fold, ll_to_pl, pl_to_ll
 from ..http import Http
 from . import uldk
 
@@ -304,15 +305,83 @@ def fetch(http: Http) -> list[dict]:
 def load_or_fetch(http: Http, cache: Path, max_age_h: float = 24, refresh: bool = False) -> list[dict]:
     """Offers cached in <out-root>/_kowr.json, refreshed daily."""
     if cache.exists() and not refresh and time.time() - cache.stat().st_mtime < max_age_h * 3600:
-        return json.loads(cache.read_text(encoding="utf-8"))
+        offers = json.loads(cache.read_text(encoding="utf-8"))
+        if add_monuments(http, offers):                     # offers cached before register entries were looked up
+            cache.write_text(json.dumps(offers, ensure_ascii=False, default=str), encoding="utf-8")
+        return offers
     try:
         offers = fetch(http)
     except Exception as e:
         log.warning("KOWR offers unavailable (%s)", e)
         return json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else []
+    add_monuments(http, offers)
     cache.parent.mkdir(parents=True, exist_ok=True)
     cache.write_text(json.dumps(offers, ensure_ascii=False, default=str), encoding="utf-8")
     return offers
+
+
+# ----------------------------------------------------------------- register entries on the offer
+MONUMENTS_NEAR_M = 150       # register entries this close to the offered parcels are looked up too (not for sale)
+ON_OFFER_M = 25              # a site or candidate this close to the offered parcels is on the offer
+
+
+def add_monuments(http: Http, offers: list[dict]) -> int:
+    """o["monuments"]: register entries NID's map draws on the offered parcels ("on") or next to them. Only offers
+    without the key are looked up; returns how many were."""
+    from . import nid_map
+    n = 0
+    for o in offers:
+        if "monuments" in o or not o.get("parcels_ll"):
+            continue
+        o["monuments"] = nid_map.monuments_in(http, o["parcels_ll"], near_m=MONUMENTS_NEAR_M)
+        n += 1
+    if n:
+        log.info("KOWR: register entries looked up for %d offers (%d on the offered parcels)", n,
+                 sum(m["on"] for o in offers for m in o.get("monuments") or []))
+    return n
+
+
+def offer_area(o: dict):
+    """The offered parcels (EPSG:2180), or None when KOWR's parcels were not found."""
+    polys = [Polygon([ll_to_pl(lon, lat) for lon, lat in r]).buffer(0) for r in o.get("parcels_ll") or [] if len(r) >= 4]
+    return unary_union(polys) if polys else None
+
+
+def on_offer(o: dict, area, x: float, y: float, radius_m: float | None = None) -> bool:
+    """On the offered parcels, or near the offer's point when its parcels are unknown."""
+    if area is not None:
+        return area.distance(Point(x, y)) <= ON_OFFER_M
+    return o.get("x") is not None and Point(x, y).distance(Point(o["x"], o["y"])) <= (radius_m or config.KOWR_MATCH_RADIUS_M)
+
+
+def pin_candidates(cands: list[dict], offers: list[dict]) -> int:
+    """Before merging. The register API knows only an entry's village, so village-located entries can land on the
+    wrong building: entries NID draws on or next to an offer go to where NID draws them. Candidates on the offered
+    parcels are marked (c["on_offer"]) so that a site's position and parcel come from the part that is for sale.
+    Returns the number of entries moved."""
+    pos = {}
+    for o in offers:
+        oa = offer_area(o)
+        for m in o.get("monuments") or []:
+            xy = (m["x"], m["y"])
+            # an ensemble drawn over the offer can have its centre outside the offered parcels: use the offer's point
+            if m.get("on") and oa is not None and oa.distance(Point(xy)) > ON_OFFER_M and o.get("x") is not None:
+                xy = (o["x"], o["y"])
+            pos["nid:" + m["id"]] = xy
+    areas = [a for a in (offer_area(o) for o in offers) if a is not None]
+    n = 0
+    for c in cands:
+        xy = pos.get(c.get("uid"))
+        if xy and (c.get("x"), c.get("y")) != xy:
+            c.update({"x": xy[0], "y": xy[1], "location": "exact", "approx": False})
+            c.pop("village_xy", None)
+            c.pop("rivals_xy", None)
+            n += 1
+        if c.get("x") is not None and any(a.distance(Point(c["x"], c["y"])) <= ON_OFFER_M for a in areas):
+            c["on_offer"] = True
+    if n:
+        log.info("KOWR: %d register entries placed where NID's map draws them", n)
+    return n
 
 
 # ----------------------------------------------------------------- matching
@@ -323,13 +392,13 @@ def place_sites(sites: list[dict], offers: list[dict], area=None) -> int:
     """Before measuring: KOWR knows the parcel it sells. A register entry known only by its village moves onto the
     offer's parcel when village and gmina agree; a located offer that no site is near becomes a site of its own.
     `area` (EPSG:2180) limits this to offers inside the area being run. Returns the number of sites placed or added."""
-    r, n = config.KOWR_MATCH_RADIUS_M, 0
+    n = 0
     for o in offers:
         if o.get("x") is None or (area is not None and not area.contains(Point(o["x"], o["y"]))):
             continue
-        pt = Point(o["x"], o["y"])
-        if any(not _village_only(s) and Point(s["x"], s["y"]).distance(pt) <= r for s in sites):
-            continue                                       # an exactly located site is there already
+        oa = offer_area(o)
+        if any(not _village_only(s) and on_offer(o, oa, s["x"], s["y"]) for s in sites):
+            continue                                       # an exactly located site is on the offer already
         s = next((s for s in sites if _village_only(s) and same_village(o, s)), None)
         if s is None:
             s = site_from_offer(o)
@@ -369,23 +438,23 @@ def site_from_offer(o: dict) -> dict:
     name = o.get("title") or o.get("place") or "KOWR"
     text = " | ".join(filter(None, [name, o.get("kind"), o.get("description"), o.get("place"),
                                     o.get("gmina") and "gm. " + o["gmina"]]))[:2000]
+    on = [m for m in o.get("monuments") or [] if m.get("on")]
     return {"uid": o.get("uid") or "kowr:" + o["url"], "source": "kowr", "name": name, "name_de": "", "text": text,
             "village": o.get("place") or o.get("obreb") or "", "gmina": o.get("gmina") or "", "osm_ref": "",
-            "nid_ref": "", "registered": is_registered(o), "members": [o.get("uid") or "kowr:" + o["url"]],
+            "nid_ref": ";".join(f"{m['id']} ({m['docs']})" for m in on), "registered": is_registered(o) or bool(on), "members": [o.get("uid") or "kowr:" + o["url"]],
             "sources": "kowr", "names": [name], "nid_names": [], "also_known_as": ""}
 
 
 def match(sites: list[dict], offers: list[dict], radius_m: float | None = None) -> int:
-    """Flag sites within radius of a KOWR offer (or in the same obręb when the offer
-    could not be located). Returns the number of flagged sites."""
-    from ..geo import ll_to_pl
-    r = radius_m or config.KOWR_MATCH_RADIUS_M
+    """Flag sites on the offered parcels (within radius of the offer when its parcels are unknown, in the same
+    obręb when the offer could not be located). Returns the number of flagged sites."""
+    areas = [offer_area(o) for o in offers]
     n = 0
     for s in sites:
         sx, sy = (s["x"], s["y"]) if "x" in s else ll_to_pl(s["lon"], s["lat"])
         hit = None
-        for o in offers:
-            if o.get("x") is not None and Point(sx, sy).distance(Point(o["x"], o["y"])) <= r:
+        for o, oa in zip(offers, areas):
+            if o.get("x") is not None and on_offer(o, oa, sx, sy, radius_m):
                 hit = o
                 break
             if o.get("x") is None and same_precinct(o, s):
@@ -398,6 +467,9 @@ def match(sites: list[dict], offers: list[dict], radius_m: float | None = None) 
             s["kowr_tender"] = hit.get("tender", "")
             if hit.get("kw"):
                 s["kowr_kw"] = hit["kw"]                   # land register number(s) the card names
+            if hit.get("monuments"):                       # register entries on / next to the offered parcels
+                s["kowr_monuments"] = hit["monuments"]
+                s["registered"] = s.get("registered") or any(m.get("on") for m in hit["monuments"])
             n += 1
     return n
 

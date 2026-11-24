@@ -57,8 +57,9 @@ def run_area(args, out: Path, http: Http, src, teryt: str | None = None,
         log.warning("No candidates in %s", title)
 
     # merge, measure, assess
-    sites = pipeline.merge(cands)
     offers = load_kowr(args, http)
+    kowr.pin_candidates(cands, offers)               # register entries NID draws on / next to an offer
+    sites = pipeline.merge(cands)
     kowr.place_sites(sites, offers, area)          # KOWR's parcels locate village-only entries (or add a site)
     if args.limit:
         sites = sites[: args.limit]
@@ -101,6 +102,19 @@ def run_area(args, out: Path, http: Http, src, teryt: str | None = None,
     counts = {k: sum(1 for s in ser if s["status"] == k) for k in ("lost", "ruin", "standing", "unlocated", "unknown")}
     print(f"{len(ser)} sites in {title}: " + ", ".join(f"{v} {k}" for k, v in counts.items()), flush=True)
     return ser
+
+
+def mark_houses(args, root: Path, sites: list[dict]) -> None:
+    """Big buildings from the local OSM extract (skipped without it: the public API is too slow for all of Poland)."""
+    gpkg = Path(getattr(args, "osm", None) or root / "_osm" / "osm.gpkg")
+    if not gpkg.exists():
+        log.info("No local OSM extract: buildings of standing sites not marked")
+        return
+    import numpy as np
+    import pyogrio
+    b = pyogrio.read_dataframe(gpkg, layer="buildings", where=f"area_m2 >= {config.MANOR_BUILDING_MIN_M2}")
+    n = pipeline.mark_houses(sites, np.column_stack([b.geometry.x, b.geometry.y]), b["area_m2"].values)
+    log.info("Buildings marked for %d standing / unknown sites", n)
 
 
 def load_kowr(args, http: Http) -> list[dict]:
@@ -207,11 +221,12 @@ def cmd_build(args):
     http = Http(root / ".cache")
     offers = load_kowr(args, http)
     for s in sites:
-        for k in ("kowr_offer", "kowr_url", "kowr_tender", "kowr_uid", "kowr_kw"):
+        for k in ("kowr_offer", "kowr_url", "kowr_tender", "kowr_uid", "kowr_kw", "kowr_monuments"):
             s.pop(k, None)
     if offers:
         kowr.match(sites, offers)
     n_fixed = apply_status_overrides(sites, config.STATUS_OVERRIDES)
+    mark_houses(args, root, sites)                       # which building a "standing" state rests on (map marker)
     if not getattr(args, "no_forest", False):            # forest stands from the forest database (cached)
         from .sources import bdl
         bdl.annotate(http, sites)

@@ -24,6 +24,7 @@ dependencies = [
   "truststore>=0.9",
   "osmium>=4.0",
   "pypdf>=4.0",
+  "pillow>=10",
 ]
 
 [project.urls]
