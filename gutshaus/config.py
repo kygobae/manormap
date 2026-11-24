@@ -286,6 +286,12 @@ SITE_URL = "https://manormap.eu"
 # (the site adds ?checkout[custom][dossier]=GF-XXXXXXXX)
 CHECKOUT_URL = ""
 CONTACT_EMAIL = ""
+# Visitor feedback (form on the site, stored in a Cloudflare D1 database, bots kept out by Turnstile). On when both
+# are set in gutshaus.json: the D1 database id (`npx wrangler d1 create <name>`) and the Turnstile site key
+# (Cloudflare dashboard -> Turnstile). The Turnstile secret is a Worker secret, never in a file.
+FEEDBACK_D1_ID = ""
+FEEDBACK_D1_NAME = "manormap-feedback"
+TURNSTILE_SITE_KEY = ""
 # Sites kept off the public site (and out of bulk dossier runs) (one GF-ID or uid per line)
 RESERVED_FILE = "reserved.txt"
 # Corrections from knowledge on the ground, applied by `gutshaus build`: dossier ID or uid ->
