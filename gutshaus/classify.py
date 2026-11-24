@@ -10,7 +10,8 @@ from .geo import fold
 def text_flags(text: str) -> dict:
     t = fold(text)
     estate = bool(config.ESTATE_PATTERN.search(t))
-    excluded = bool(config.EXCLUDE_PATTERN.search(t)) and not estate
+    excluded = ((bool(config.EXCLUDE_PATTERN.search(t)) and not estate)
+                or (bool(config.HARD_EXCLUDE_PATTERN.search(t)) and not _HOUSE.search(t)))
     return {
         "estate_kw": estate,
         "park_kw": bool(config.PARK_PATTERN.search(t)),
@@ -82,6 +83,25 @@ def house_mapped_as_building(text: str) -> bool:
                 or tags.get("castle_type") in config.OSM_CASTLE_TYPES or _HOUSE_ANY.search(fold(words))):
             return True
     return False
+
+
+def house_use(text: str) -> str:
+    """What the house is used for today ("hotel", "school", ... config.HOUSE_USE), from the OSM member that is
+    the house; "" when nothing says so."""
+    for tags, words in fragments(text):
+        if tags is None or not _about_the_house(words) or tags.get("ruins") not in (None, "no"):
+            continue
+        if not (tags.get("historic") in ("manor", "palace", "castle") or tags.get("castle_type")
+                or _HOUSE_ANY.search(fold(words))):
+            continue
+        for use, keys in config.HOUSE_USE.items():
+            if any(k in tags and (vals is None or tags[k] in vals) for k, vals in keys.items()):
+                return use
+        name = fold(tags.get("name", ""))
+        for use, pattern in config.HOUSE_USE_NAMES.items():
+            if pattern.search(name):
+                return use
+    return ""
 
 
 def register_names_house(text: str) -> bool:

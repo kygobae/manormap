@@ -154,6 +154,32 @@ EXCLUDE_PATTERN = re.compile(
     r"m[lł]yn|wiatrak|spichl|stodo[lł]|kamienica|ratusz",
     re.IGNORECASE,
 )
+# Never an estate, even with an estate word, unless the house itself is named: a monastery's outbuilding
+# ("oficyna przyklasztorna", Krzeszów) or a town house with its back building ("kamienica z oficyną")
+HARD_EXCLUDE_PATTERN = re.compile(r"przyklasztor|kamienic", re.IGNORECASE)
+# What the house is used for today, from its OSM tags (building=*, amenity=*, tourism=*, office=*): a house in
+# use (hotel, school, offices, flats ...) is rarely for sale and seldom needs renovating. Grades: house amber.
+HOUSE_USE = {
+    "hotel": {"building": {"hotel"}, "tourism": {"hotel", "guest_house", "motel", "hostel", "apartment"}},
+    "school": {"building": {"school", "university", "college", "kindergarten", "dormitory"},
+               "amenity": {"school", "university", "college", "kindergarten", "library"}},
+    "office": {"building": {"office", "government", "public", "civic", "commercial"}, "office": None,
+               "amenity": {"townhall", "public_building", "courthouse", "police", "bank"}},
+    "care": {"building": {"hospital"}, "amenity": {"hospital", "clinic", "social_facility", "nursing_home",
+                                                   "doctors", "childcare"}},
+    "museum": {"building": {"museum"}, "tourism": {"museum", "gallery"}, "amenity": {"arts_centre", "community_centre"}},
+    "flats": {"building": {"apartments"}},
+    "church": {"building": {"convent", "monastery", "presbytery", "church"}, "amenity": {"monastery", "place_of_worship"}},
+}
+# ... or from the house's OSM name ("Dom Pomocy Społecznej w Jarogniewicach", "Hotel Pałac Mierzęcin"), folded
+HOUSE_USE_NAMES = {
+    "hotel": re.compile(r"(hotel|pensjonat|zajazd|resort|spa)|osrodek (szkoleniowo-)?wypoczynk|osrodek konferenc"),
+    "school": re.compile(r"szkol|liceum|instytut|uniwersytet|akademi|przedszkol|osrodek szkoleniow|internat"),
+    "care": re.compile(r"dom pomocy|dps|szpital|sanatori|hospicj|dom dziecka|osrodek leczen|zaklad opiek"),
+    "office": re.compile(r"urzad|starostwo|nadlesnictw|gminny osrodek"),
+    "museum": re.compile(r"muzeum|galeria|dom kultury|osrodek kultury|centrum kultury|biblioteka"),
+    "church": re.compile(r"klasztor|dom zakonny|parafi"),
+}
 # An OSM object that matches only by name is not an estate if it is one of these: settlements named
 # "Dwór", "Zadworze", "Kuków-Folwark" (place=*, mostly PRNG imports), roads, stations, shops, plants ...
 NON_ESTATE_KEYS = ("place", "highway", "railway", "public_transport", "amenity", "shop", "office", "power",

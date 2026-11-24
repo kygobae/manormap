@@ -73,7 +73,7 @@ def apply_verdicts(sites: list[dict], previous: list[dict]) -> int:
 
 
 # ------------------------------------------------------------- serialise
-DROP = {"area_geom", "parcel_geom", "names", "nid_names", "big_buildings", "x", "y"}
+DROP = {"area_geom", "parcel_geom", "names", "nid_names", "text_exact", "big_buildings", "x", "y"}
 
 
 def serialise(site: dict) -> dict:
