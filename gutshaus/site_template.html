@@ -35,8 +35,9 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{height:100%}
-body{margin:0;font:14.5px/1.5 var(--font-ui);color:var(--ink);background:#e8ece6;overflow:hidden}
+html,body{height:100%;height:100dvh}
+/* the page never scrolls: fixed to the visible area (dvh follows the phone's URL bar) */
+body{position:fixed;inset:0;margin:0;font:14.5px/1.5 var(--font-ui);color:var(--ink);background:#e8ece6;overflow:hidden}
 button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #map{position:fixed;inset:0;z-index:0;background:#e8ece6}
@@ -73,7 +74,8 @@ input[type=search],select{width:100%;min-width:0;padding:7px 11px;border:1px sol
 .pop>summary::-webkit-details-marker{display:none}
 .pop>summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translate(-1px,-1px);margin-left:2px}
 .pop[open]>summary{background:#fff;border-color:var(--accent);color:var(--accent)}
-.pop .panel{position:absolute;top:calc(100% + 8px);left:0;z-index:1100;min-width:250px;padding:10px 14px;background:var(--solid)}
+.panel{position:absolute;top:calc(100% + 8px);left:0;z-index:1100;min-width:250px;padding:10px 14px;background:var(--solid)}
+.panel.mpanel{position:fixed;left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));top:calc(160px + env(safe-area-inset-top,0px));min-width:0}
 .side{position:fixed;z-index:900;left:calc(12px + env(safe-area-inset-left,0px));top:calc(136px + env(safe-area-inset-top,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));
   width:320px;display:flex;flex-direction:column;overflow:hidden}
 .side .scroll{overflow:auto;flex:1;min-height:0}
@@ -131,7 +133,8 @@ footer a,.sec a{color:var(--accent)}
 /* right: the site card */
 .card{position:fixed;z-index:950;right:calc(12px + env(safe-area-inset-right,0px));top:calc(136px + env(safe-area-inset-top,0px));width:350px;
   max-height:calc(100% - 148px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;padding:16px;display:grid;gap:12px}
-.card .x{position:absolute;right:10px;top:8px;border:0;background:none;font-size:1.3rem;line-height:1;cursor:pointer;color:var(--muted);padding:4px 6px;border-radius:8px}
+/* the close button stays at the top while the card scrolls */
+.card .x{position:sticky;top:-8px;justify-self:end;margin:-8px -8px -40px 0;z-index:3;border:0;background:var(--solid);font-size:1.3rem;line-height:1;cursor:pointer;color:var(--muted);padding:6px 9px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
 .card .x:hover{background:var(--hover)}
 .card .place{font:600 1.45rem/1.15 var(--font-place);margin:0;padding-right:26px;text-wrap:balance}
 .card .meta{font-size:.8rem;color:var(--muted);margin:2px 0 0}
@@ -216,13 +219,16 @@ body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(36
   .fbar{-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:36px}
   .side:not(.open) .legend{display:none}
   .fbar>*{flex:none}.fbar .grades{flex-wrap:nowrap}
-  .pop .panel{position:fixed;left:8px;right:8px;top:calc(162px + env(safe-area-inset-top,0px))}
   .listhead{display:none}
   .infodlg{padding:20px 18px 16px}
   .side{top:auto;left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;max-height:58vh}
   .side:not(.open) .scroll{display:none}
   .sheetbtn{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;padding:10px 16px;font-weight:700;cursor:pointer}
-  .card{left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;max-height:62vh}
+  .card{left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;
+    max-height:calc(100dvh - 128px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));z-index:1050}
+  /* an open card takes the filter strip's place, so its top and close button are never covered */
+  body:has(#card:not([hidden])) .fbar{display:none}
+  .side{max-height:calc(100dvh - 180px)}
   .cmp{bottom:calc(64px + env(safe-area-inset-bottom,0px))}.cmp .small{display:none}
   .leaflet-bottom.leaflet-right{bottom:60px}
   body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(env(safe-area-inset-right,0px))}
@@ -305,7 +311,7 @@ const T = {
   optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
   approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
   private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
-  houseMark:"Gebäude von ca. {m} m² (auf der Karte mit ⌂ markiert)",houseAt:"Gebäude von ca. {m} m² am Marker",houseHow:{next:" direkt neben dem Flurstück",wide:", 100–200 m entfernt: könnte das Gutshaus sein"},
+  houseMark:"Gebäude von ca. {m} m² (auf der Karte eingekreist, ⌂)",houseAt:"Gebäude von ca. {m} m² (auf der Karte eingekreist)",houseHow:{next:" direkt neben dem Flurstück",wide:", 100–200 m entfernt: könnte das Gutshaus sein"},
   teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste, mit einem polnischen Blatt für die Behörden."},
  pl:{tagline:"Dwory i pałace w Polsce – zachować, odbudować, ożywić",
   whatH:"O co chodzi",
@@ -322,7 +328,7 @@ const T = {
   optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
   approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
   private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
-  houseMark:"budynek o pow. ok. {m} m² (na mapie oznaczony ⌂)",houseAt:"budynek o pow. ok. {m} m² przy znaczniku",houseHow:{next:" tuż obok działki",wide:", 100–200 m dalej: może to być dwór"},
+  houseMark:"budynek o pow. ok. {m} m² (na mapie w kółku, ⌂)",houseAt:"budynek o pow. ok. {m} m² (na mapie w kółku)",houseHow:{next:" tuż obok działki",wide:", 100–200 m dalej: może to być dwór"},
   teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna, z kartą dla urzędów."},
  en:{tagline:"Manor houses in Poland – preserve, rebuild, revive",
   whatH:"What this is",
@@ -339,7 +345,7 @@ const T = {
   optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
   approx:"Location known only at village level – look for the estate on the Messtischblatt.",
   private:"The building stands and is usually lived in: private property, please visit only with permission.",
-  houseMark:"building of about {m} m² (marked ⌂ on the map)",houseAt:"building of about {m} m² at the marker",houseHow:{next:" just outside the parcel",wide:", 100–200 m away: could be the manor"},
+  houseMark:"building of about {m} m² (circled on the map, ⌂)",houseAt:"building of about {m} m² (circled on the map)",houseHow:{next:" just outside the parcel",wide:", 100–200 m away: could be the manor"},
   teaser:"Site dossier (coming soon): parcel and area, aerial, LiDAR and utility maps with the parcel outline, distances, nature protection, funding and a checklist, with a Polish sheet for the authorities."}
 };
 // texts of the redesign (merged into T above)
@@ -358,7 +364,7 @@ const T3 = {
   gradeQ:"noch keine Note: nur das Dorf ist bekannt",
   gradesText:"Eine Note pro Standort, aus fünf Ampeln: <b>Haus</b>, <b>Park & Grundstück</b>, <b>Erschließung</b> (Strom, Straße, Nachbarn), <b>Schutz & Planung</b> und <b>Lage</b>. <b>A</b> alle fünf grün · <b>B</b> vier grün, kein Rot · <b>C</b> drei grün, höchstens ein Rot · <b>D</b> sonst, und immer in Nationalpark oder Naturschutzgebiet · <b>?</b> nur das Dorf ist bekannt. Was vom Haus steht, bestimmt den Weg: ein stehendes Haus saniert man, wo es verschwunden ist, baut man wieder auf; Ruinen und unklare Fälle passen zu beiden. Der Filter oben zeigt nur die Standorte eines Wegs.",
   lights:{house:"Haus",plot:"Park & Grundstück",access:"Erschließung",rules:"Schutz & Planung",location:"Lage"},unknownL:"unbekannt",
-  why:{standing:"Herrenhaus steht: Substanz zum Sanieren",lost:"Herrenhaus verschwunden: Platz für einen Wiederaufbau",ruin:"Ruine: der Denkmalschutz entscheidet über die Mauern",unknown:"Zustand unklar: vor Ort prüfen",unlocated:"Lage im Dorf noch unbekannt",
+  why:{park_apart:"Park auf einem eigenen Flurstück: die Eigentümer können verschieden sein",bldg_on:"Gebäude auf dem Flurstück: Wohnen während der Bauzeit denkbar",bldg_none:"kein Gebäude auf dem Flurstück: während der Bauzeit woanders wohnen",standing:"Herrenhaus steht: Substanz zum Sanieren",lost:"Herrenhaus verschwunden: Platz für einen Wiederaufbau",ruin:"Ruine: der Denkmalschutz entscheidet über die Mauern",unknown:"Zustand unklar: vor Ort prüfen",unlocated:"Lage im Dorf noch unbekannt",
    park:"historischer Park",nopark:"kein Park verzeichnet",parcel_small:"Flurstück sehr klein",parcel_large:"Flurstück sehr groß (über 15 ha)",
    power_near:"Stromleitung nah",power_far:"Stromleitung weit",road_near:"an einer öffentlichen Straße",road_far:"öffentliche Straße weit",neighbours_near:"Nachbarhäuser nah (Wasser, Abwasser)",neighbours_far:"keine Nachbarhäuser in der Nähe",
    reserve:"Nationalpark oder Naturschutzgebiet: Bauen praktisch ausgeschlossen",protected:"Schutzgebiet: Bauen nur eingeschränkt",forest:"laut Karte Wald: prüfen, ob amtlich Wald",forest_db:"Wald laut Forstdatenbank: Bauen erst nach Umwidmung",register:"im Denkmalregister: der Denkmalpfleger entscheidet mit, Zuschüsse möglich",free:"kein Schutzgebiet",
@@ -367,7 +373,7 @@ const T3 = {
   gradeQ:"jeszcze bez oceny: znana tylko wieś",
   gradesText:"Jedna ocena dla każdego miejsca, z pięciu świateł: <b>budynek</b>, <b>park i działka</b>, <b>media i dojazd</b> (prąd, droga, sąsiedzi), <b>ochrona i planowanie</b> oraz <b>położenie</b>. <b>A</b> wszystkie pięć zielone · <b>B</b> cztery zielone, żadne czerwone · <b>C</b> trzy zielone, najwyżej jedno czerwone · <b>D</b> pozostałe, a zawsze w parku narodowym lub rezerwacie · <b>?</b> znana tylko wieś. To, co zostało z dworu, wyznacza drogę: stojący budynek się remontuje, w miejscu nieistniejącego się odbudowuje; ruiny i przypadki niejasne pasują do obu. Filtr u góry pokazuje miejsca tylko jednej drogi.",
   lights:{house:"Budynek",plot:"Park i działka",access:"Media i dojazd",rules:"Ochrona i planowanie",location:"Położenie"},unknownL:"brak danych",
-  why:{standing:"dwór istnieje: substancja do remontu",lost:"dwór nie istnieje: miejsce na odbudowę",ruin:"ruina: o murach decyduje konserwator",unknown:"stan niejasny: sprawdzić na miejscu",unlocated:"lokalizacja we wsi jeszcze nieznana",
+  why:{park_apart:"park na osobnej działce: właściciele mogą być różni",bldg_on:"budynek na działce: można w nim mieszkać w czasie budowy",bldg_none:"brak budynku na działce: w czasie budowy trzeba mieszkać gdzie indziej",standing:"dwór istnieje: substancja do remontu",lost:"dwór nie istnieje: miejsce na odbudowę",ruin:"ruina: o murach decyduje konserwator",unknown:"stan niejasny: sprawdzić na miejscu",unlocated:"lokalizacja we wsi jeszcze nieznana",
    park:"zabytkowy park",nopark:"brak parku w danych",parcel_small:"bardzo mała działka",parcel_large:"bardzo duża działka (ponad 15 ha)",
    power_near:"linia energetyczna blisko",power_far:"linia energetyczna daleko",road_near:"przy drodze publicznej",road_far:"droga publiczna daleko",neighbours_near:"sąsiednie budynki blisko (woda, kanalizacja)",neighbours_far:"brak sąsiednich budynków w pobliżu",
    reserve:"park narodowy lub rezerwat: budowa praktycznie wykluczona",protected:"obszar chroniony: budowa z ograniczeniami",forest:"według mapy las: sprawdzić, czy to las w ewidencji",forest_db:"las według Banku Danych o Lasach: budowa dopiero po zmianie przeznaczenia",register:"w rejestrze zabytków: decyduje też konserwator, możliwe dotacje",free:"poza obszarami chronionymi",
@@ -376,7 +382,7 @@ const T3 = {
   gradeQ:"no grade yet: only the village is known",
   gradesText:"One grade per site, from five traffic lights: <b>house</b>, <b>park & plot</b>, <b>utilities & access</b> (power, road, neighbours), <b>protection & planning</b> and <b>location</b>. <b>A</b> all five green · <b>B</b> four green, no red · <b>C</b> three green, at most one red · <b>D</b> otherwise, and always in a national park or nature reserve · <b>?</b> only the village is known. What is left of the house sets the path: a standing house is renovated, where it is gone you rebuild; ruins and unclear cases fit both. The filter at the top shows the sites of one path only.",
   lights:{house:"House",plot:"Park & plot",access:"Utilities & access",rules:"Protection & planning",location:"Location"},unknownL:"unknown",
-  why:{standing:"manor stands: fabric to renovate",lost:"manor gone: room to rebuild",ruin:"ruin: the conservator decides about the walls",unknown:"condition unclear: check on site",unlocated:"position in the village not known yet",
+  why:{park_apart:"park on a separate parcel: the owners may differ",bldg_on:"building on the parcel: somewhere to live during the works",bldg_none:"no building on the parcel: live elsewhere during the works",standing:"manor stands: a building to renovate",lost:"manor gone: room to rebuild",ruin:"ruin: the conservator decides about the walls",unknown:"condition unclear: check on site",unlocated:"position in the village not known yet",
    park:"historic park",nopark:"no park recorded",parcel_small:"very small parcel",parcel_large:"very large parcel (over 15 ha)",
    power_near:"power line close",power_far:"power line far",road_near:"on a public road",road_far:"public road far",neighbours_near:"neighbouring houses close (water, sewage)",neighbours_far:"no neighbouring houses nearby",
    reserve:"national park or nature reserve: building practically ruled out",protected:"protected area: building restricted",forest:"forest on the map: check whether it is forest by law",forest_db:"forest in the forest database: building only after a change of use",register:"in the monument register: the conservator has a say, grants possible",free:"no protected area",
@@ -459,6 +465,8 @@ function drawParcels(){
       const far = houseFar(s);
       // only when it is not the site itself: there the chip's stem points at it, and a mark would hide its name
       if(far) window.L.polyline([[s.lat, s.lon], [s.h[0], s.h[1]]], {color:COL[sg(s)], weight:1.5, dashArray:"3 4", interactive:false}).addTo(parcelLayer);
+      window.L.circle([s.h[0], s.h[1]], {radius: Math.max(6, Math.sqrt(s.h[2] / Math.PI) * 1.3), color:COL[sg(s)], weight:2,
+        fill:false, interactive:false}).addTo(parcelLayer);
       if(far) window.L.marker([s.h[0], s.h[1]], {interactive:false, keyboard:false, icon: window.L.divIcon({className:"",
         html:`<div class="hmark" style="--c:${COL[sg(s)]}">${icon("standing", COL[sg(s)], 13)}</div>`, iconSize:[20,20], iconAnchor:[10,10]})}).addTo(parcelLayer);
     }
@@ -595,7 +603,7 @@ async function shareSite(id, btn){
 }
 const LIGHT_OF = {park:"plot",nopark:"plot",parcel_small:"plot",parcel_large:"plot",power_near:"access",power_far:"access",road_near:"access",road_far:"access",
   neighbours_near:"access",neighbours_far:"access",reserve:"rules",protected:"rules",forest:"rules",forest_db:"rules",register:"rules",free:"rules",
-  town_near:"location",town_mid:"location",town_far:"location",water:"location"};
+  town_near:"location",town_mid:"location",town_far:"location",water:"location",bldg_on:"house",bldg_none:"house",park_apart:"plot"};
 const houseFar = s => Math.abs(s.h[0] - s.lat) + Math.abs(s.h[1] - s.lon) > 0.0003;   // about 25 m
 function siteHtml(s){
   const chip = (k, cls="") => `<span class="${cls}">${esc(k)}</span>`;
@@ -604,7 +612,7 @@ function siteHtml(s){
   const wt = c => esc((W[c] || c).replace("{a}", town[0]).replace("{b}", town[1]));
   const L = s.L || "-----", w = s.w || [];
   const rows = LIGHTS.map((k, i) => {
-    const codes = k === "house" ? [s.status] : w.filter(c => LIGHT_OF[c] === k);
+    const codes = (k === "house" ? [s.status] : []).concat(w.filter(c => LIGHT_OF[c] === k));
     const lv = L[i], dot = lv === "-" ? `<span class="dot none"></span>` : `<span class="dot" style="--lc:${LC[lv]}"></span>`;
     let txt = codes.length ? codes.map(wt).join(" · ") : esc(t("unknownL"));
     if(k === "house" && s.h) txt += " · " + esc(t(houseFar(s) ? "houseMark" : "houseAt").replace("{m}", s.h[2]) + (t("houseHow")[s.h[3]] || ""));
@@ -799,8 +807,17 @@ $("kowrOnly").onchange = e => {
 document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("card").hidden) closeCard(); });
 // filter panels: one open at a time, closed by a click elsewhere or Escape
 const pops = [...document.querySelectorAll(".pop")];
-pops.forEach(d => d.addEventListener("toggle", () => { if(d.open) pops.forEach(o => { if(o !== d) o.open = false; }); }));
-document.addEventListener("click", e => { if(!e.target.closest(".pop")) pops.forEach(d => d.open = false); });
+// phones: the strip scrolls sideways, which would clip a panel inside it, so an open panel moves to the page body
+const phone = matchMedia("(max-width:760px)");
+pops.forEach(d => {
+  const panel = d.querySelector(".panel");
+  d.addEventListener("toggle", () => {
+    if(d.open) pops.forEach(o => { if(o !== d) o.open = false; });
+    if(d.open && phone.matches){ panel.classList.add("mpanel"); document.body.appendChild(panel); }
+    else if(!d.open && panel.parentNode !== d){ panel.classList.remove("mpanel"); d.appendChild(panel); }
+  });
+});
+document.addEventListener("click", e => { if(!e.target.closest(".pop, .panel")) pops.forEach(d => d.open = false); });
 document.addEventListener("keydown", e => { if(e.key === "Escape") pops.forEach(d => d.open = false); });
 // about: opens by itself on the first visit
 const info = $("info");

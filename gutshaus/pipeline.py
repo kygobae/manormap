@@ -227,6 +227,67 @@ def mark_houses(sites: list[dict], bxy, barea) -> int:
     return n
 
 
+def house_parcels(sites: list[dict], parcel_at) -> int:
+    """For a standing manor the parcel that matters is the one the house stands on. When the building a "standing"
+    state rests on (site["house"]) lies outside the site's parcel (often the register's park parcel), the site takes
+    the house's parcel and keeps the other as site["park_parcel"] = {id, ha}: it may belong to someone else.
+    parcel_at(x, y) is uldk.parcel_at. Returns the number of sites moved."""
+    import json
+    from shapely.geometry import Polygon
+    from .geo import geom_to_ll, ll_to_pl
+    n = 0
+    for s in sites:
+        h = s.get("house")
+        if s.get("status") != "standing" or not h or s.get("park_parcel") or s.get("kowr_uid"):
+            continue                                   # KOWR sites: the offer's parcels are the plot
+        ring = s.get("parcel_ll") or []
+        ring = json.loads(ring) if isinstance(ring, str) else ring
+        hx, hy = ll_to_pl(h[1], h[0])
+        if len(ring) >= 4 and Polygon([ll_to_pl(lon, lat) for lon, lat in ring]).buffer(0).contains(Point(hx, hy)):
+            continue
+        p = parcel_at(hx, hy)
+        if not p or p.get("parcel_geom") is None or p.get("parcel_id") == s.get("parcel_id"):
+            continue
+        if s.get("parcel_id"):
+            s["park_parcel"] = {"id": s["parcel_id"], "ha": s.get("parcel_ha")}
+        g = geom_to_ll(p["parcel_geom"].simplify(1.0))
+        poly = max(g.geoms, key=lambda q: q.area) if hasattr(g, "geoms") else g
+        s.update({k: p[k] for k in ("parcel_id", "parcel_no", "parcel_ha", "precinct", "commune", "county") if p.get(k)})
+        s["parcel_ll"] = [[round(x, 6), round(y, 6)] for x, y in poly.exterior.coords]
+        s["link_geoportal"] = f"https://mapy.geoportal.gov.pl/imap/Imgp_2.html?identifyParcel={s['parcel_id']}"
+        s["house"] = h[:3] + ["on"]                    # now on the site's parcel
+        n += 1
+    return n
+
+
+def count_buildings(sites: list[dict], read_buildings, offer_areas: dict | None = None) -> int:
+    """site["buildings"] = {"n", "max_m2", "m2"}: buildings of at least BUILDING_ON_PARCEL_M2 on the site's parcel, or on
+    all parcels of its KOWR offer (offer_areas: kowr_uid -> EPSG:2180 geometry). read_buildings(bbox) returns
+    (points [[x, y]], areas) in EPSG:2180. Sites without a parcel get no entry. Returns the number of sites counted."""
+    import json
+    import shapely
+    from shapely.geometry import Polygon
+    from .geo import ll_to_pl
+    n = 0
+    for s in sites:
+        s.pop("buildings", None)
+        if s.get("status") == "unlocated":
+            continue
+        area = (offer_areas or {}).get(s.get("kowr_uid"))
+        if area is None:
+            ring = s.get("parcel_ll") or []
+            ring = json.loads(ring) if isinstance(ring, str) else ring
+            if len(ring) < 4:
+                continue
+            area = Polygon([ll_to_pl(lon, lat) for lon, lat in ring]).buffer(0)
+        pts, areas = read_buildings(area.bounds)
+        on = [a for (x, y), a in zip(pts, areas) if a >= config.BUILDING_ON_PARCEL_M2 and area.contains(Point(x, y))] \
+            if len(pts) else []
+        s["buildings"] = {"n": len(on), "max_m2": int(round(max(on))) if on else 0, "m2": int(round(sum(on)))}
+        n += 1
+    return n
+
+
 def links(s: dict) -> dict:
     lat, lon = s["lat"], s["lon"]
     d = {

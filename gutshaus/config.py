@@ -179,6 +179,9 @@ MANOR_LOST_RADIUS_M = 200
 # been split around the house). Only buildings within PARCEL_SEARCH_MAX_M of the site point are considered, so a
 # large farm parcel does not pull in far-away barns.
 PARCEL_MARGIN_M = 30
+# A building of at least this footprint on the parcel (or on the parcels of a KOWR offer) is somewhere to live or
+# work while the manor is rebuilt: a lost manor gets a green house light only with one (see grades.lights).
+BUILDING_ON_PARCEL_M2 = 50
 PARCEL_SEARCH_MAX_M = 300
 MIN_PARCEL_HA = 0.3
 MAX_PARCEL_HA = 30

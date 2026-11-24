@@ -85,7 +85,7 @@ def site_item(did: str, s: dict) -> dict:
     item = {"id": did, "grade": grade_of(s, L), "path": path(s), "status": s.get("status", "unknown"),
             # the five lights as one letter each (g/a/r, - unknown) and their reason codes (no distances)
             "L": "".join((x["level"] or "-")[0] for x in L.values()),
-            "w": [w for k, x in L.items() if k != "house" for w in x["why"]],
+            "w": [w for k, x in L.items() for w in x["why"] if not (k == "house" and w == s.get("status"))],
             "park": bool(s.get("park")), "registered": bool(s.get("registered")), "kowr": bool(s.get("kowr_offer"))}
     if s.get("status") != "unlocated" and s.get("lat") is not None:
         item["lat"], item["lon"] = round(s["lat"], 5), round(s["lon"], 5)

@@ -467,6 +467,8 @@ def match(sites: list[dict], offers: list[dict], radius_m: float | None = None) 
             s["kowr_tender"] = hit.get("tender", "")
             if hit.get("kw"):
                 s["kowr_kw"] = hit["kw"]                   # land register number(s) the card names
+            if hit.get("parcels_ha") or hit.get("area_ha"):  # everything the offer sells counts as the plot
+                s["offer_ha"] = hit.get("parcels_ha") or hit.get("area_ha")
             if hit.get("monuments"):                       # register entries on / next to the offered parcels
                 s["kowr_monuments"] = hit["monuments"]
                 s["registered"] = s.get("registered") or any(m.get("on") for m in hit["monuments"])

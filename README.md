@@ -139,8 +139,10 @@ gutshaus publish --sample sample.pdf             # -> output/site/public + funct
   five traffic lights and status per site (buy button when the shop is on). No parcel numbers, exact positions or scores. KOWR offers are shown exactly
   (they are public). Sites listed in `reserved.txt` (uid or GF-ID per line, git-ignored) are left out.
 - **One grade per site from five traffic lights** (`gutshaus/grades.py`, thresholds in `config.py`; personal
-  `gutshaus.json` weights never change them): **house** (standing or gone fits a path; ruin or unclear is amber),
-  **park & plot**, **utilities & access** (power, road, neighbours), **protection & planning** (national park or nature
+  `gutshaus.json` weights never change them): **house** (standing fits; gone fits only with a building of 50 m² or
+  more on the parcel, somewhere to live during the works; ruin or unclear is amber), **park & plot** (a KOWR offer
+  counts all its parcels; a standing manor uses the parcel its house stands on; a park on a separate parcel makes this light amber,
+  since the owners may differ), **utilities & access** (power, road, neighbours), **protection & planning** (national park or nature
   reserve is red and means D; other protection or forest on the map is amber) and **location** (nearest town).
   A = all five green, B = four green and no red, C = three green and at most one red, D = otherwise; `?` when only the
   village is known. What is left sets the path (standing: renovation, gone: rebuilding, ruin or unclear: either), and
