@@ -892,7 +892,7 @@ info.addEventListener("click", e => { if(e.target === info) closeInfo(); });   /
 const FB_KINDS = ["error", "idea", "owner", "other"];
 let fbToken = "", fbOpened = 0, fbWidget = null, fbSiteId = "";
 function fbTurnstile(){                                 // Cloudflare Turnstile, loaded only when the form opens
-  const render = () => { if(fbWidget === null) fbWidget = window.turnstile.render("#fbTs", {sitekey: C.feedback, language: lng,
+  const render = () => { if(fbWidget === null) fbWidget = window.turnstile.render("#fbTs", {sitekey: C.feedback, action: "feedback", language: lng,
     callback: tok => { fbToken = tok; }, "expired-callback": () => { fbToken = ""; }}); };
   if(window.turnstile) return render();
   const sc = document.createElement("script");

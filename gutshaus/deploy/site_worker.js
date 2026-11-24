@@ -11,6 +11,7 @@
 const KINDS = ["error", "idea", "owner", "other"];
 const PER_DAY = 5;
 const MIN_MS = 3000;
+const ACTION = "feedback";                    // the widget's action: a token from another form or site does not count
 
 export default {
   async fetch(request, env) {
@@ -50,11 +51,24 @@ async function feedback(request, env) {
   if (!(Date.now() - Number(b.t || 0) >= MIN_MS)) return json({ ok: false, error: "fast" }, 400);
 
   const ip = request.headers.get("CF-Connecting-IP") || "";
-  const check = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body: new URLSearchParams({ secret: env.TURNSTILE_SECRET || "", response: String(b.token || ""), remoteip: ip }),
-  }).then((r) => r.json()).catch(() => ({ success: false }));
-  if (!check.success) return json({ ok: false, error: "captcha" }, 403);
+  const token = b.token;
+  const hosts = String(env.TURNSTILE_HOSTNAMES || "").split(",").map((h) => h.trim()).filter(Boolean);
+  if (typeof token !== "string" || !token || token.length > 2048 || !hosts.length || !env.TURNSTILE_SECRET)
+    return json({ ok: false, error: "captcha" }, 403);
+  let check;
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST", signal: AbortSignal.timeout(10_000),
+      body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
+    });
+    if (!r.ok) return json({ ok: false, error: "captcha" }, 403);
+    check = await r.json();
+  } catch {
+    return json({ ok: false, error: "captcha" }, 403);
+  }
+  // single-use tokens (siteverify rejects a replay), issued by our widget on our own domain
+  if (check.success !== true || check.action !== ACTION || !hosts.includes(check.hostname))
+    return json({ ok: false, error: "captcha" }, 403);
 
   const now = new Date().toISOString();
   const day = now.slice(0, 10);

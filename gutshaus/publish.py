@@ -300,5 +300,7 @@ def write_static_config(path: Path) -> None:
         cfg["assets"].update({"binding": "ASSETS", "run_worker_first": ["/api/*"]})
         cfg["d1_databases"] = [{"binding": "DB", "database_name": config.FEEDBACK_D1_NAME,
                                 "database_id": config.FEEDBACK_D1_ID}]
+        # siteverify must name one of these hosts: SITE_URL's domain and its www. variant
+        cfg["vars"] = {"TURNSTILE_HOSTNAMES": ",".join(r["pattern"] for r in routes)}
     path.write_text(f"// {GENERATED}: the static site (SHOP_ENABLED off). Deploy: npx wrangler deploy\n"
                     + json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
