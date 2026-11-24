@@ -179,7 +179,7 @@ gaz: nie
 woda: tak
 kanalizacja: lokalna
 Opis nieruchomości
-Ruina pałacu z XIX wieku w zabytkowym parku.
+Ruina pałacu z XIX wieku w zabytkowym parku, dla której prowadzona jest księga wieczysta nr KO1K/00012345/6.
 Kontakt
 Krajowy Ośrodek Wsparcia Rolnictwa
 tel. 91 81 44 200
