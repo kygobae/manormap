@@ -88,7 +88,7 @@ CRITERIA = [
     {"key": "gone", "label": "Manor gone (room to build)", "weight": 3,
      "help": "lost 1 · unlocated 0.6 · unknown 0.5 · ruin 0.3 · standing 0.15"},
     {"key": "remains", "label": "Manor remains (to renovate)", "weight": 0,
-     "help": "standing 1 · ruin 0.6 · lost 0 · unlocated/unknown ? (used by the renovation grade)"},
+     "help": "standing 1 · ruin 0.6 · lost 0 · unlocated/unknown ? (review.html score only)"},
     {"key": "park", "label": "Historic park on site", "weight": 2,
      "help": "park mapped nearby or named in the register"},
     {"key": "power", "label": "Power line nearby", "weight": 2, "ramp": (150, 2000),
@@ -236,28 +236,24 @@ def load_overrides(path=None) -> str | None:
     return str(p)
 
 
-# --- Grades -------------------------------------------------------------------
-# Grade from the default-weight score (0-100). Shown on the public site and in dossiers.
-# A is meant to be rare (about 5 % of sites per profile). Unlocated sites score about 56 (mostly unknown values)
-# and so get D. Recheck after big data changes.
-# New build (GRADES): calibrated 2026-11-22. After the 2026-11-23 clean-up only 216 manors are "lost" and standing
-# ones and ruins are capped at C, so new-build A is genuinely rare (43 sites, 0.5 %): left as is on purpose.
-GRADES = [("A", 85), ("B", 75), ("C", 62), ("D", 0)]
-# Renovation scores run higher since a standing house counts fully (1.0): recalibrated 2026-11-23 on 8,657 sites
-# to A 5.0 %, B 18.6 %, C 30.3 %, D 46.1 %.
-GRADES_BY_PROFILE = {"new": GRADES, "renovation": [("A", 90), ("B", 82), ("C", 68), ("D", 0)]}
-# Snapshot before any gutshaus.json overrides: public grades never depend on personal weights.
+# --- Grades: five traffic lights -----------------------------------------------
+# One public grade per site, from five lights (green / amber / red; None = unknown). Shown on the public site and
+# in dossiers; personal weights (CRITERIA, gutshaus.json) only affect the review.html score, never these.
+#   house     what is left fits a path: standing -> renovation, lost -> rebuilding (green); ruin or unclear (amber)
+#   plot      historic park on a parcel of PARCEL_OK_HA (green), else amber
+#   access    mean of the power, road and neighbours criteria (0..1): >= ACCESS_GREEN green, >= ACCESS_AMBER amber
+#   rules     national park / nature reserve red (and grade D); other protection or forest on the map amber
+#   location  nearest town within TOWN_GREEN_M green, TOWN_AMBER_M amber, further red
+# Grade: A all five green · B four green, no red · C three green, at most one red · D otherwise ·
+# "?" when the site is known only by its village. Calibrated 2026-11-24 on 9,045 sites:
+# A 614 · B 1,637 · C 1,873 · D 1,882 · ? 3,039 (A about 10 % of located sites).
+LIGHT_KEYS = ["house", "plot", "access", "rules", "location"]
+ACCESS_GREEN, ACCESS_AMBER = 0.85, 0.4
+TOWN_GREEN_M, TOWN_AMBER_M = 7000, 15000
+PARCEL_OK_HA = (0.3, 15)
+KNOCKOUT_PROTECTION = ("national park", "nature reserve")
+# Snapshot before any gutshaus.json overrides
 DEFAULT_WEIGHTS = {c["key"]: c["weight"] for c in CRITERIA}
-# Two public grades: building new where the manor stood, or renovating what is left.
-# For renovation the register entry is a plus: subsidies exist only for registered monuments.
-PROFILES = {
-    "new": DEFAULT_WEIGHTS,
-    "renovation": {"gone": 0, "remains": 5, "register": 2, "park": 1.5, "power": 1.5, "road": 1.5,
-                   "neighbours": 0.5, "landuse": 0.5, "protection": 1.5, "parcel": 1, "town": 1,
-                   "water": 0.5, "forsale": 1.5},
-}
-RENOVATION_CAP_LOST = "C"  # best renovation grade when the manor is gone
-NEW_CAP_STANDING = "C"     # best new-build grade while the manor stands or is a ruin (no free room in its place)
 
 # Shop: buy buttons, the dossier section and the Cloudflare Functions (webhook, download). Off until the dossier
 # is ready to sell; switch on with {"SHOP_ENABLED": true} in gutshaus.json.

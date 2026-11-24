@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from . import config
 
-# A ruin is the hardest case for both grades: usually a listed monument whose walls the conservator decides about,
+# A ruin is the hardest case (review.html score; the public grade gives it an amber house light): usually a listed monument whose walls the conservator decides about,
 # so a new house has to work around or into them, and a renovation rebuilds far more than it repairs.
 GONE = {"lost": 1.0, "unlocated": 0.6, "unknown": 0.5, "ruin": 0.3, "standing": 0.15}
 REMAINS = {"standing": 1.0, "ruin": 0.6, "lost": 0.0}  # unlocated/unknown -> None (unknown)

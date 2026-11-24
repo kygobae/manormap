@@ -499,31 +499,46 @@ def test_grades_ignore_personal_weights(built):
         config.CRITERIA[0]["weight"] = config.DEFAULT_WEIGHTS[config.CRITERIA[0]["key"]]
 
 
-def test_renovation_grade():
+def test_traffic_light_grade():
     from gutshaus import grades
     base = {"uid": "x", "name": "x", "lat": 54, "lon": 16, "park": True, "registered": True, "kowr_offer": "x",
             "dist_power_m": 50, "dist_road_m": 20, "dist_building_m": 100, "dist_town_m": 3000, "dist_water_m": 100,
-            "land_cover": "agri", "c_protection": 1.0, "parcel_ha": 3}
-    lost, ruin = {**base, "status": "lost"}, {**base, "status": "ruin"}
-    assert grades.grade_of(lost) == "A" and grades.grade_of(lost, "renovation") == "C"   # nothing to renovate
-    standing = {**base, "status": "standing"}
-    assert grades.public_score(standing) >= 85 and grades.grade_of(standing) == "C"   # no room while it stands
-    assert grades.grade_of(standing, "renovation") == "A"
-    unreg = {**standing, "registered": False}
-    assert grades.public_score(unreg, "renovation") < grades.public_score(standing, "renovation")  # no subsidies
-    # a ruin is the hardest case: worse than a standing house to renovate, capped like it for a new build
-    assert grades.public_score(ruin, "renovation") < grades.public_score(standing, "renovation")
-    assert grades.public_score(ruin) < grades.public_score(lost) and grades.grade_of(ruin) == "C"
-    assert [grades.grade(x) for x in (85, 84, 75, 74, 62, 61)] == ["A", "B", "B", "C", "C", "D"]
-    # renovation scores run higher (a standing house counts fully), so its thresholds are higher
-    assert [grades.grade(x, "renovation") for x in (90, 89, 82, 81, 68, 67)] == ["A", "B", "B", "C", "C", "D"]
-    assert grades.thresholds("new") == grades.thresholds() and grades.thresholds("renovation")[0][1] > 85
+            "land_cover": "agri", "protection": "none", "c_protection": 1.0, "parcel_ha": 3}
+    standing, lost = {**base, "status": "standing"}, {**base, "status": "lost"}
+    ruin, unknown = {**base, "status": "ruin"}, {**base, "status": "unknown"}
+    # what is left sets the path; both main paths can reach A
+    assert (grades.path(standing), grades.path(lost), grades.path(ruin)) == ("renovation", "new", "either")
+    assert grades.grade_of(standing) == "A" and grades.grade_of(lost) == "A"
+    L = grades.lights(standing)
+    assert list(L) == ["house", "plot", "access", "rules", "location"] and all(x["level"] == "green" for x in L.values())
+    assert "register" in L["rules"]["why"] and "water" in L["location"]["why"]
+    # ruins and unclear cases: house amber, at best B
+    assert grades.lights(ruin)["house"]["level"] == "amber" and grades.grade_of(ruin) == "B"
+    assert grades.grade_of(unknown) == "B"
+    # nature reserve / national park: knock-out
+    assert grades.grade_of({**standing, "protection": "national park"}) == "D"
+    # forest on the map or a landscape park: amber, not red
+    forest = {**standing, "land_cover": "forest"}
+    assert grades.lights(forest)["rules"]["level"] == "amber" and grades.grade_of(forest) == "B"
+    # no park and a far town: two lights off green
+    far = {**standing, "park": False, "dist_town_m": 20000}
+    assert grades.lights(far)["location"]["level"] == "red" and grades.grade_of(far) == "C"
+    assert grades.grade_of({**far, "dist_power_m": 5000, "dist_road_m": 2000, "dist_building_m": 3000}) == "D"
+    assert [grades.grade_rank(g) for g in "AB?"] == [0, 1, 4]
 
 
-def test_unlocated_sites_get_d(built):
+def test_commune_label():
+    from gutshaus.publish import commune_label
+    assert commune_label("2013BIAŁOBRZEGI OBSZAR WIEJSKI") == "Białobrzegi"
+    assert commune_label("011_KUTNO") == "Kutno" and commune_label("Będzino") == "Będzino"
+
+
+def test_unlocated_sites_have_no_grade(built):
     from gutshaus import grades
     s = next(x for x in grades.all_sites(built) if x["status"] == "unlocated")
-    assert grades.grade_of(s) == "D"                                     # position unknown: nothing to sell yet
+    assert grades.grade_of(s) == "?"                                     # position unknown: no grade yet
+    L = grades.lights(s)
+    assert L["access"]["level"] is None and L["rules"]["level"] is None and L["location"]["level"] is None
 
 
 def test_publish_site(built, monkeypatch):
@@ -541,7 +556,9 @@ def test_publish_site(built, monkeypatch):
     assert keep in ids and grades.dossier_id(sites[0]["uid"]) not in ids and len(ids) == len(sites) - 1
     outlines = json.loads((built / "site" / "public" / "parcels.json").read_text(encoding="utf-8"))
     assert grades.dossier_id(sites[0]["uid"]) not in outlines                # a reserved site's parcel stays private
-    assert all(x["ren"] in "ABCD" for v in data["villages"] for x in v["sites"]) and all(v["r"] for v in data["villages"])
+    items = [x for v in data["villages"] for x in v["sites"]]
+    assert all(x["grade"] in "ABCD?" and x["path"] in ("renovation", "new", "either") and len(x["L"]) == 5 for x in items)
+    assert all(v["g"] == min((x["grade"] for x in v["sites"]), key=grades.grade_rank) for v in data["villages"])
     for s in sites:                                                       # no parcel data on the public site
         if s.get("parcel_id"):
             assert s["parcel_id"] not in html
@@ -763,7 +780,7 @@ def test_public_filters(built):
     html = (built / "site" / "public" / "index.html").read_text(encoding="utf-8")
     for el in ('id="kowrOnly"', 'id="parkOnly"', 'id="regOnly"', 'id="statuses"', 'id="ref"', 'id="km"', 'id="reset"'):
         assert el in html, el
-    assert "shown.has(sg(s)) && F.status.has(s.status) && (!F.kowr || s.ku)" in html      # AND, not "KOWR overrides grade"
+    assert "shown.has(sg(s)) && onPath(s) && F.status.has(s.status) && (!F.kowr || s.ku)" in html  # AND, not "KOWR overrides grade"
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     assert data["cfg"]["refs"]["Berlin"] == list(config.REFERENCE_POINTS["Berlin"])
 
@@ -873,8 +890,8 @@ def test_share_pages_give_link_previews(built, monkeypatch):
     item = v["sites"][0]
     page = (pub / "s" / f"{item['id']}.html").read_text(encoding="utf-8")
     assert f'<meta property="og:url" content="https://example.org/s/{item["id"]}">' in page
-    assert 'content="https://example.org/og.png"' in page and f"Sanierung {item['ren']}" in page
-    assert f"Remont {item['ren']}" in page and v["v"] in page
+    assert 'content="https://example.org/og.png"' in page and f"Note {item['grade']}" in page
+    assert f"Ocena {item['grade']}" in page and v["v"] in page
     assert f'url=/#{item["id"]}' in page and f'location.replace("/#{item["id"]}")' in page
     assert (pub / "og.png").stat().st_size > 20000
     assert '<meta property="og:image" content="https://example.org/og.png">' in html and "__SITE_URL__" not in html
@@ -899,4 +916,4 @@ def test_status_overrides_from_the_ground(built, monkeypatch):
     s = next(x for x in json.loads((built / "poland" / "sites.json").read_text(encoding="utf-8"))["sites"]
              if x["uid"] == ruin["uid"])
     assert s["status"] == "lost" and s["status_data"] == "ruin" and s["status_note"] == "nur Fundamente erhalten"
-    assert grades.grade_of(s, "renovation") >= "C"                                 # nothing left to renovate: capped
+    assert grades.path(s) == "new"                                                 # nothing left: rebuilding

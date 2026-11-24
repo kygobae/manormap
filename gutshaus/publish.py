@@ -1,4 +1,4 @@
-"""Public website: village-level map with grades and a buy button per site.
+"""Public website: village-level map with one grade and five traffic lights per site (buy button when the shop is on).
 
 No parcel numbers, owners or scores leave this machine. Located sites are shown at their exact position with
 their parcel outline (parcels.json, loaded when zoomed in): both are public anyway (OSM, the monument register,
@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from . import config
-from .grades import STATUS_DE, dossier_id, grade_of
+from .grades import STATUS_DE, dossier_id, grade_of, grade_rank, lights, path
 from .sources import kowr
 
 log = logging.getLogger(__name__)
@@ -42,6 +42,13 @@ def village_of(s: dict) -> str:
     return v
 
 
+def commune_label(c: str) -> str:
+    """Cadastre (ULDK) commune names can carry a code and be upper case: '2013BIAŁOBRZEGI OBSZAR WIEJSKI' -> 'Białobrzegi'."""
+    c = re.sub(r"^[\d_\s]+", "", c or "")
+    c = re.sub(r"(?i)\s*[-(]?\s*(obszar wiejski|miasto|gmina wiejska|gmina miejska)\)?$", "", c).strip()
+    return c.title() if c.isupper() else c
+
+
 def load_reserved(path: Path | None) -> set[str]:
     if not path or not Path(path).exists():
         return set()
@@ -61,20 +68,24 @@ def villages(sites: list[dict], reserved: set[str] = frozenset(), round_to: int 
     for (village, commune, powiat), members in groups.items():
         lat = sum(s["lat"] for _, s in members) / len(members)
         lon = sum(s["lon"] for _, s in members) / len(members)
-        items = sorted((site_item(did, s) for did, s in members), key=lambda d: d["grade"])
+        items = sorted((site_item(did, s) for did, s in members), key=lambda d: grade_rank(d["grade"]))
         name_de = next((s["name_de"] for _, s in members if s.get("name_de")), "")
-        out.append({"v": village, "de": name_de, "gm": commune, "pw": powiat,
+        out.append({"v": village, "de": name_de, "gm": commune_label(commune), "pw": powiat,
                     "vv": members[0][1].get("voivodeship", ""),
                     "lat": round(lat, round_to), "lon": round(lon, round_to),
-                    "g": items[0]["grade"], "r": min(i["ren"] for i in items), "sites": items})
-    out.sort(key=lambda v: (v["g"], v["v"]))
+                    "g": items[0]["grade"], "sites": items})
+    out.sort(key=lambda v: (grade_rank(v["g"]), v["v"]))
     return out
 
 
 def site_item(did: str, s: dict) -> dict:
     """One site on the public map. Located sites carry their exact position (as in OSM and the register, which are
     public); sites known only by their village do not. Never parcel numbers, owners or scores."""
-    item = {"id": did, "grade": grade_of(s), "ren": grade_of(s, "renovation"), "status": s.get("status", "unknown"),
+    L = lights(s)
+    item = {"id": did, "grade": grade_of(s, L), "path": path(s), "status": s.get("status", "unknown"),
+            # the five lights as one letter each (g/a/r, - unknown) and their reason codes (no distances)
+            "L": "".join((x["level"] or "-")[0] for x in L.values()),
+            "w": [w for k, x in L.items() if k != "house" for w in x["why"]],
             "park": bool(s.get("park")), "registered": bool(s.get("registered")), "kowr": bool(s.get("kowr_offer"))}
     if s.get("status") != "unlocated" and s.get("lat") is not None:
         item["lat"], item["lon"] = round(s["lat"], 5), round(s["lon"], 5)
@@ -109,6 +120,10 @@ SHARE_STATUS = {"de": {"lost": "Herrenhaus verschwunden", "ruin": "Ruine", "stan
                        "unlocated": "lokalizacja we wsi niepewna", "unknown": "stan nieustalony"}}
 
 
+SHARE_PATH = {"de": {"renovation": "Sanierung", "new": "Wiederaufbau", "either": "Sanierung oder Wiederaufbau"},
+              "pl": {"renovation": "remont", "new": "odbudowa", "either": "remont lub odbudowa"}}
+
+
 def share_page(v: dict, item: dict) -> str:
     """/s/<dossier ID>: a tiny page whose title, description and image show up as the preview when the link is
     shared (WhatsApp, Signal, Facebook, mail); people are sent straight on to the map with the site's card open.
@@ -117,8 +132,8 @@ def share_page(v: dict, item: dict) -> str:
     sid = item["id"]
     place = v["v"] + (f" ({v['de']})" if v.get("de") else "")
     title = f"{place} – {config.SITE_NAME}"
-    de = [f"Sanierung {item['ren']}", f"Wiederaufbau {item['grade']}", SHARE_STATUS["de"].get(item["status"], "")]
-    pl = [f"Remont {item['ren']}", f"Odbudowa {item['grade']}", SHARE_STATUS["pl"].get(item["status"], "")]
+    de = [f"Note {item['grade']} · {SHARE_PATH['de'][item['path']]}", SHARE_STATUS["de"].get(item["status"], "")]
+    pl = [f"Ocena {item['grade']} · {SHARE_PATH['pl'][item['path']]}", SHARE_STATUS["pl"].get(item["status"], "")]
     extra_de = [x for x, on in (("Park", item.get("park")), ("Denkmal", item.get("registered")),
                                 ("zum Verkauf (KOWR)", item.get("kowr"))) if on]
     extra_pl = [x for x, on in (("park", item.get("park")), ("zabytek", item.get("registered")),
@@ -192,7 +207,7 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
             "cfg": {"name": config.SITE_NAME, "url": config.SITE_URL, "price": config.DOSSIER_PRICE,
                     "checkout": config.CHECKOUT_URL, "email": config.CONTACT_EMAIL,
                     "status_de": STATUS_DE, "sample": bool(sample_pdf) and config.SHOP_ENABLED,
-                    "shop": bool(config.SHOP_ENABLED), "refs": config.REFERENCE_POINTS}}
+                    "shop": bool(config.SHOP_ENABLED), "town": [config.TOWN_GREEN_M // 1000, config.TOWN_AMBER_M // 1000], "refs": config.REFERENCE_POINTS}}
     html = (HERE / "site_template.html").read_text(encoding="utf-8")
     js = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     page = html.replace("/*__DATA__*/null", js).replace("__SITE_URL__", (config.SITE_URL or "").rstrip("/"))
