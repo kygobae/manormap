@@ -27,7 +27,7 @@
 :root{
   --ink:#18201c; --muted:#5d6963; --line:rgba(24,32,28,.12); --glass:rgba(250,251,250,.84); --solid:#fbfcfb; --hover:rgba(36,91,74,.07);
   --accent:#245b4a; --on-accent:#fff; --sale:#245b8f; --sale-bg:#eaf1f8; --past:#7a5a2e;
-  --A:#1f7a52; --B:#6aa55b; --C:#d39b2a; --D:#9aa19d;
+  --A:#1f7a52; --B:#6aa55b; --C:#d39b2a; --D:#9aa19d; --Q:#b7bdb9; --green:#1f7a52; --amber:#d39b2a; --red:#b5532d;
   --font-ui:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-place:"Fraunces",Georgia,"Times New Roman",serif;
   --r:14px; --shadow:0 8px 30px rgba(24,32,28,.16); --blur:saturate(1.5) blur(16px);
@@ -72,13 +72,13 @@ details.intro summary{cursor:pointer;list-style:none;display:flex;justify-conten
 details.intro summary::-webkit-details-marker{display:none}
 details.intro summary::after{content:"+";color:var(--muted);font-size:1.1rem}
 details.intro[open] summary::after{content:"–"}
-.grades{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.grades{display:flex;flex-wrap:wrap;gap:5px}
 .gchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 6px 3px 3px;cursor:pointer;font-weight:700;font-size:.78rem;min-width:0}
 .gchip .g{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:.78rem}
 .gchip[aria-pressed="false"]{opacity:.4;background:transparent}
 .gchip .n{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
 .g{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:7px;color:#fff;font-weight:800;font-size:.8rem}
-.gA{background:var(--A)}.gB{background:var(--B)}.gC{background:var(--C)}.gD{background:var(--D)}
+.gA{background:var(--A)}.gB{background:var(--B)}.gC{background:var(--C)}.gD{background:var(--D)}.gQ{background:var(--Q)}
 #more{margin-top:10px;border:1px solid var(--line);border-radius:11px;padding:6px 10px;background:rgba(255,255,255,.55)}
 #more summary{cursor:pointer;font-size:.84rem;font-weight:700;color:var(--accent)}
 .pill{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;text-align:center}
@@ -111,11 +111,16 @@ footer a,.sec a{color:var(--accent)}
 .cs{display:grid;gap:10px;padding-top:12px;border-top:1px solid var(--line)}
 .cs:first-of-type{border-top:0;padding-top:0}
 .st{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem}
-.gr{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .gb{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:rgba(255,255,255,.6);display:flex;align-items:center;gap:10px}
 .gb b{font-size:1.9rem;line-height:1;font-weight:800;color:var(--c)}
 .gb span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700;line-height:1.2}
 .gb.on{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c);background:#fff}
+.gb .pth{display:flex;flex-direction:column;gap:1px}.gb .pth small{font-size:.74rem;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:500}
+.lights{display:grid;gap:7px;margin:0;padding:0;list-style:none}
+.lights li{display:grid;grid-template-columns:14px 1fr;gap:2px 8px;align-items:start;font-size:.82rem;line-height:1.35}
+.lights .dot{width:12px;height:12px;border-radius:50%;margin-top:3px;background:var(--lc);box-shadow:0 0 0 2px color-mix(in srgb,var(--lc) 22%,transparent)}
+.lights .dot.none{background:#fff;border:2px dashed #b7bdb9;box-shadow:none}
+.lights b{font-weight:700}.lights span.w{grid-column:2;color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips span{font-size:.74rem;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:rgba(255,255,255,.6)}
 .chips span.sale{border-color:var(--sale);color:var(--sale)}
@@ -187,7 +192,7 @@ footer a,.sec a{color:var(--accent)}
 <header class="top glass">
   <div class="brand"><h1 id="title">ManorMap</h1><span class="tag" data-t="tagline"></span></div>
   <div class="searchwrap"><input type="search" id="q" data-tp="search" aria-label="Search"><select id="vv"><option value="" data-t="allRegions"></option></select></div>
-  <div class="seg" id="mode" role="group"><button data-m="renovation"></button><button data-m="new"></button></div>
+  <div class="seg" id="mode" role="group"><button data-m="all"></button><button data-m="renovation"></button><button data-m="new"></button></div>
   <div class="lang"><button data-l="de">DE</button><button data-l="pl">PL</button><button data-l="en">EN</button></div>
 </header>
 
@@ -248,11 +253,10 @@ const T = {
   whatH:"Worum es geht",
   what:"Tausende Gutshäuser und Parks prägen bis heute die Landschaften Polens – ein gemeinsames Erbe von Polen und Deutschen. Manche stehen noch und warten auf neue Besitzer, von anderen sind nur Park und Allee geblieben. Wir verbinden historische Karten, das polnische Denkmalregister und aktuelle Geodaten und zeigen für jeden Ort, wie gut er sich für eine Sanierung oder einen Wiederaufbau eignet. Punkte zeigen die genaue Lage; ein Kreis heißt: nur das Dorf ist bekannt.",whatShop:" Flurstück, Karten und alle Daten stehen im Dossier.",
   search:"Dorf suchen (polnisch oder deutsch) …",allRegions:"Alle Woiwodschaften",sites:"Standorte",villages:"Dörfer",
-  dossierH:"Das Standort-Dossier",dossier:"Automatisch erstellt, als PDF sofort nach dem Kauf. Auf Deutsch mit polnischer Zusammenfassung für Gemeinde, Notar oder Architekt.",
+  dossierH:"Das Standort-Dossier",dossier:"Automatisch erstellt, als PDF sofort nach dem Kauf. Auf Deutsch, Polnisch oder Englisch, immer mit einem polnischen Blatt für Gemeinde, Denkmalpfleger und Notar.",
   includes:"<li>genaue Lage, Flurstücksnummer und -fläche</li><li>Luftbild und LiDAR-Relief mit Flurstücksgrenze</li><li>Leitungskarte; Entfernung zu Strom, Straße, Nachbarn, Wasser</li><li>Naturschutz, Flächennutzung, Denkmalregister</li><li>staatliches Verkaufsangebot (KOWR), falls vorhanden</li><li>Note mit Begründung und Checkliste der nächsten Schritte</li><li>Fördermöglichkeiten: Zuschüsse des Denkmalpflegers, des Kulturministeriums, der Woiwodschaft und der Gemeinde</li>",
   notIncluded:"Nicht enthalten: Bebauungsplan / WZ, Grundbuch, Auflagen des Denkmalpflegers, Anschlussbedingungen. Das Dossier sagt Ihnen, wo und wie Sie das prüfen.",
   sample:"Beispiel-Dossier ansehen (PDF)",gradesH:"Die Noten",
-  gradesText:"Zwei Noten pro Standort. <b>Sanierung</b>: Sie bewahren, was steht – Gebäude oder Ruine; der Denkmaleintrag zählt hier positiv, weil nur dann Zuschüsse möglich sind. <b>Wiederaufbau</b>: Vom Herrenhaus ist nichts geblieben, Sie bauen an seiner Stelle neu, im Park und mit Bezug auf das Alte. Eine Ruine ist die schwierigste Lage: Was mit den Mauern geschieht, entscheidet der Denkmalschutz, darum sind beide Noten dort vorsichtig. <b>A</b> sehr gute Ausgangslage · <b>B</b> gut · <b>C</b> mit Einschränkungen · <b>D</b> schwierig.",
   mNew:"Wiederaufbau",mRen:"Sanierung",buy:"Dossier",kowr:"Staatliches Verkaufsangebot (KOWR)",tender:"Ausschreibung",openCard:"Angebot öffnen",
   park:"Park",reg:"Denkmal",hist:"Historische Karte (Messtischblatt)",forSale:"zum Verkauf",
   status:{lost:"Herrenhaus verschwunden",ruin:"Ruine",standing:"Gebäude steht",unlocated:"Lage im Dorf unklar",unknown:"unklar"},
@@ -260,16 +264,15 @@ const T = {
   optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
   approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
   private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
-  teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste mit polnischer Zusammenfassung."},
+  teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste, mit einem polnischen Blatt für die Behörden."},
  pl:{tagline:"Dwory i pałace w Polsce – zachować, odbudować, ożywić",
   whatH:"O co chodzi",
   what:"Tysiące dworów i parków do dziś kształtuje krajobraz Polski – to wspólne dziedzictwo Polaków i Niemców. Niektóre wciąż stoją i czekają na nowych właścicieli, z innych zostały tylko park i aleja. Łączymy mapy historyczne, polski rejestr zabytków i aktualne dane przestrzenne i pokazujemy dla każdego miejsca, na ile nadaje się do remontu lub odbudowy. Punkty pokazują dokładną lokalizację; okrąg oznacza, że znana jest tylko wieś.",whatShop:" Działka, mapy i wszystkie dane są w raporcie.",
   search:"Szukaj wsi (polska lub niemiecka nazwa) …",allRegions:"Wszystkie województwa",sites:"miejsc",villages:"wsi",
-  dossierH:"Raport o lokalizacji",dossier:"Generowany automatycznie, PDF od razu po zakupie. Po niemiecku, z podsumowaniem po polsku dla gminy, notariusza lub architekta.",
+  dossierH:"Raport o lokalizacji",dossier:"Generowany automatycznie, PDF od razu po zakupie. Po polsku, niemiecku lub angielsku, zawsze z polską kartą dla gminy, konserwatora i notariusza.",
   includes:"<li>dokładna lokalizacja, numer i powierzchnia działki</li><li>ortofotomapa i cieniowanie LiDAR z granicą działki</li><li>mapa uzbrojenia; odległość do linii energetycznej, drogi, sąsiadów, wody</li><li>ochrona przyrody, użytkowanie terenu, rejestr zabytków</li><li>oferta KOWR, jeśli istnieje</li><li>ocena z uzasadnieniem i lista kolejnych kroków</li><li>możliwości dofinansowania: dotacje konserwatora, ministerstwa, województwa i gminy</li>",
   notIncluded:"Raport nie obejmuje: MPZP / WZ, księgi wieczystej, wymagań konserwatora, warunków przyłączenia. Wskazuje, gdzie i jak to sprawdzić.",
   sample:"Przykładowy raport (PDF)",gradesH:"Oceny",
-  gradesText:"Dwie oceny dla każdego miejsca. <b>Remont</b>: zachowujesz to, co stoi – budynek lub ruinę; wpis do rejestru zabytków liczy się tu na plus, bo tylko wtedy możliwe są dotacje. <b>Odbudowa</b>: z dworu nic nie zostało, budujesz w jego miejscu, w parku i z nawiązaniem do dawnego założenia. Ruina to najtrudniejsza sytuacja: o tym, co stanie się z murami, decyduje konserwator zabytków, dlatego obie oceny są tu ostrożne. <b>A</b> bardzo dobre warunki · <b>B</b> dobre · <b>C</b> z ograniczeniami · <b>D</b> trudne.",
   mNew:"Odbudowa",mRen:"Remont",buy:"Raport",kowr:"Oferta sprzedaży KOWR",tender:"Przetarg",openCard:"Otwórz ofertę",
   park:"park",reg:"zabytek",hist:"Mapa historyczna (Messtischblatt)",forSale:"na sprzedaż",
   status:{lost:"dwór nie istnieje",ruin:"ruina",standing:"budynek istnieje",unlocated:"lokalizacja we wsi niepewna",unknown:"nieustalony"},
@@ -277,16 +280,15 @@ const T = {
   optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
   approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
   private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
-  teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna."},
+  teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna, z kartą dla urzędów."},
  en:{tagline:"Manor houses in Poland – preserve, rebuild, revive",
   whatH:"What this is",
   what:"Thousands of manor houses and parks still shape Poland's landscapes – a heritage shared by Poles and Germans. Some still stand and are waiting for new owners; of others only the park and the avenue remain. We combine historical maps, the Polish monument register and current geodata and show for every place how well it suits renovation or rebuilding. Dots show the exact site; a ring means only the village is known.",whatShop:" The parcel, maps and all data are in the dossier.",
   search:"Search village (Polish or German name) …",allRegions:"All voivodeships",sites:"sites",villages:"villages",
-  dossierH:"The site dossier",dossier:"Generated automatically, PDF right after purchase. In German with a Polish summary for the municipality, notary or architect.",
+  dossierH:"The site dossier",dossier:"Generated automatically, PDF right after purchase. In English, German or Polish, always with a Polish sheet for the municipality, conservator and notary.",
   includes:"<li>exact location, parcel number and area</li><li>aerial photo and LiDAR relief with the parcel outline</li><li>utility map; distance to power line, road, neighbours, water</li><li>nature protection, land use, monument register</li><li>state sale offer (KOWR), if any</li><li>grade with explanation and a checklist of next steps</li><li>funding options: grants from the heritage conservator, the ministry of culture, the voivodeship and the municipality</li>",
   notIncluded:"Not included: zoning plan / WZ, land register, conservator requirements, utility connection terms. The dossier tells you where and how to check them.",
   sample:"See a sample dossier (PDF)",gradesH:"Grades",
-  gradesText:"Two grades per site. <b>Renovation</b>: you preserve what stands – a building or a ruin; a register entry counts in favour here, because only then are subsidies possible. <b>Rebuilding</b>: nothing of the manor is left and you build in its place, in the park and in keeping with what was there. A ruin is the hardest case: the conservator decides what happens to its walls, so both grades are cautious there. <b>A</b> very good starting point · <b>B</b> good · <b>C</b> with limitations · <b>D</b> difficult.",
   mNew:"Rebuilding",mRen:"Renovation",buy:"Dossier",kowr:"State sale offer (KOWR)",tender:"Tender",openCard:"Open offer",
   park:"park",reg:"listed",hist:"Historical map (Messtischblatt)",forSale:"for sale",
   status:{lost:"manor gone",ruin:"ruin",standing:"building stands",unlocated:"position in village unclear",unknown:"unclear"},
@@ -294,7 +296,7 @@ const T = {
   optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
   approx:"Location known only at village level – look for the estate on the Messtischblatt.",
   private:"The building stands and is usually lived in: private property, please visit only with permission.",
-  teaser:"Site dossier (coming soon): parcel and area, aerial, LiDAR and utility maps with the parcel outline, distances, nature protection, funding and a checklist with a Polish summary."}
+  teaser:"Site dossier (coming soon): parcel and area, aerial, LiDAR and utility maps with the parcel outline, distances, nature protection, funding and a checklist, with a Polish sheet for the authorities."}
 };
 // texts of the redesign (merged into T above)
 const T2 = {
@@ -306,6 +308,37 @@ const T2 = {
      onMtb:"Compare on the Messtischblatt",lgStanding:"stands",lgRuin:"ruin",lgLost:"gone",lgUnknown:"unclear",lgVillage:"village only",deName:"German"}};
 for(const l of Object.keys(T2)) Object.assign(T[l], T2[l]);
 
+// one grade from five traffic lights (gutshaus/grades.py)
+const T3 = {
+ de:{mAll:"Alle",pathL:{renovation:"Sanierung",new:"Wiederaufbau",either:"Sanierung oder Wiederaufbau"},
+  gradeQ:"noch keine Note: nur das Dorf ist bekannt",
+  gradesText:"Eine Note pro Standort, aus fünf Ampeln: <b>Haus</b>, <b>Park & Grundstück</b>, <b>Erschließung</b> (Strom, Straße, Nachbarn), <b>Schutz & Planung</b> und <b>Lage</b>. <b>A</b> alle fünf grün · <b>B</b> vier grün, kein Rot · <b>C</b> drei grün, höchstens ein Rot · <b>D</b> sonst, und immer in Nationalpark oder Naturschutzgebiet · <b>?</b> nur das Dorf ist bekannt. Was vom Haus steht, bestimmt den Weg: ein stehendes Haus saniert man, wo es verschwunden ist, baut man wieder auf; Ruinen und unklare Fälle passen zu beiden. Der Filter oben zeigt nur die Standorte eines Wegs.",
+  lights:{house:"Haus",plot:"Park & Grundstück",access:"Erschließung",rules:"Schutz & Planung",location:"Lage"},unknownL:"unbekannt",
+  why:{standing:"Herrenhaus steht: Substanz zum Sanieren",lost:"Herrenhaus verschwunden: Platz für einen Wiederaufbau",ruin:"Ruine: der Denkmalschutz entscheidet über die Mauern",unknown:"Zustand unklar: vor Ort prüfen",unlocated:"Lage im Dorf noch unbekannt",
+   park:"historischer Park",nopark:"kein Park verzeichnet",parcel_small:"Flurstück sehr klein",parcel_large:"Flurstück sehr groß (über 15 ha)",
+   power_near:"Stromleitung nah",power_far:"Stromleitung weit",road_near:"an einer öffentlichen Straße",road_far:"öffentliche Straße weit",neighbours_near:"Nachbarhäuser nah (Wasser, Abwasser)",neighbours_far:"keine Nachbarhäuser in der Nähe",
+   reserve:"Nationalpark oder Naturschutzgebiet: Bauen praktisch ausgeschlossen",protected:"Schutzgebiet: Bauen nur eingeschränkt",forest:"laut Karte Wald: prüfen, ob amtlich Wald",register:"im Denkmalregister: der Denkmalpfleger entscheidet mit, Zuschüsse möglich",free:"kein Schutzgebiet",
+   town_near:"Stadt unter {a} km",town_mid:"Stadt {a}–{b} km entfernt",town_far:"Stadt über {b} km entfernt",water:"See oder Fluss in der Nähe"}},
+ pl:{mAll:"Wszystkie",pathL:{renovation:"Remont",new:"Odbudowa",either:"Remont lub odbudowa"},
+  gradeQ:"jeszcze bez oceny: znana tylko wieś",
+  gradesText:"Jedna ocena dla każdego miejsca, z pięciu świateł: <b>budynek</b>, <b>park i działka</b>, <b>media i dojazd</b> (prąd, droga, sąsiedzi), <b>ochrona i planowanie</b> oraz <b>położenie</b>. <b>A</b> wszystkie pięć zielone · <b>B</b> cztery zielone, żadne czerwone · <b>C</b> trzy zielone, najwyżej jedno czerwone · <b>D</b> pozostałe, a zawsze w parku narodowym lub rezerwacie · <b>?</b> znana tylko wieś. To, co zostało z dworu, wyznacza drogę: stojący budynek się remontuje, w miejscu nieistniejącego się odbudowuje; ruiny i przypadki niejasne pasują do obu. Filtr u góry pokazuje miejsca tylko jednej drogi.",
+  lights:{house:"Budynek",plot:"Park i działka",access:"Media i dojazd",rules:"Ochrona i planowanie",location:"Położenie"},unknownL:"brak danych",
+  why:{standing:"dwór istnieje: substancja do remontu",lost:"dwór nie istnieje: miejsce na odbudowę",ruin:"ruina: o murach decyduje konserwator",unknown:"stan niejasny: sprawdzić na miejscu",unlocated:"lokalizacja we wsi jeszcze nieznana",
+   park:"zabytkowy park",nopark:"brak parku w danych",parcel_small:"bardzo mała działka",parcel_large:"bardzo duża działka (ponad 15 ha)",
+   power_near:"linia energetyczna blisko",power_far:"linia energetyczna daleko",road_near:"przy drodze publicznej",road_far:"droga publiczna daleko",neighbours_near:"sąsiednie budynki blisko (woda, kanalizacja)",neighbours_far:"brak sąsiednich budynków w pobliżu",
+   reserve:"park narodowy lub rezerwat: budowa praktycznie wykluczona",protected:"obszar chroniony: budowa z ograniczeniami",forest:"według mapy las: sprawdzić, czy to las w ewidencji",register:"w rejestrze zabytków: decyduje też konserwator, możliwe dotacje",free:"poza obszarami chronionymi",
+   town_near:"miasto w promieniu {a} km",town_mid:"miasto {a}–{b} km",town_far:"miasto dalej niż {b} km",water:"jezioro lub rzeka w pobliżu"}},
+ en:{mAll:"All",pathL:{renovation:"Renovation",new:"Rebuilding",either:"Renovation or rebuilding"},
+  gradeQ:"no grade yet: only the village is known",
+  gradesText:"One grade per site, from five traffic lights: <b>house</b>, <b>park & plot</b>, <b>utilities & access</b> (power, road, neighbours), <b>protection & planning</b> and <b>location</b>. <b>A</b> all five green · <b>B</b> four green, no red · <b>C</b> three green, at most one red · <b>D</b> otherwise, and always in a national park or nature reserve · <b>?</b> only the village is known. What is left of the house sets the path: a standing house is renovated, where it is gone you rebuild; ruins and unclear cases fit both. The filter at the top shows the sites of one path only.",
+  lights:{house:"House",plot:"Park & plot",access:"Utilities & access",rules:"Protection & planning",location:"Location"},unknownL:"unknown",
+  why:{standing:"manor stands: fabric to renovate",lost:"manor gone: room to rebuild",ruin:"ruin: the conservator decides about the walls",unknown:"condition unclear: check on site",unlocated:"position in the village not known yet",
+   park:"historic park",nopark:"no park recorded",parcel_small:"very small parcel",parcel_large:"very large parcel (over 15 ha)",
+   power_near:"power line close",power_far:"power line far",road_near:"on a public road",road_far:"public road far",neighbours_near:"neighbouring houses close (water, sewage)",neighbours_far:"no neighbouring houses nearby",
+   reserve:"national park or nature reserve: building practically ruled out",protected:"protected area: building restricted",forest:"forest on the map: check whether it is forest by law",register:"in the monument register: the conservator has a say, grants possible",free:"no protected area",
+   town_near:"town within {a} km",town_mid:"town {a}–{b} km away",town_far:"town over {b} km away",water:"lake or river nearby"}}};
+for(const l of Object.keys(T3)) Object.assign(T[l], T3[l]);
+
 let lng = (()=>{try{return localStorage.getItem("lang")}catch(e){return null}})()
   || (navigator.language||"de").slice(0,2);
 if(!T[lng]) lng = "en";
@@ -313,11 +346,15 @@ const esc = s => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",
 const t = k => T[lng][k];
 const $ = id => document.getElementById(id);
 const VV = D.villages;
-const COL = {A:"#1f7a52",B:"#6aa55b",C:"#d39b2a",D:"#9aa19d"};
+const COL = {A:"#1f7a52",B:"#6aa55b",C:"#d39b2a",D:"#9aa19d","?":"#9aa19d"};
+const GRADES = ["A","B","C","D","?"], rank = g => GRADES.indexOf(g);
+const gcls = g => g === "?" ? "gQ" : "g" + g;
 const shown = new Set(["A","B","C"]);
-let mode = "renovation";                    // renovation first, then rebuilding
-const vg = v => mode === "new" ? v.g : v.r;
-const sg = s => mode === "new" ? s.grade : s.ren;           // a site's grade in the current mode
+let mode = "all";                            // path filter: all, renovation or rebuilding (ruins and unclear: both)
+const onPath = s => mode === "all" || s.path === mode || s.path === "either";
+const sg = s => s.grade;
+const LC = {g:"var(--green)", a:"var(--amber)", r:"var(--red)"};
+const LIGHTS = ["house","plot","access","rules","location"];
 
 function buyUrl(id){
   if(!C.checkout) return C.email ? `mailto:${C.email}?subject=Dossier%20${id}` : "#";
@@ -497,12 +534,24 @@ async function shareSite(id, btn){
   box.className = "linkbox"; box.value = url; box.readOnly = true; box.setAttribute("aria-label", t("share"));
   btn.closest(".actions").after(box); box.focus(); box.select();
 }
+const LIGHT_OF = {park:"plot",nopark:"plot",parcel_small:"plot",parcel_large:"plot",power_near:"access",power_far:"access",road_near:"access",road_far:"access",
+  neighbours_near:"access",neighbours_far:"access",reserve:"rules",protected:"rules",forest:"rules",register:"rules",free:"rules",
+  town_near:"location",town_mid:"location",town_far:"location",water:"location"};
 function siteHtml(s){
   const chip = (k, cls="") => `<span class="${cls}">${esc(k)}</span>`;
-  const tags = [s.park ? chip(t("park")) : "", s.registered ? chip(t("reg")) : "", s.kowr ? chip(t("forSale"), "sale") : ""].join("");
-  const gb = (g, label, on) => `<div class="gb${on ? " on" : ""}" style="--c:${COL[g]}"><b>${g}</b><span>${esc(label)}</span></div>`;
+  const tags = s.kowr ? chip(t("forSale"), "sale") : "";        // park and register are in the lights
+  const W = t("why"), town = C.town || [7, 15];
+  const wt = c => esc((W[c] || c).replace("{a}", town[0]).replace("{b}", town[1]));
+  const L = s.L || "-----", w = s.w || [];
+  const rows = LIGHTS.map((k, i) => {
+    const codes = k === "house" ? [s.status] : w.filter(c => LIGHT_OF[c] === k);
+    const lv = L[i], dot = lv === "-" ? `<span class="dot none"></span>` : `<span class="dot" style="--lc:${LC[lv]}"></span>`;
+    const txt = codes.length ? codes.map(wt).join(" · ") : esc(t("unknownL"));
+    return `<li>${dot}<b>${esc(t("lights")[k])}</b><span class="w">${txt}</span></li>`;
+  }).join("");
   let h = `<div class="cs"><div class="st">${icon(s.status, COL[sg(s)], 22)}<span>${esc(t("status")[s.status] || s.status)}</span></div>
-    <div class="gr">${gb(s.ren, t("mRen"), mode === "renovation")}${gb(s.grade, t("mNew"), mode === "new")}</div>`;
+    <div class="gb on" style="--c:${COL[s.grade]}"><b>${esc(s.grade)}</b><span class="pth">${esc(t("pathL")[s.path] || "")}${s.grade === "?" ? `<small>${esc(t("gradeQ"))}</small>` : ""}</span></div>
+    <ul class="lights">${rows}</ul>`;
   if(tags) h += `<div class="chips">${tags}</div>`;
   if(s.ku && OFFERS[s.ku]) h += offerHtml(OFFERS[s.ku]);
   if(s.status === "standing" && !s.ku) h += `<div class="small">${esc(t("private"))}</div>`;  // KOWR sites are state property
@@ -570,7 +619,7 @@ function drawMarkers(){
       m.on("click", () => openCard(r.v, [s])).addTo(markers);
     }
     if(r.approx.length){                              // known only by village: a dashed ring around the village
-      const best = r.approx.map(sg).sort()[0];
+      const best = r.approx.map(sg).sort((a, b) => rank(a) - rank(b))[0];
       window.L.circleMarker([r.v.lat, r.v.lon], {radius: 9, color:COL[best], weight:3, dashArray:"3 3", fillOpacity:0})
         .on("click", () => openCard(r.v, r.approx)).addTo(markers);
     }
@@ -588,28 +637,29 @@ function render(){
   const q = norm($("q").value), vv = vvSel.value;
   const F = filters();
   // every filter narrows the result (AND): "for sale" + grade A shows the A-graded sites for sale
-  const keep = (s, v) => shown.has(sg(s)) && F.status.has(s.status) && (!F.kowr || s.ku) && (!F.park || s.park)
+  const keep = (s, v) => shown.has(sg(s)) && onPath(s) && F.status.has(s.status) && (!F.kowr || s.ku) && (!F.park || s.park)
                          && (!F.reg || s.registered) && (!F.ref || km(s, v, F) <= F.km);
   const list = VV.filter(v => v.sites.some(s => keep(s, v)) && (!vv || v.vv===vv) && (!q || norm(v.v).includes(q) || norm(v.de).includes(q)));
   RES = list.map(v => { const sites = v.sites.filter(s => keep(s, v));
     return {v, located: sites.filter(s => s.lat), approx: sites.filter(s => !s.lat)}; });
   const n = RES.reduce((a, r) => a + r.located.length + r.approx.length, 0);
   drawMarkers();
-  // grade chips with counts in the current mode
-  const counts = {A:0,B:0,C:0,D:0};
-  for(const v of VV) for(const s of v.sites) counts[sg(s)]++;
+  // grade chips with counts on the chosen path
+  const counts = {A:0,B:0,C:0,D:0,"?":0};
+  for(const v of VV) for(const s of v.sites) if(onPath(s)) counts[sg(s)]++;
   $("grades").querySelectorAll(".gchip").forEach(b => { b.querySelector(".n").textContent = counts[b.dataset.g].toLocaleString(lng); });
   $("count").textContent = `${list.length.toLocaleString(lng)} ${t("villages")} · ${n.toLocaleString(lng)} ${t("sites")}`;
   $("countShort").textContent = n.toLocaleString(lng) + " " + t("sites");
   $("nActive").textContent = F.active || "";
   const ul = $("list"); ul.innerHTML = "";
   const vkm = v => Math.min(...v.sites.filter(s => keep(s, v)).map(s => km(s, v, F)));
+  const vg = v => v.sites.filter(s => keep(s, v)).map(sg).sort((a, b) => rank(a) - rank(b))[0] || v.g;   // best shown grade
   const byV = new Map(RES.map(r => [r.v, r]));
-  list.sort(F.ref ? (a,b) => vkm(a) - vkm(b) : (a,b) => vg(a).localeCompare(vg(b)) || a.v.localeCompare(b.v));
+  list.sort(F.ref ? (a,b) => vkm(a) - vkm(b) : (a,b) => rank(vg(a)) - rank(vg(b)) || a.v.localeCompare(b.v));
   for(const v of list.slice(0, 200)){
     const li = document.createElement("li");
     li.tabIndex = 0;
-    li.innerHTML = `<span class="g g${vg(v)}">${vg(v)}</span><span class="n"><span class="nm">${esc(v.v)}</span>${v.de?`<span class="de">${esc(v.de)}</span>`:""}<br><span class="small">${esc(v.pw)}</span></span><span class="c">${F.ref ? Math.round(vkm(v)) + " km" : v.sites.filter(s => keep(s, v)).length}</span>`;
+    li.innerHTML = `<span class="g ${gcls(vg(v))}">${vg(v)}</span><span class="n"><span class="nm">${esc(v.v)}</span>${v.de?`<span class="de">${esc(v.de)}</span>`:""}<br><span class="small">${esc(v.pw)}</span></span><span class="c">${F.ref ? Math.round(vkm(v)) + " km" : v.sites.filter(s => keep(s, v)).length}</span>`;
     li.onclick = () => focusVillage(byV.get(v));
     li.onkeydown = e => { if(e.key === "Enter") focusVillage(byV.get(v)); };
     ul.appendChild(li);
@@ -617,7 +667,7 @@ function render(){
   if(cardFor) openCard(...cardFor);
 }
 const gradesEl = $("grades");
-for(const g of "ABCD"){
+for(const g of GRADES){
   const b = document.createElement("button");
   b.type = "button"; b.className = "gchip"; b.dataset.g = g; b.setAttribute("aria-pressed", shown.has(g));
   b.innerHTML = `<span class="g" style="background:${COL[g]}">${g}</span><span class="n"></span>`;
@@ -647,7 +697,7 @@ function lang(l){
   $("shop").hidden = !C.shop;
   $("sample").innerHTML = C.sample ? `<a href="sample.pdf" target="_blank">${t("sample")}</a>` : "";
   const mail = $("mail"); mail.textContent = C.email; mail.href = "mailto:"+C.email;
-  document.querySelectorAll("#mode button").forEach(b => { b.textContent = t(b.dataset.m==="new"?"mNew":"mRen"); b.classList.toggle("on", b.dataset.m===mode); });
+  document.querySelectorAll("#mode button").forEach(b => { b.textContent = t({all:"mAll", new:"mNew", renovation:"mRen"}[b.dataset.m]); b.classList.toggle("on", b.dataset.m===mode); });
   legend(); cmpUi(); ctl(); render();
 }
 document.querySelectorAll(".lang button").forEach(b => b.onclick = () => lang(b.dataset.l));
@@ -686,6 +736,7 @@ $("title").textContent = C.name;
 // #GF-1A2B3C4D (shared site) or #lat,lon,zoom[,messtischblatt|ortho] (links from dossiers)
 function openShared(id){
   for(const v of VV) for(const s of v.sites) if(s.id === id){
+    if(!onPath(s)){ mode = "all"; document.querySelectorAll("#mode button").forEach(b => b.classList.toggle("on", b.dataset.m === mode)); }
     if(!shown.has(sg(s))){                              // the shared site is shown even if its grade is filtered out
       shown.add(sg(s));
       $("grades").querySelectorAll(".gchip").forEach(b => b.setAttribute("aria-pressed", shown.has(b.dataset.g)));

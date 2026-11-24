@@ -135,14 +135,16 @@ gutshaus publish --sample sample.pdf             # -> output/site/public + funct
 
 - **Shop switch:** by default the site is the free map only (no buy buttons, no dossier section, no Functions, no
   sales terms on the legal page): a static site. Set `"SHOP_ENABLED": true` in `gutshaus.json` when dossiers are on sale.
-- **Public site** (`output/site/public/index.html`, DE/PL/EN): villages at a rounded position (~1 km) with grades A–D,
-  status and a buy button per site. No parcel numbers, exact positions or scores. KOWR offers are shown exactly
+- **Public site** (`output/site/public/index.html`, DE/PL/EN): villages at a rounded position (~1 km) with grades A–D or ?,
+  five traffic lights and status per site (buy button when the shop is on). No parcel numbers, exact positions or scores. KOWR offers are shown exactly
   (they are public). Sites listed in `reserved.txt` (uid or GF-ID per line, git-ignored) are left out.
-- **Two grades per site**, both with fixed weights from `config.PROFILES` (your personal `gutshaus.json` weights never
-  change them): **new build** (manor gone, build in its place) and **renovation** (save the ruin or building; a register
-  entry counts in favour because subsidies require it). If nothing is left, renovation is graded C at best; while the
-  manor still stands, new build is graded C at best. Thresholds: A from 85, B from 75, C from 62 (`config.GRADES`,
-  calibrated so that only about 4 % of sites get an A). The public map switches between the two grades.
+- **One grade per site from five traffic lights** (`gutshaus/grades.py`, thresholds in `config.py`; personal
+  `gutshaus.json` weights never change them): **house** (standing or gone fits a path; ruin or unclear is amber),
+  **park & plot**, **utilities & access** (power, road, neighbours), **protection & planning** (national park or nature
+  reserve is red and means D; other protection or forest on the map is amber) and **location** (nearest town).
+  A = all five green, B = four green and no red, C = three green and at most one red, D = otherwise; `?` when only the
+  village is known. What is left sets the path (standing: renovation, gone: rebuilding, ruin or unclear: either), and
+  the map filters by path. The card shows the five lights with their reasons, without distances.
 
 ### Deploy the free map (no shop)
 
