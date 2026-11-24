@@ -297,7 +297,7 @@ body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(36
   <div class="actions"><button class="btn primary" id="infoGo" type="button" data-t="infoGo"></button>
     <button class="btn plain" id="fbOpen" type="button" data-t="fbAbout" hidden></button></div>
   <footer><span data-t="sources"></span><br>
-    <span data-t="optout"></span> <a id="mail"></a> · <a href="legal.html" data-t="legal"></a></footer>
+    <span id="optout"></span> <a id="mail"></a> · <a href="legal.html" data-t="legal"></a></footer>
 </dialog>
 
 <!-- feedback: data errors, ideas, owners; stored by the site's Worker (gutshaus/deploy/site_worker.js) -->
@@ -339,11 +339,11 @@ const T = {
   park:"Park",reg:"Denkmal",hist:"Historische Karte (Messtischblatt)",lidar:"Geländerelief (LiDAR)",forSale:"zum Verkauf",
   status:{lost:"Herrenhaus verschwunden",ruin:"Ruine",standing:"Gebäude steht",unlocated:"Lage im Dorf unklar",unknown:"unklar"},
   sources:"Daten: © OpenStreetMap-Mitwirkende (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Historische Karten: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
+  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",optoutFb:"Eigentümer, die nicht genannt werden möchten: Standort auf der Karte öffnen, „Fehler melden“ wählen und „Ich bin Eigentümer“ ankreuzen.",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
   approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
   private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
   houseMark:"Gebäude von ca. {m} m² (auf der Karte eingekreist, ⌂)",houseAt:"Gebäude von ca. {m} m² (auf der Karte eingekreist)",houseHow:{next:" direkt neben dem Flurstück",wide:", 100–200 m entfernt: könnte das Gutshaus sein"},
-  teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste, mit einem polnischen Blatt für die Behörden."},
+  teaser:"Mehr Details folgen bald – schauen Sie wieder vorbei!"},
  pl:{tagline:"Dwory i pałace w Polsce – zachować, odbudować, ożywić",
   whatH:"O co chodzi",
   what:"Tysiące dworów i parków do dziś kształtuje krajobraz Polski – to wspólne dziedzictwo Polaków i Niemców. Niektóre wciąż stoją i czekają na nowych właścicieli, z innych zostały tylko park i aleja. Łączymy mapy historyczne, polski rejestr zabytków i aktualne dane przestrzenne i pokazujemy dla każdego miejsca, na ile nadaje się do remontu lub odbudowy. Punkty pokazują dokładną lokalizację; okrąg oznacza, że znana jest tylko wieś.",whatShop:" Działka, mapy i wszystkie dane są w raporcie.",
@@ -356,11 +356,11 @@ const T = {
   park:"park",reg:"zabytek",hist:"Mapa historyczna (Messtischblatt)",lidar:"Rzeźba terenu (LiDAR)",forSale:"na sprzedaż",
   status:{lost:"dwór nie istnieje",ruin:"ruina",standing:"budynek istnieje",unlocated:"lokalizacja we wsi niepewna",unknown:"nieustalony"},
   sources:"Dane: © współtwórcy OpenStreetMap (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Mapy historyczne: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
+  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",optoutFb:"Właściciele, którzy nie chcą być wymienieni: proszę otworzyć miejsce na mapie, wybrać „Zgłoś błąd” i zaznaczyć „Jestem właścicielem”.",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
   approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
   private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
   houseMark:"budynek o pow. ok. {m} m² (na mapie w kółku, ⌂)",houseAt:"budynek o pow. ok. {m} m² (na mapie w kółku)",houseHow:{next:" tuż obok działki",wide:", 100–200 m dalej: może to być dwór"},
-  teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna, z kartą dla urzędów."},
+  teaser:"Więcej szczegółów już wkrótce – zapraszamy ponownie!"},
  en:{tagline:"Manor houses in Poland – preserve, rebuild, revive",
   whatH:"What this is",
   what:"Thousands of manor houses and parks still shape Poland's landscapes – a heritage shared by Poles and Germans. Some still stand and are waiting for new owners; of others only the park and the avenue remain. We combine historical maps, the Polish monument register and current geodata and show for every place how well it suits renovation or rebuilding. Dots show the exact site; a ring means only the village is known.",whatShop:" The parcel, maps and all data are in the dossier.",
@@ -373,11 +373,11 @@ const T = {
   park:"park",reg:"listed",hist:"Historical map (Messtischblatt)",lidar:"Terrain relief (LiDAR)",forSale:"for sale",
   status:{lost:"manor gone",ruin:"ruin",standing:"building stands",unlocated:"position in village unclear",unknown:"unclear"},
   sources:"Data: © OpenStreetMap contributors (ODbL), National Heritage Institute (NID), GUGiK/Geoportal, GDOŚ, KOWR. Historical maps: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
+  optout:"Owners who do not want to be listed, write to",optoutFb:"Owners who do not want to be listed: open the site on the map, choose “Report an error” and tick “I am the owner”.",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
   approx:"Location known only at village level – look for the estate on the Messtischblatt.",
   private:"The building stands and is usually lived in: private property, please visit only with permission.",
   houseMark:"building of about {m} m² (circled on the map, ⌂)",houseAt:"building of about {m} m² (circled on the map)",houseHow:{next:" just outside the parcel",wide:", 100–200 m away: could be the manor"},
-  teaser:"Site dossier (coming soon): parcel and area, aerial, LiDAR and utility maps with the parcel outline, distances, nature protection, funding and a checklist, with a Polish sheet for the authorities."}
+  teaser:"More details coming soon – stay tuned!"}
 };
 // texts of the redesign (merged into T above)
 const T2 = {
@@ -833,7 +833,8 @@ function lang(l){
   $("shop").hidden = !C.shop;
   document.querySelectorAll('[data-t="listH"]').forEach(e => e.textContent = t("listH"));
   $("sample").innerHTML = C.sample ? `<a href="sample.pdf" target="_blank">${t("sample")}</a>` : "";
-  const mail = $("mail"); mail.textContent = C.email; mail.href = "mailto:"+C.email;
+  $("optout").textContent = t(C.feedback ? "optoutFb" : "optout");   // with feedback on, owners use the form on a site's card
+  const mail = $("mail"); mail.hidden = !!C.feedback; mail.textContent = C.email; mail.href = "mailto:"+C.email;
   document.querySelectorAll("#mode button").forEach(b => { b.textContent = t({all:"mAll", new:"mNew", renovation:"mRen"}[b.dataset.m]); b.classList.toggle("on", b.dataset.m===mode); });
   legend(); cmpUi(); ctl(); render();
 }
