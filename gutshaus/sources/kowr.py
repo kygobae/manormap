@@ -316,6 +316,59 @@ def load_or_fetch(http: Http, cache: Path, max_age_h: float = 24, refresh: bool 
 
 
 # ----------------------------------------------------------------- matching
+KOWR_LOCATION = "kowr parcel"                 # site placed on the parcel a KOWR offer names
+
+
+def place_sites(sites: list[dict], offers: list[dict], area=None) -> int:
+    """Before measuring: KOWR knows the parcel it sells. A register entry known only by its village moves onto the
+    offer's parcel when village and gmina agree; a located offer that no site is near becomes a site of its own.
+    `area` (EPSG:2180) limits this to offers inside the area being run. Returns the number of sites placed or added."""
+    r, n = config.KOWR_MATCH_RADIUS_M, 0
+    for o in offers:
+        if o.get("x") is None or (area is not None and not area.contains(Point(o["x"], o["y"]))):
+            continue
+        pt = Point(o["x"], o["y"])
+        if any(not _village_only(s) and Point(s["x"], s["y"]).distance(pt) <= r for s in sites):
+            continue                                       # an exactly located site is there already
+        s = next((s for s in sites if _village_only(s) and same_village(o, s)), None)
+        if s is None:
+            s = site_from_offer(o)
+            sites.append(s)
+            log.info("KOWR: %s added as a site of its own", s["name"])
+        else:
+            log.info("KOWR: %s placed on the offer's parcel", s["name"])
+        s.update({"x": o["x"], "y": o["y"], "location": KOWR_LOCATION, "approx": False})
+        s.pop("village_xy", None)
+        s.pop("rivals_xy", None)
+        s["lon"], s["lat"] = pl_to_ll(o["x"], o["y"])
+        n += 1
+    return n
+
+
+def _village_only(s: dict) -> bool:
+    return str(s.get("location") or "exact").startswith("village")
+
+
+def same_village(offer: dict, site: dict) -> bool:
+    """The register's village is the offer's place or precinct, and the gminas agree (when the offer names one)."""
+    v = fold(site.get("village") or "")
+    if not v or v not in {fold(offer.get("place") or ""), fold(offer.get("obreb") or "")}:
+        return False
+    g, h = fold(offer.get("gmina") or "").strip(), fold(site.get("gmina") or "").strip()
+    return not g or not h or g in h or h in g
+
+
+def site_from_offer(o: dict) -> dict:
+    """A candidate site for an offer that no register entry or OSM object explains."""
+    name = o.get("title") or o.get("place") or "KOWR"
+    text = " | ".join(filter(None, [name, o.get("kind"), o.get("description"), o.get("place"),
+                                    o.get("gmina") and "gm. " + o["gmina"]]))[:2000]
+    return {"uid": o.get("uid") or "kowr:" + o["url"], "source": "kowr", "name": name, "name_de": "", "text": text,
+            "village": o.get("place") or o.get("obreb") or "", "gmina": o.get("gmina") or "", "osm_ref": "",
+            "nid_ref": "", "registered": bool(o.get("register")), "members": [o.get("uid") or "kowr:" + o["url"]],
+            "sources": "kowr", "names": [name], "nid_names": [], "also_known_as": ""}
+
+
 def match(sites: list[dict], offers: list[dict], radius_m: float | None = None) -> int:
     """Flag sites within radius of a KOWR offer (or in the same obręb when the offer
     could not be located). Returns the number of flagged sites."""

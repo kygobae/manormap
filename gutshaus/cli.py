@@ -58,6 +58,8 @@ def run_area(args, out: Path, http: Http, src, teryt: str | None = None,
 
     # merge, measure, assess
     sites = pipeline.merge(cands)
+    offers = load_kowr(args, http)
+    kowr.place_sites(sites, offers, area)          # KOWR's parcels locate village-only entries (or add a site)
     if args.limit:
         sites = sites[: args.limit]
     measure = bool(sites) and not args.skip_infra
@@ -75,7 +77,6 @@ def run_area(args, out: Path, http: Http, src, teryt: str | None = None,
         a["powiat"] = title.split(" (")[0].replace("powiat ", "")
         a["voivodeship"] = config.VOIVODESHIPS.get((teryt or a.get("parcel_id") or "")[:2], a.get("voivodeship", ""))
         assessed.append(a)
-    offers = load_kowr(args, http)
     if offers and kowr.match(assessed, offers):
         for a in assessed:  # re-score with the "offered for sale" criterion
             if a.get("kowr_offer"):
