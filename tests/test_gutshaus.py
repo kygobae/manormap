@@ -478,6 +478,8 @@ def test_kowr_offer_locates_village_only_site():
     assert kowr.place_sites(lone, [offer]) == 1 and lone[0]["source"] == "kowr" and lone[0]["registered"]
     assert lone[0]["name"] == "Pałac Wzorowo" and lone[0]["lat"] is not None
     assert kowr.place_sites([], [offer], area=box(-10, -10, 10, 10)) == 0                 # outside the area
+    sched = {"row": "Ciepłowody 4,0797 sprzedaż ZA-wpisana do rejestru zabytków obniżka 50%", "register": ""}
+    assert kowr.is_registered(sched) and not kowr.is_registered({"row": "grunty rolne", "register": ""})
 
 
 def test_kowr_unlocated_offer_needs_same_gmina_or_powiat():

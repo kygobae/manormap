@@ -358,6 +358,12 @@ def same_village(offer: dict, site: dict) -> bool:
     return not g or not h or g in h or h in g
 
 
+def is_registered(o: dict) -> bool:
+    """A register number, or the wording: schedules often say only "ZA-wpisana do rejestru zabytków"."""
+    text = " ".join(str(o.get(k) or "") for k in ("row", "kind", "description", "restrictions"))
+    return bool(o.get("register")) or bool(re.search(r"wpisan\w* do rejestru zabytk", fold(text)))
+
+
 def site_from_offer(o: dict) -> dict:
     """A candidate site for an offer that no register entry or OSM object explains."""
     name = o.get("title") or o.get("place") or "KOWR"
@@ -365,7 +371,7 @@ def site_from_offer(o: dict) -> dict:
                                     o.get("gmina") and "gm. " + o["gmina"]]))[:2000]
     return {"uid": o.get("uid") or "kowr:" + o["url"], "source": "kowr", "name": name, "name_de": "", "text": text,
             "village": o.get("place") or o.get("obreb") or "", "gmina": o.get("gmina") or "", "osm_ref": "",
-            "nid_ref": "", "registered": bool(o.get("register")), "members": [o.get("uid") or "kowr:" + o["url"]],
+            "nid_ref": "", "registered": is_registered(o), "members": [o.get("uid") or "kowr:" + o["url"]],
             "sources": "kowr", "names": [name], "nid_names": [], "also_known_as": ""}
 
 
