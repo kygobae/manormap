@@ -453,6 +453,7 @@ const parcelLayer = window.L.layerGroup().addTo(map);
 let PARCELS = null, shownSites = [], selected = null;
 function drawParcels(){
   parcelLayer.clearLayers();
+  drawOfferAreas();                                    // the shown and selected sites colour their offers
   if(map.getZoom() < 14) return;
   if(PARCELS === null){
     PARCELS = {};
@@ -471,7 +472,8 @@ function drawParcels(){
         html:`<div class="hmark" style="--c:${COL[sg(s)]}">${icon("standing", COL[sg(s)], 13)}</div>`, iconSize:[20,20], iconAnchor:[10,10]})}).addTo(parcelLayer);
     }
     const ring = PARCELS[s.id];
-    if(ring && b.contains([s.lat, s.lon]))
+    // a site for sale by KOWR: the offer's parcels are its plot (drawn by drawOfferAreas), not its single parcel
+    if(ring && !(s.ku && OFFERS[s.ku] && OFFERS[s.ku].pl) && b.contains([s.lat, s.lon]))
       window.L.polygon(ring, {color:COL[sg(s)], weight: s === selected ? 3 : 2, fillOpacity: s === selected ? .16 : .08, interactive:false}).addTo(parcelLayer);
   }
 }
@@ -548,9 +550,14 @@ function drawOfferAreas(){
   offerAreas.clearLayers();
   if(map.getZoom() < 13) return;
   const b = map.getBounds().pad(.3);
-  for(const o of D.kowr) if(o.pl && b.contains([o.lat, o.lon]))
-    for(const ring of o.pl)
-      window.L.polygon(ring, {color:"#245b8f", weight:2, dashArray:"6 5", fillColor:"#245b8f", fillOpacity:.07, interactive:false}).addTo(offerAreas);
+  const siteOf = new Map(shownSites.filter(s => s.ku).map(s => [s.ku, s]));
+  for(const o of D.kowr) if(o.pl && b.contains([o.lat, o.lon])){
+    const s = siteOf.get(o.id || o.url);               // the offer is this site's plot: its grade colour, the sale's dashes on top
+    for(const ring of o.pl){
+      if(s) window.L.polygon(ring, {color:COL[sg(s)], weight: s === selected ? 4 : 3, fillColor:COL[sg(s)], fillOpacity: s === selected ? .16 : .08, interactive:false}).addTo(offerAreas);
+      window.L.polygon(ring, {color:"#245b8f", weight:2, dashArray:"6 5", fill:!s, fillColor:"#245b8f", fillOpacity:.07, interactive:false}).addTo(offerAreas);
+    }
+  }
 }
 map.on("zoomend moveend", drawOfferAreas);
 for(const o of D.kowr){
