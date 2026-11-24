@@ -189,7 +189,7 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
     pub.mkdir(parents=True)
     vs = villages(sites, reserved)
     data = {"villages": vs, "kowr": offers(sites, kowr_json),
-            "cfg": {"name": config.SITE_NAME, "name_de": config.SITE_NAME_DE, "url": config.SITE_URL, "price": config.DOSSIER_PRICE,
+            "cfg": {"name": config.SITE_NAME, "url": config.SITE_URL, "price": config.DOSSIER_PRICE,
                     "checkout": config.CHECKOUT_URL, "email": config.CONTACT_EMAIL,
                     "status_de": STATUS_DE, "sample": bool(sample_pdf) and config.SHOP_ENABLED,
                     "shop": bool(config.SHOP_ENABLED), "refs": config.REFERENCE_POINTS}}

@@ -1,4 +1,4 @@
-# ManorMap (Gutshaus Finder)
+# ManorMap
 
 Finds former manor-house sites in Poland (dwory, pałace, Gutshäuser of the pre-1945 estates) and ranks them by how suitable they are for **building a new house where the old manor stood**. Ranking criteria: the manor is gone but its park survives, a power line and a public road are close, neighbouring buildings suggest water and sewer connections, the land is not forest, there is no strict nature protection, and the parcel is a sensible size.
 

@@ -7,7 +7,7 @@
 <meta name="description" content="Gutshäuser in Polen bewahren, wiederaufbauen, neu beleben: Karte mit Noten für Sanierung und Wiederaufbau. Dwory i pałace w Polsce. Manor houses in Poland.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ManorMap">
-<meta property="og:title" content="ManorMap – Gutshaus Finder">
+<meta property="og:title" content="ManorMap">
 <meta property="og:description" content="Gutshäuser in Polen bewahren, wiederaufbauen, neu beleben · Dwory i pałace w Polsce · Manor houses in Poland">
 <meta property="og:url" content="__SITE_URL__/">
 <meta property="og:image" content="__SITE_URL__/og.png">
@@ -298,7 +298,7 @@ const T = {
 };
 // texts of the redesign (merged into T above)
 const T2 = {
- de:{share:"Teilen",copied:"Link kopiert",shareTitle:"{place} – Gutshaus Finder",offerPartial:" (davon {f} im Kataster gefunden und gezeichnet)",offerArea1:"1 Flurstück, {ha} ha – auf der Karte blau gestrichelt",offerArea:"{n} Flurstücke, {ha} ha – auf der Karte blau gestrichelt",dragHint:"Linie auf der Karte ziehen",tenderPast:"Der Ausschreibungstermin laut KOWR ({d}) ist vorbei; den nächsten Termin bei KOWR erfragen.",filtersBtn:"Filter & Liste",gradeF:"Note",close:"Schließen",cmpOn:"Damals & heute vergleichen",cmpOff:"Vergleich beenden",then:"Messtischblatt",now:"heute",
+ de:{share:"Teilen",copied:"Link kopiert",shareTitle:"{place} – ManorMap",offerPartial:" (davon {f} im Kataster gefunden und gezeichnet)",offerArea1:"1 Flurstück, {ha} ha – auf der Karte blau gestrichelt",offerArea:"{n} Flurstücke, {ha} ha – auf der Karte blau gestrichelt",dragHint:"Linie auf der Karte ziehen",tenderPast:"Der Ausschreibungstermin laut KOWR ({d}) ist vorbei; den nächsten Termin bei KOWR erfragen.",filtersBtn:"Filter & Liste",gradeF:"Note",close:"Schließen",cmpOn:"Damals & heute vergleichen",cmpOff:"Vergleich beenden",then:"Messtischblatt",now:"heute",
      onMtb:"Auf dem Messtischblatt vergleichen",lgStanding:"steht",lgRuin:"Ruine",lgLost:"verschwunden",lgUnknown:"unklar",lgVillage:"nur Dorf bekannt",deName:"deutsch"},
  pl:{share:"Udostępnij",copied:"Link skopiowany",shareTitle:"{place} – ManorMap",offerPartial:" (w ewidencji znaleziono i narysowano {f})",offerArea1:"1 działka, {ha} ha – na mapie niebieska linia przerywana",offerArea:"działki: {n}, {ha} ha – na mapie niebieska linia przerywana",dragHint:"Przeciągnij linię na mapie",tenderPast:"Podany przez KOWR termin przetargu ({d}) minął; o kolejny termin zapytaj KOWR.",filtersBtn:"Filtry i lista",gradeF:"Ocena",close:"Zamknij",cmpOn:"Porównaj dawniej i dziś",cmpOff:"Zakończ porównanie",then:"Messtischblatt",now:"dziś",
      onMtb:"Porównaj z mapą Messtischblatt",lgStanding:"istnieje",lgRuin:"ruina",lgLost:"nie istnieje",lgUnknown:"nieustalony",lgVillage:"znana tylko wieś",deName:"niem."},
@@ -637,8 +637,7 @@ $("sheetbtn").onclick = () => { const o = $("side").classList.toggle("open"); $(
 function lang(l){
   lng = l; try{localStorage.setItem("lang", l)}catch(e){}
   document.documentElement.lang = l;
-  const name = l === "de" ? (C.name_de || C.name) : C.name;  // German product name on the German site
-  $("title").textContent = name; document.title = name;
+  $("title").textContent = C.name; document.title = C.name;
   document.querySelectorAll("[data-t]").forEach(e => e.innerHTML = t(e.dataset.t));
   if(C.shop) document.querySelectorAll('[data-t="what"]').forEach(e => e.innerHTML += t("whatShop"));
   document.querySelectorAll("[data-tp]").forEach(e => { e.placeholder = t(e.dataset.tp); e.setAttribute("aria-label", t(e.dataset.tp)); });

@@ -1,4 +1,4 @@
-# ManorMap (Gutshaus Finder): notes for AI coding assistants
+# ManorMap: notes for AI coding assistants
 
 Open-source tool that finds former manor-house sites (dwory, pałace, Gutshäuser) in Poland and ranks them by how suitable they are for building a new house: manor gone, park, utilities, road access, nature protection, land use and parcel size.
 
