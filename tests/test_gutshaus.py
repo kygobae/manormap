@@ -1127,8 +1127,11 @@ def test_publish_with_feedback(built, monkeypatch):
     cfg = read_cfg()
     assert cfg["main"] == "worker.js" and cfg["assets"]["run_worker_first"] == ["/api/*"] and cfg["assets"]["binding"] == "ASSETS"
     assert cfg["d1_databases"] == [{"binding": "DB", "database_name": "manormap-feedback", "database_id": "db-1"}]
+    host = config.SITE_URL.split("//")[1].strip("/")
+    assert cfg["vars"]["TURNSTILE_HOSTNAMES"] == f"{host},www.{host}"
     worker = (site / "worker.js").read_text(encoding="utf-8")
     assert "/api/feedback" in worker and "siteverify" in worker and "TURNSTILE_SECRET" in worker
+    assert 'check.action !== ACTION' in worker and "hosts.includes(check.hostname)" in worker
     assert data()["cfg"]["feedback"] == "0xKEY"
     legal = (site / "public" / "legal.html").read_text(encoding="utf-8")
     assert "Rückmeldungen über das Formular" in legal and "Ich bin Eigentümer" in legal and "Nachweis" in legal
