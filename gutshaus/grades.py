@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 from . import config, criteria
+from .classify import house_use
 
 STATUS_DE = {"lost": "Herrenhaus nicht mehr vorhanden", "ruin": "Ruine / Reste vorhanden",
              "standing": "Gebäude steht noch", "unlocated": "Lage nur auf Dorfebene bekannt", "unknown": "unklar"}
@@ -45,6 +46,10 @@ def lights(site: dict) -> dict[str, dict]:
         house_why.append("bldg_on" if b.get("n") else "bldg_none")
         if st == "lost" and not b.get("n"):
             level = AMBER                          # nothing to live in while the manor is rebuilt
+    use = (site["house_use"] if "house_use" in site else house_use(site.get("text") or "")) if st == "standing" else ""
+    if use:                                        # a hotel, school, offices ...: rarely for sale, little to renovate
+        house_why.append("use_" + use)
+        level = AMBER
     out["house"] = {"level": level, "why": house_why}
 
     # a KOWR offer sells all its parcels together: their total area counts

@@ -6,9 +6,9 @@ import logging
 from shapely.geometry import Point
 
 from . import config, criteria
-from .classify import fragments, house_mapped_as_building, register_names_house, ruin_evidence, text_flags
+from .classify import _HOUSE, fragments, house_mapped_as_building, house_use, register_names_house, ruin_evidence, text_flags
 from .sources import gdos, osm
-from .geo import pl_to_ll
+from .geo import fold, pl_to_ll
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +46,8 @@ def merge(cands: list[dict]) -> list[dict]:
             s["sources"] = {c["source"]}
             s["names"] = [c["name"]]
             s["nid_names"] = [c["name"]] if c["source"] == "nid" else []
+            s["text_exact"] = c["text"] if c.get("location", "exact") == "exact" else ""
+            s["names_exact"] = [c["name"]] if c.get("location", "exact") == "exact" else []
             s["_pts"] = [(point_rank(c), c["x"], c["y"])]
             sites.append(s)
         else:
@@ -53,6 +55,8 @@ def merge(cands: list[dict]) -> list[dict]:
             t["members"].append(c["uid"])
             if c.get("location", "exact") == "exact":      # a village-level guess never moves a site
                 t["_pts"].append((point_rank(c), c["x"], c["y"]))
+                t["text_exact"] = (t["text_exact"] + " || " + c["text"]).strip(" |")[:2000]
+                t["names_exact"].append(c["name"])
             t["sources"].add(c["source"])
             t["names"].append(c["name"])
             if c["source"] == "nid":
@@ -70,8 +74,16 @@ def merge(cands: list[dict]) -> list[dict]:
         # the site sits on the house when a member is the house (not on a park's centre or the first member):
         # the parcel, the "standing/lost" check and the map marker all start from this point
         rank, s["x"], s["y"] = min(s.pop("_pts"), key=lambda p: p[0])
-        # the register's wording first ("park dworski, Dąbrowa"), OSM names as fallback
-        s["name"] = best_name(s["nid_names"]) if s["nid_names"] else best_name(s["names"])
+        # the register's wording first ("park dworski, Dąbrowa"), OSM names as fallback. But when the house itself
+        # is drawn in OSM, no register entry lies on it and the register lists several houses in the town, the OSM
+        # name wins: we cannot tell which of them it is ("pałac Tielsona" or "pałac Albertich" on Pałac Czettritzów)
+        names_exact = s.pop("names_exact")
+        exact_nid = [n for n in s["nid_names"] if n in names_exact]
+        guessed_houses = {n for n in s["nid_names"] if n not in names_exact and _HOUSE.search(fold(n))}
+        if not exact_nid and len(guessed_houses) > 1 and house_mapped_as_building(s["text_exact"]):
+            s["name"] = best_name([n for n in s["names"] if n not in s["nid_names"]] or s["names"])
+        else:
+            s["name"] = best_name(s["nid_names"]) if s["nid_names"] else best_name(s["names"])
         others = [n for n in dict.fromkeys(s["names"]) if n != s["name"]]
         s["also_known_as"] = "; ".join(others)[:300]
         s["sources"] = "+".join(sorted(s["sources"]))
@@ -108,8 +120,10 @@ def _rank(c: dict) -> int:
 
 
 def best_name(names: list[str]) -> str:
-    estate = [n for n in names if text_flags(n)["estate_kw"]]
-    pool = estate or names
+    """The longest name of the house itself ("pałac, Czempiń"), else of the estate, else any."""
+    estate = [n for n in names if text_flags(n)["estate_kw"] and not text_flags(n)["excluded"]]
+    house = [n for n in estate if _HOUSE.search(fold(n))]
+    pool = house or estate or names
     return max(pool, key=len) if pool else "unnamed"
 
 
@@ -130,7 +144,10 @@ def classify_status(site: dict, ctx: dict, parcel_geom=None) -> str:
     location = site.get("location", "exact")
     if location.startswith("village"):
         return "unlocated"  # register entry known only by village: find it on the Messtischblatt
-    if ruin_evidence(site["text"]):
+    # the house drawn in OSM (exactly placed) and not a ruin there: ruin words of register entries known only by
+    # their town do not count, they may be another building ("ruiny zamku Nowy Dwór" on Pałac Czettritzów)
+    exact = site.get("text_exact", site["text"])
+    if ruin_evidence(exact if house_mapped_as_building(exact) else site["text"]):
         return "ruin"
     if ctx.get("big_buildings") or manor_on_parcel(ctx, parcel_geom) or house_mapped_as_building(site["text"]):
         return "standing"
@@ -160,6 +177,8 @@ def assess(site: dict, ctx: dict | None, parcel: dict | None, infra: dict | None
     })
     if out["status"] == "unlocated":
         out["land_cover"] = "unknown"
+    # what the house is used for today (OSM tags of the house): grades turn the house light amber
+    out["house_use"] = house_use(site.get("text_exact") or site["text"]) if out["status"] == "standing" else ""
     out.update(infra or {})
     if protected is not None:
         out.update(gdos.assess(Point(site["x"], site["y"]), protected))

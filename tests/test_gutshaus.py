@@ -1139,3 +1139,50 @@ def test_publish_with_feedback(built, monkeypatch):
     assert data()["cfg"]["feedback"] == "0xKEY"
     legal = (site / "public" / "legal.html").read_text(encoding="utf-8")
     assert "Rückmeldungen über das Formular" in legal and "Ich bin Eigentümer" in legal and "Nachweis" in legal
+
+
+def test_town_register_entries_do_not_decide_the_house():
+    """Register entries known only by their town attach to the drawn house but may be other buildings there:
+    they neither make it a ruin (Wałbrzych) nor name it (Czempiń). Monastery outbuildings and town houses
+    are not estates (Krzeszów)."""
+    from shapely.geometry import Point
+    from gutshaus.classify import text_flags
+    from gutshaus.pipeline import classify_status, merge
+    from gutshaus.sources.osm import summarise_context
+    osm = {"uid": "osm:way/1", "source": "osm", "name": "Pałac Czettritzów", "location": "exact", "x": 0, "y": 0,
+           "text": "name=Pałac Czettritzów | historic=castle | building=university | castle_type=palace",
+           "registered": False}
+    nid = lambda uid, name: {"uid": uid, "source": "nid", "name": name, "location": "village", "x": 300, "y": 0,
+                             "text": f"{name.split(',')[0]} | zamek | XIV w. | Wałbrzych", "registered": True}
+    [site] = merge([osm, nid("nid:1", "ruiny zamku Nowy Dwór, Wałbrzych"), nid("nid:2", "pałac Tielsona, Wałbrzych"),
+                    nid("nid:4", "kamienica z oficyną, Wałbrzych")])
+    assert site["name"] == "Pałac Czettritzów"
+    assert classify_status(site, summarise_context(Point(0, 0), [])) == "standing"
+    [site] = merge([osm, nid("nid:2", "pałac, Czempiń"), nid("nid:4", "kamienica z oficyną, Czempiń")])
+    assert site["name"] == "pałac, Czempiń"                     # one house in the register: its wording
+    # a register entry on the house itself still counts
+    exact_ruin = {**nid("nid:3", "ruiny pałacu, Wałbrzych"), "location": "exact", "x": 10}
+    [site] = merge([osm, exact_ruin])
+    assert classify_status(site, summarise_context(Point(0, 0), [])) == "ruin" and site["name"] == "ruiny pałacu, Wałbrzych"
+    assert text_flags("oficyna przyklasztorna | oficyna gospodarcza | Krzeszów")["excluded"]
+    assert text_flags("kamienica z oficyną | budynek mieszkalny | Czempiń")["excluded"]
+    assert not text_flags("kamienica, tzw. pałac Köhna | Włocławek")["excluded"]
+
+
+@pytest.mark.parametrize("tags, use", [
+    ("building=university | historic=castle | castle_type=palace", "school"),
+    ("building=yes | historic=manor | tourism=hotel", "hotel"),
+    ("building=apartments | historic=manor", "flats"),
+    ("building=yes | historic=manor | office=company", "office"),
+    ("building=yes | historic=manor", ""),
+    ("building=hotel | name=Stajnia", ""),                       # not the house
+    ("name=Dom Pomocy Społecznej w Jarogniewicach | building=yes | historic=manor", "care"),
+    ("name=Instytut Chemii Bioorganicznej PAN - Pałac w Turwi | building=yes", "school"),
+])
+def test_house_in_use(tags, use):
+    from gutshaus.classify import house_use
+    from gutshaus.grades import lights
+    text = "name=Pałac " + " | " + tags if "name=" not in tags else tags
+    assert house_use(text) == use
+    L = lights({"status": "standing", "text": text, "lat": 52, "lon": 17})
+    assert L["house"]["level"] == ("amber" if use else "green") and (("use_" + use) in L["house"]["why"]) == bool(use)
