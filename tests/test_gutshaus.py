@@ -460,6 +460,26 @@ def config_url():
     return config.OVERPASS_URLS[0]
 
 
+def test_kowr_offer_locates_village_only_site():
+    """A register entry known only by its village moves onto the offer's parcel; an offer nobody explains is added."""
+    from shapely.geometry import box
+    from gutshaus.sources import kowr
+    offer = {"title": "Pałac Wzorowo", "url": "u1", "uid": "kowr:u1", "place": "Wzorowo", "obreb": "Wzorowo",
+             "gmina": "Góra", "x": 1000.0, "y": 0.0, "kind": "dwór z XVIII w.", "register": "A/1"}
+    village = {"uid": "nid:1", "name": "dwór, Wzorowo", "village": "Wzorowo", "gmina": "Góra - obszar wiejski",
+               "location": "village centre", "village_xy": [0, 0], "x": 0.0, "y": 0.0}
+    other_gmina = {**village, "uid": "nid:2", "gmina": "Kłodzko"}
+    assert kowr.place_sites([other_gmina], [offer]) == 1 and other_gmina["x"] == 0      # not this village: new site
+    sites = [village]
+    assert kowr.place_sites(sites, [offer]) == 1 and len(sites) == 1
+    assert (village["x"], village["location"], "village_xy" in village) == (1000.0, "kowr parcel", False)
+    assert kowr.place_sites(sites, [offer]) == 0                    # now located: nothing more to do
+    lone = []
+    assert kowr.place_sites(lone, [offer]) == 1 and lone[0]["source"] == "kowr" and lone[0]["registered"]
+    assert lone[0]["name"] == "Pałac Wzorowo" and lone[0]["lat"] is not None
+    assert kowr.place_sites([], [offer], area=box(-10, -10, 10, 10)) == 0                 # outside the area
+
+
 def test_kowr_unlocated_offer_needs_same_gmina_or_powiat():
     from gutshaus.sources import kowr
     offer = {"title": "Dwór Nowa Wieś", "url": "u", "obreb": "Nowa Wieś", "gmina": "Wzorowo", "powiat": "koszaliński"}
