@@ -366,7 +366,7 @@ def test_kowr_card_parsing():
     assert c["parcels"] == ["17", "18"] and c["area_ha"] == 4.8 and c["usable_m2"] == 820.5
     assert c["media"] == {"electricity": "tak", "gas": "nie", "water": "tak", "sewer": "lokalna"}
     assert "2027" in c["tender"] and c["contact_email"] == "zabytki.szczecin@kowr.gov.pl"
-    assert c["zoning"].startswith("ZPz")
+    assert c["zoning"].startswith("ZPz") and c["kw"] == ["KO1K/00012345/6"]
 
 
 def test_kowr_offers_flag_sites(tmp_path, monkeypatch):
@@ -382,6 +382,7 @@ def test_kowr_offers_flag_sites(tmp_path, monkeypatch):
     import json
     offers = json.loads(cache.read_text(encoding="utf-8"))
     assert len(offers) == 3 and offers[0]["lat"] and not offers[1].get("lat")    # 2nd card: parcel not found
+    assert offers[0]["kw"] == ["KO1K/00012345/6"]                              # land register number from the card
     assert offers[2]["source"] == "schedule"                                   # manor from a tender schedule
     html = (tmp_path / "p" / "review.html").read_text(encoding="utf-8")
     assert "KOWR heritage offers" in html and "Pałac Przykładowo" in html

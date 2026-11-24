@@ -141,6 +141,14 @@ def tender_passed(text: str | None, today: tuple[int, int, int] | None = None) -
     return end is not None and end < (today or tuple(time.localtime()[:3]))
 
 
+# land register (księga wieczysta) number, e.g. "PO1P/00155968/8": court code, number, check digit
+KW_PATTERN = re.compile(r"\b[A-Z]{2}\d[A-Z]/\d{8}/\d\b")
+
+
+def land_register_numbers(text: str) -> list[str]:
+    return sorted(set(KW_PATTERN.findall(text or "")))
+
+
 def parse_card(text: str) -> dict:
     t = clean_text(text)
     head = re.search(r"^\s*([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻ\- ]{2,}),\s*gm(?:ina|\.)\s*([^\n]+)", t, re.M)
@@ -179,6 +187,7 @@ def parse_card(text: str) -> dict:
         "restrictions": _section(t, r"Aktualne ograniczenia[^\n]*")[:200],
         "contact_email": email.group(0) if email else "",
         "contact_phone": re.sub(r"\s+", " ", phone.group(1)).strip() if phone else "",
+        "kw": land_register_numbers(t),
     }
 
 
@@ -328,6 +337,8 @@ def match(sites: list[dict], offers: list[dict], radius_m: float | None = None) 
             s["kowr_url"] = hit["url"]
             s["kowr_uid"] = hit.get("uid") or hit["url"]   # schedules: several offers share one PDF
             s["kowr_tender"] = hit.get("tender", "")
+            if hit.get("kw"):
+                s["kowr_kw"] = hit["kw"]                   # land register number(s) the card names
             n += 1
     return n
 

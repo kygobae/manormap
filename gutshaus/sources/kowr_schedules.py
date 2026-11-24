@@ -110,6 +110,7 @@ def parse_row(row: str) -> dict | None:
         "heritage_parcels": re.findall(r"\d{1,5}(?:/\d{1,4})?", m2.group(1)) if (m2 := re.search(
             r"(?i)\bna\s+dz(?:iałk\w*|\.)?\s*(?:nr\.?\s*)?((?:\d{1,5}(?:/\d{1,4})?(?:,\s*|\s+i\s+|\s+))+)(?=\S*\s*"
             r"(?:zesp|pa[lł]ac|dw[oó]r|park|budyn|obiekt))", flat)) else [],
+        "kw": sorted(set(re.findall(r"\b[A-Z]{2}\d[A-Z]/\d{8}/\d\b", flat))),   # land register number(s)
         "row": flat[:600],
     }
     s = SLASH.search(flat)
