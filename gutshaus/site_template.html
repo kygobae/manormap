@@ -167,7 +167,9 @@ footer a,.sec a{color:var(--accent)}
 .leaflet-control-layers{background:var(--glass)!important;backdrop-filter:var(--blur)}
 .leaflet-bar a{background:var(--glass);backdrop-filter:var(--blur);color:var(--ink)}
 .leaflet-control-attribution{background:rgba(255,255,255,.75)!important;border-radius:8px 0 0 0;font-size:10.5px}
-.leaflet-bottom.leaflet-right{margin-right:calc(env(safe-area-inset-right,0px))}
+.leaflet-bottom.leaflet-right{margin-right:calc(env(safe-area-inset-right,0px));transition:margin-right .2s}
+/* an open card (350 px wide, up to the bottom) would cover zoom and layer switch: move them to its left */
+body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(362px + env(safe-area-inset-right,0px))}
 .leaflet-top.leaflet-left{display:none}
 
 /* phones: top bar stacks, list and card become bottom sheets */
@@ -184,6 +186,7 @@ footer a,.sec a{color:var(--accent)}
   .card{left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;max-height:62vh}
   .cmp{bottom:calc(64px + env(safe-area-inset-bottom,0px))}.cmp .small{display:none}
   .leaflet-bottom.leaflet-right{bottom:60px}
+  body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(env(safe-area-inset-right,0px))}
 }
 </style>
 </head>
@@ -477,8 +480,9 @@ const offerHtml = o => `<div class="offer"><b>${TAG("#245b8f", "#eaf1f8", 12)}${
   + (o.price ? `<br><b>${esc(t("priceL"))}: ${esc(zl(o.price))}</b>${o.disc ? ` · ${esc(t("discL"))} ${o.disc} %` : ""}` : "")
   + (o.tender ? `<br>${o.past ? `<i>${esc(t("tenderPast").replace("{d}", o.tender))}</i>` : `${esc(t("tender"))}: ${esc(o.tender)}`}` : "")
   + `<br><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(t(o.src === "schedule" ? "openSchedule" : "openCard"))}</a></div>`;
-// the tender area of every offer (all its parcels), dashed blue, from zoom 13
-const offerAreas = window.L.layerGroup().addTo(map);
+// the tender area of every offer (all its parcels), dashed blue, from zoom 13; part of the KOWR overlay
+const offerAreas = window.L.layerGroup().addTo(kowrLayer);
+map.on("overlayadd overlayremove", e => { if(e.layer === kowrLayer) drawMarkers(); });
 function drawOfferAreas(){
   offerAreas.clearLayers();
   if(map.getZoom() < 13) return;
@@ -600,19 +604,20 @@ const CHIP_ZOOM = 11, CHIP_MAX = 900;
 function drawMarkers(){
   markers.clearLayers();
   shownSites = [];
+  const showSale = map.hasLayer(kowrLayer);
   const chips = map.getZoom() >= CHIP_ZOOM, b = map.getBounds().pad(.3);
   let nChips = 0;
   for(const r of RES){
     for(const s of r.located){
       shownSites.push(s);
-      const g = sg(s);
+      const g = sg(s), sale = s.ku && showSale;        // the "state sale offer" overlay switches the highlighting
       let m;
       if(chips && b.contains([s.lat, s.lon]) && nChips++ < CHIP_MAX){     // close up: state icon + grade
-        const html = `<div class="mchip${s === selected ? " sel" : ""}" style="--c:${COL[g]}">${icon(s.status, COL[g], 17)}${g}${s.ku ? `<span class="sale">${TAG("#fff", "#245b8f", 9)}</span>` : ""}</div>`;
-        m = window.L.marker([s.lat, s.lon], {zIndexOffset: s.ku ? 1000 : 0, title: r.v.v, icon: window.L.divIcon({className:"", html, iconSize:[46,26], iconAnchor:[23,13]})});
+        const html = `<div class="mchip${s === selected ? " sel" : ""}" style="--c:${COL[g]}">${icon(s.status, COL[g], 17)}${g}${sale ? `<span class="sale">${TAG("#fff", "#245b8f", 9)}</span>` : ""}</div>`;
+        m = window.L.marker([s.lat, s.lon], {zIndexOffset: sale ? 1000 : 0, title: r.v.v, icon: window.L.divIcon({className:"", html, iconSize:[46,26], iconAnchor:[23,13]})});
       } else if(chips){
         continue;
-      } else if(s.ku){                                // for sale: grade colour, pulsing ring, price-tag badge
+      } else if(sale){                               // for sale: grade colour, pulsing ring, price-tag badge
         m = window.L.marker([s.lat,s.lon], {zIndexOffset: 1000, title: OFFERS[s.ku] ? OFFERS[s.ku].t : "",
             icon: window.L.divIcon({className:"", html:`<div class="kpin" style="--c:${COL[g]}"><span class="kbadge">${TAG("#fff", "#245b8f", 9)}</span></div>`, iconSize:[20,20], iconAnchor:[10,10]})});
       } else {
