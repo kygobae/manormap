@@ -63,7 +63,11 @@ def lights(site: dict) -> dict[str, dict]:
             why.append("reserve")
         elif prot != "none":
             why.append("protected")
-        if site.get("land_cover") == "forest":
+        fs = site.get("forest_status")
+        if fs in ("found", "none"):                  # the forest database knows (see sources/bdl.py)
+            if fs == "found" and (site.get("forest_at_site") or (site.get("forest_pct") or 0) >= config.FOREST_SHARE_PCT):
+                why.append("forest_db")
+        elif site.get("land_cover") == "forest":     # only OSM's land cover: park trees often look like forest
             why.append("forest")
         level = RED if "reserve" in why else AMBER if why else GREEN
         if site.get("registered"):

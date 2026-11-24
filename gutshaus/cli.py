@@ -211,6 +211,9 @@ def cmd_build(args):
     if offers:
         kowr.match(sites, offers)
     n_fixed = apply_status_overrides(sites, config.STATUS_OVERRIDES)
+    if not getattr(args, "no_forest", False):            # forest stands from the forest database (cached)
+        from .sources import bdl
+        bdl.annotate(http, sites)
     if offers or n_fixed:
         for s in sites:
             s.update(criteria.compute(s))
@@ -369,6 +372,7 @@ def main(argv=None):
     r.add_argument("--refresh", action="store_true", help="ignore the download cache / redo finished powiats")
 
     b = sub.add_parser("build", help="combine finished powiats into <out-root>/poland and refresh index.html")
+    b.add_argument("--no-forest", action="store_true", help="skip the forest database (BDL) lookups")
     b.add_argument("--verdicts", help="earlier verdicts CSV to carry over")
     b.add_argument("--skip-kowr", action="store_true", help="don't load KOWR heritage offers")
     b.add_argument("--refresh", action="store_true", help="reload KOWR offers now")

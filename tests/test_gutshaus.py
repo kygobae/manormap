@@ -534,6 +534,46 @@ def test_commune_label():
     assert commune_label("011_KUTNO") == "Kutno" and commune_label("Będzino") == "Będzino"
 
 
+def test_forest_database():
+    """Forest stands from the BDL decide the forest light; OSM's land cover only when BDL was not asked."""
+    import json
+    from gutshaus import grades
+    from gutshaus.sources import bdl
+
+    class Http:
+        def __init__(self, cover): self.cover = cover
+        def get(self, url, params=None, **kw):
+            ring = json.loads(params["geometry"])["rings"][0]
+            xs, ys = [p[0] for p in ring], [p[1] for p in ring]
+            x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
+            x1 = x0 + (x1 - x0) * self.cover                # the stand covers the western part of the parcel
+            return json.dumps({"results": [{"layerId": 6, "geometry": {"rings": [[[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]]},
+                                            "attributes": {"species_cd_d": "BK", "species_age": "150", "a_year": "2011",
+                                                           "site_type_cd": "LŚW", "owner_cat_name": "prywatne "}}]}).encode()
+
+    class Down:
+        def get(self, *a, **kw): raise RuntimeError("offline")
+    d = 0.002
+    site = {"uid": "x", "name": "x", "status": "lost", "lat": 54.0, "lon": 16.0, "park": True, "land_cover": "agri",
+            "parcel_ll": [[16 - d, 54 - d], [16 + d, 54 - d], [16 + d, 54 + d], [16 - d, 54 + d], [16 - d, 54 - d]],
+            "dist_power_m": 50, "dist_road_m": 20, "dist_building_m": 100, "dist_town_m": 3000, "protection": "none",
+            "parcel_ha": 3}
+    f = bdl.stands(Http(1.0), site)
+    assert f["status"] == "found" and f["pct"] == 100 and f["at_site"] and f["stands"][0]["species"] == "BK"
+    assert f["stands"][0]["age"] == 150 and f["stands"][0]["habitat"] == "LŚW" and f["stands"][0]["owner_pl"] == "prywatne"
+    small = bdl.stands(Http(0.2), site)                    # a strip at the edge: not the manor's spot, 20 %
+    assert small["status"] == "found" and not small["at_site"] and not bdl.is_forest(small) and bdl.is_forest(f)
+    assert bdl.stands(Down(), site) == {"status": "unavailable"}
+    for s, http in ((site, Http(1.0)), ({**site, "land_cover": "forest"}, Http(0.2))):
+        bdl.annotate(http, [s])
+    assert "forest_db" in grades.lights(site)["rules"]["why"] and grades.lights(site)["rules"]["level"] == "amber"
+    park_trees = {**site, "land_cover": "forest"}          # OSM wood, BDL: only a strip -> not forest
+    bdl.annotate(Http(0.2), [park_trees])
+    assert grades.lights(park_trees)["rules"]["level"] == "green" and grades.grade_of(park_trees) == "A"
+    unasked = {k: v for k, v in park_trees.items() if not k.startswith("forest_")}
+    assert "forest" in grades.lights(unasked)["rules"]["why"]                   # OSM fallback
+
+
 def test_unlocated_sites_have_no_grade(built):
     from gutshaus import grades
     s = next(x for x in grades.all_sites(built) if x["status"] == "unlocated")

@@ -239,6 +239,8 @@ class FakeHttp:
     def get(self, url, params=None, **kw):
         FakeHttp.calls.append(("GET", url, params))
         params = params or {}
+        if "bdl.lasy.gov.pl" in url:                 # forest database: no forest anywhere (tests patch it per case)
+            return json.dumps({"results": []}).encode()
         if "uldk" in url:
             if params.get("request") == "GetParcelByIdOrNr":
                 if params["id"].startswith("Przykładowo"):

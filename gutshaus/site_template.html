@@ -317,7 +317,7 @@ const T3 = {
   why:{standing:"Herrenhaus steht: Substanz zum Sanieren",lost:"Herrenhaus verschwunden: Platz für einen Wiederaufbau",ruin:"Ruine: der Denkmalschutz entscheidet über die Mauern",unknown:"Zustand unklar: vor Ort prüfen",unlocated:"Lage im Dorf noch unbekannt",
    park:"historischer Park",nopark:"kein Park verzeichnet",parcel_small:"Flurstück sehr klein",parcel_large:"Flurstück sehr groß (über 15 ha)",
    power_near:"Stromleitung nah",power_far:"Stromleitung weit",road_near:"an einer öffentlichen Straße",road_far:"öffentliche Straße weit",neighbours_near:"Nachbarhäuser nah (Wasser, Abwasser)",neighbours_far:"keine Nachbarhäuser in der Nähe",
-   reserve:"Nationalpark oder Naturschutzgebiet: Bauen praktisch ausgeschlossen",protected:"Schutzgebiet: Bauen nur eingeschränkt",forest:"laut Karte Wald: prüfen, ob amtlich Wald",register:"im Denkmalregister: der Denkmalpfleger entscheidet mit, Zuschüsse möglich",free:"kein Schutzgebiet",
+   reserve:"Nationalpark oder Naturschutzgebiet: Bauen praktisch ausgeschlossen",protected:"Schutzgebiet: Bauen nur eingeschränkt",forest:"laut Karte Wald: prüfen, ob amtlich Wald",forest_db:"Wald laut Forstdatenbank: Bauen erst nach Umwidmung",register:"im Denkmalregister: der Denkmalpfleger entscheidet mit, Zuschüsse möglich",free:"kein Schutzgebiet",
    town_near:"Stadt unter {a} km",town_mid:"Stadt {a}–{b} km entfernt",town_far:"Stadt über {b} km entfernt",water:"See oder Fluss in der Nähe"}},
  pl:{mAll:"Wszystkie",pathL:{renovation:"Remont",new:"Odbudowa",either:"Remont lub odbudowa"},
   gradeQ:"jeszcze bez oceny: znana tylko wieś",
@@ -326,7 +326,7 @@ const T3 = {
   why:{standing:"dwór istnieje: substancja do remontu",lost:"dwór nie istnieje: miejsce na odbudowę",ruin:"ruina: o murach decyduje konserwator",unknown:"stan niejasny: sprawdzić na miejscu",unlocated:"lokalizacja we wsi jeszcze nieznana",
    park:"zabytkowy park",nopark:"brak parku w danych",parcel_small:"bardzo mała działka",parcel_large:"bardzo duża działka (ponad 15 ha)",
    power_near:"linia energetyczna blisko",power_far:"linia energetyczna daleko",road_near:"przy drodze publicznej",road_far:"droga publiczna daleko",neighbours_near:"sąsiednie budynki blisko (woda, kanalizacja)",neighbours_far:"brak sąsiednich budynków w pobliżu",
-   reserve:"park narodowy lub rezerwat: budowa praktycznie wykluczona",protected:"obszar chroniony: budowa z ograniczeniami",forest:"według mapy las: sprawdzić, czy to las w ewidencji",register:"w rejestrze zabytków: decyduje też konserwator, możliwe dotacje",free:"poza obszarami chronionymi",
+   reserve:"park narodowy lub rezerwat: budowa praktycznie wykluczona",protected:"obszar chroniony: budowa z ograniczeniami",forest:"według mapy las: sprawdzić, czy to las w ewidencji",forest_db:"las według Banku Danych o Lasach: budowa dopiero po zmianie przeznaczenia",register:"w rejestrze zabytków: decyduje też konserwator, możliwe dotacje",free:"poza obszarami chronionymi",
    town_near:"miasto w promieniu {a} km",town_mid:"miasto {a}–{b} km",town_far:"miasto dalej niż {b} km",water:"jezioro lub rzeka w pobliżu"}},
  en:{mAll:"All",pathL:{renovation:"Renovation",new:"Rebuilding",either:"Renovation or rebuilding"},
   gradeQ:"no grade yet: only the village is known",
@@ -335,7 +335,7 @@ const T3 = {
   why:{standing:"manor stands: fabric to renovate",lost:"manor gone: room to rebuild",ruin:"ruin: the conservator decides about the walls",unknown:"condition unclear: check on site",unlocated:"position in the village not known yet",
    park:"historic park",nopark:"no park recorded",parcel_small:"very small parcel",parcel_large:"very large parcel (over 15 ha)",
    power_near:"power line close",power_far:"power line far",road_near:"on a public road",road_far:"public road far",neighbours_near:"neighbouring houses close (water, sewage)",neighbours_far:"no neighbouring houses nearby",
-   reserve:"national park or nature reserve: building practically ruled out",protected:"protected area: building restricted",forest:"forest on the map: check whether it is forest by law",register:"in the monument register: the conservator has a say, grants possible",free:"no protected area",
+   reserve:"national park or nature reserve: building practically ruled out",protected:"protected area: building restricted",forest:"forest on the map: check whether it is forest by law",forest_db:"forest in the forest database: building only after a change of use",register:"in the monument register: the conservator has a say, grants possible",free:"no protected area",
    town_near:"town within {a} km",town_mid:"town {a}–{b} km away",town_far:"town over {b} km away",water:"lake or river nearby"}}};
 for(const l of Object.keys(T3)) Object.assign(T[l], T3[l]);
 
@@ -535,7 +535,7 @@ async function shareSite(id, btn){
   btn.closest(".actions").after(box); box.focus(); box.select();
 }
 const LIGHT_OF = {park:"plot",nopark:"plot",parcel_small:"plot",parcel_large:"plot",power_near:"access",power_far:"access",road_near:"access",road_far:"access",
-  neighbours_near:"access",neighbours_far:"access",reserve:"rules",protected:"rules",forest:"rules",register:"rules",free:"rules",
+  neighbours_near:"access",neighbours_far:"access",reserve:"rules",protected:"rules",forest:"rules",forest_db:"rules",register:"rules",free:"rules",
   town_near:"location",town_mid:"location",town_far:"location",water:"location"};
 function siteHtml(s){
   const chip = (k, cls="") => `<span class="${cls}">${esc(k)}</span>`;

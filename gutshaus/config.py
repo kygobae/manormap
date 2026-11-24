@@ -242,7 +242,9 @@ def load_overrides(path=None) -> str | None:
 #   house     what is left fits a path: standing -> renovation, lost -> rebuilding (green); ruin or unclear (amber)
 #   plot      historic park on a parcel of PARCEL_OK_HA (green), else amber
 #   access    mean of the power, road and neighbours criteria (0..1): >= ACCESS_GREEN green, >= ACCESS_AMBER amber
-#   rules     national park / nature reserve red (and grade D); other protection or forest on the map amber
+#   rules     national park / nature reserve red (and grade D); other protection or forest amber. Forest comes from
+#             the forest database (BDL: stands on the manor's spot or on FOREST_SHARE_PCT of the parcel); OSM's
+#             land cover only where BDL could not be asked
 #   location  nearest town within TOWN_GREEN_M green, TOWN_AMBER_M amber, further red
 # Grade: A all five green · B four green, no red · C three green, at most one red · D otherwise ·
 # "?" when the site is known only by its village. Calibrated 2026-11-24 on 9,045 sites:
@@ -252,6 +254,8 @@ ACCESS_GREEN, ACCESS_AMBER = 0.85, 0.4
 TOWN_GREEN_M, TOWN_AMBER_M = 7000, 15000
 PARCEL_OK_HA = (0.3, 15)
 KNOCKOUT_PROTECTION = ("national park", "nature reserve")
+FOREST_SHARE_PCT = 50
+BDL_IDENTIFY = "https://mapserver.bdl.lasy.gov.pl/ArcGIS/rest/services/WMS_BDL/MapServer/identify"
 # Snapshot before any gutshaus.json overrides
 DEFAULT_WEIGHTS = {c["key"]: c["weight"] for c in CRITERIA}
 
