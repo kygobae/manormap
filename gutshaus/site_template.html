@@ -59,10 +59,39 @@ input[type=search],select{width:100%;min-width:0;padding:7px 11px;border:1px sol
 .lang button{border:0;background:none;padding:4px 7px;border-radius:7px;cursor:pointer;font-size:.74rem;font-weight:700;color:var(--muted);letter-spacing:.04em}
 .lang button.on{background:var(--ink);color:#fff}
 
-/* left panel: intro, filters, list */
-.side{position:fixed;z-index:900;left:calc(12px + env(safe-area-inset-left,0px));top:calc(84px + env(safe-area-inset-top,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));
-  width:340px;display:flex;flex-direction:column;overflow:hidden}
+.infobtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:rgba(255,255,255,.85);border-radius:10px;padding:6px 11px 6px 7px;cursor:pointer;font-size:.84rem;font-weight:600;white-space:nowrap}
+.infobtn>span:first-child{width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font:700 12px/18px Georgia,serif;text-align:center;font-style:italic}
+.infobtn:hover{background:#fff}
+
+/* filter strip */
+.fbar{position:fixed;z-index:1000;top:calc(78px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));max-width:calc(100% - 24px);
+  display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:7px 12px}
+.fitem{display:flex;align-items:center;gap:8px}
+.fitem .lbl{margin:0}
+.pop{position:relative}
+.pop>summary{list-style:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.85);font-size:.84rem;font-weight:600;white-space:nowrap}
+.pop>summary::-webkit-details-marker{display:none}
+.pop>summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translate(-1px,-1px);margin-left:2px}
+.pop[open]>summary{background:#fff;border-color:var(--accent);color:var(--accent)}
+.pop .panel{position:absolute;top:calc(100% + 8px);left:0;z-index:1100;min-width:250px;padding:10px 14px;background:var(--solid)}
+.side{position:fixed;z-index:900;left:calc(12px + env(safe-area-inset-left,0px));top:calc(136px + env(safe-area-inset-top,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  width:320px;display:flex;flex-direction:column;overflow:hidden}
 .side .scroll{overflow:auto;flex:1;min-height:0}
+.listhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:12px 16px 8px;border-bottom:1px solid var(--line)}
+.listhead h2{margin:0}
+.side .legend{margin:0;padding:8px 16px 10px;border-top:1px solid var(--line)}
+
+/* about dialog */
+.infodlg{width:min(760px,calc(100% - 24px));max-height:calc(100% - 48px);border:1px solid var(--line);border-radius:18px;padding:26px 30px 20px;background:var(--solid);color:var(--ink);box-shadow:var(--shadow)}
+.infodlg::backdrop{background:rgba(24,32,28,.35);backdrop-filter:blur(2px)}
+.infodlg .x{position:absolute;right:14px;top:12px;border:0;background:none;font-size:1.5rem;line-height:1;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:8px}
+.infodlg .x:hover{background:var(--hover)}
+.dlgtitle{font-size:1.5rem;margin:0 0 8px;padding-right:30px}
+.infodlg .lead{font-size:.95rem;line-height:1.6;margin-bottom:14px}
+.infodlg h3{font:600 1.05rem/1.25 var(--font-place);margin:0 0 4px}
+.infodlg .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px 26px;padding:14px 0;border-top:1px solid var(--line)}
+.infodlg footer{padding:12px 0 0;margin-top:14px;border-top:1px solid var(--line)}
+#infoGo{margin-top:6px}
 .sec{padding:12px 16px;border-bottom:1px solid var(--line)}
 .sec:last-child{border-bottom:0}
 .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;margin:0 0 6px}
@@ -79,8 +108,6 @@ details.intro[open] summary::after{content:"–"}
 .gchip .n{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
 .g{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:7px;color:#fff;font-weight:800;font-size:.8rem}
 .gA{background:var(--A)}.gB{background:var(--B)}.gC{background:var(--C)}.gD{background:var(--D)}.gQ{background:var(--Q)}
-#more{margin-top:10px;border:1px solid var(--line);border-radius:11px;padding:6px 10px;background:rgba(255,255,255,.55)}
-#more summary{cursor:pointer;font-size:.84rem;font-weight:700;color:var(--accent)}
 .pill{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;text-align:center}
 .pill:empty{display:none}
 .fgroup{margin:8px 0}.fh{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
@@ -89,7 +116,7 @@ details.intro[open] summary::after{content:"–"}
 .linkbtn{border:0;background:none;color:var(--accent);text-decoration:underline;cursor:pointer;font-size:.8rem;padding:0}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.74rem;color:var(--muted);margin-top:8px}
 .legend span{display:inline-flex;align-items:center;gap:4px}
-#count{font-size:.8rem;color:var(--muted);margin-top:8px;font-variant-numeric:tabular-nums}
+#count{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
 #list{list-style:none;margin:0;padding:4px 0}
 #list li{padding:7px 16px;cursor:pointer;display:flex;gap:10px;align-items:center}
 #list li:hover,#list li:focus-visible{background:var(--hover);outline:none}
@@ -102,8 +129,8 @@ footer{font-size:.74rem;color:var(--muted);padding:12px 16px}
 footer a,.sec a{color:var(--accent)}
 
 /* right: the site card */
-.card{position:fixed;z-index:950;right:calc(12px + env(safe-area-inset-right,0px));top:calc(84px + env(safe-area-inset-top,0px));width:350px;
-  max-height:calc(100% - 96px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;padding:16px;display:grid;gap:12px}
+.card{position:fixed;z-index:950;right:calc(12px + env(safe-area-inset-right,0px));top:calc(136px + env(safe-area-inset-top,0px));width:350px;
+  max-height:calc(100% - 148px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;padding:16px;display:grid;gap:12px}
 .card .x{position:absolute;right:10px;top:8px;border:0;background:none;font-size:1.3rem;line-height:1;cursor:pointer;color:var(--muted);padding:4px 6px;border-radius:8px}
 .card .x:hover{background:var(--hover)}
 .card .place{font:600 1.45rem/1.15 var(--font-place);margin:0;padding-right:26px;text-wrap:balance}
@@ -182,7 +209,16 @@ body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(36
   .top{top:calc(8px + env(safe-area-inset-top,0px));left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));padding:8px 10px;gap:8px}
   .brand{flex:1 1 auto}.brand .tag{display:none}
   .searchwrap{flex:1 1 100%;order:3}#vv{display:none}
-  .seg{order:4;flex:1 1 auto}.seg button{flex:1}
+  .infobtn [data-t]{display:none}.infobtn{padding:6px}
+  .fbar{top:calc(112px + env(safe-area-inset-top,0px));left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));max-width:none;
+    flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:6px 8px;gap:8px}
+  .fbar .lbl{display:none}
+  .fbar{-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:36px}
+  .side:not(.open) .legend{display:none}
+  .fbar>*{flex:none}.fbar .grades{flex-wrap:nowrap}
+  .pop .panel{position:fixed;left:8px;right:8px;top:calc(162px + env(safe-area-inset-top,0px))}
+  .listhead{display:none}
+  .infodlg{padding:20px 18px 16px}
   .side{top:auto;left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;max-height:58vh}
   .side:not(.open) .scroll{display:none}
   .sheetbtn{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;padding:10px 16px;font-weight:700;cursor:pointer}
@@ -198,53 +234,52 @@ body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(36
 <header class="top glass">
   <div class="brand"><h1 id="title">ManorMap</h1><span class="tag" data-t="tagline"></span></div>
   <div class="searchwrap"><input type="search" id="q" data-tp="search" aria-label="Search"><select id="vv"><option value="" data-t="allRegions"></option></select></div>
-  <div class="seg" id="mode" role="group"><button data-m="all"></button><button data-m="renovation"></button><button data-m="new"></button></div>
+  <button class="infobtn" id="infoBtn" type="button" aria-haspopup="dialog"><span aria-hidden="true">i</span><span data-t="infoBtn"></span></button>
   <div class="lang"><button data-l="de">DE</button><button data-l="pl">PL</button><button data-l="en">EN</button></div>
 </header>
 
+<!-- filters: one strip under the header; the less used ones open as small panels -->
+<nav class="fbar glass" id="fbar" aria-label="Filter">
+  <div class="fitem"><span class="lbl" data-t="pathF"></span>
+    <div class="seg" id="mode" role="group"><button data-m="all"></button><button data-m="renovation"></button><button data-m="new"></button></div></div>
+  <div class="fitem"><span class="lbl" data-t="gradeF"></span><div class="grades" id="grades"></div></div>
+  <details class="pop" id="popSt"><summary><span data-t="statusF"></span><span id="nSt" class="pill"></span></summary>
+    <div class="panel glass"><div id="statuses"></div></div></details>
+  <details class="pop" id="popFt"><summary><span data-t="featF"></span><span id="nFt" class="pill"></span></summary>
+    <div class="panel glass">
+      <label class="kfilter"><input type="checkbox" id="kowrOnly"> <span data-t="kowrOnly"></span></label>
+      <label class="kfilter"><input type="checkbox" id="parkOnly"> <span data-t="parkOnly"></span></label>
+      <label class="kfilter"><input type="checkbox" id="regOnly"> <span data-t="regOnly"></span></label>
+    </div></details>
+  <details class="pop" id="popDi"><summary><span data-t="distS"></span><span id="nDi" class="pill"></span></summary>
+    <div class="panel glass"><div class="fh" data-t="distF"></div>
+      <div class="dist"><select id="ref"></select> <input type="range" id="km" min="50" max="800" step="25" value="800"> <span id="kmL" class="small"></span></div>
+    </div></details>
+  <button id="reset" class="linkbtn" data-t="reset" hidden></button>
+</nav>
+
+<!-- the results -->
 <aside class="side glass" id="side">
-  <button class="sheetbtn" id="sheetbtn" aria-expanded="false" aria-controls="sidescroll"><span data-t="filtersBtn"></span><span id="countShort" class="small"></span></button>
-  <div class="scroll" id="sidescroll">
-    <div class="sec">
-      <details class="intro" id="intro" open><summary><h2 data-t="whatH"></h2></summary><div data-t="what" class="small"></div></details>
-    </div>
-    <div class="sec">
-      <p class="lbl" data-t="gradeF"></p>
-      <div class="grades" id="grades"></div>
-      <details id="more">
-        <summary><span data-t="moreF"></span> <span id="nActive" class="pill"></span></summary>
-        <div class="fgroup"><div class="fh" data-t="statusF"></div><div id="statuses"></div></div>
-        <div class="fgroup"><div class="fh" data-t="featF"></div>
-          <label class="kfilter"><input type="checkbox" id="kowrOnly"> <span data-t="kowrOnly"></span></label>
-          <label class="kfilter"><input type="checkbox" id="parkOnly"> <span data-t="parkOnly"></span></label>
-          <label class="kfilter"><input type="checkbox" id="regOnly"> <span data-t="regOnly"></span></label>
-        </div>
-        <div class="fgroup"><div class="fh" data-t="distF"></div>
-          <div class="dist"><select id="ref"></select> <input type="range" id="km" min="50" max="800" step="25" value="800"> <span id="kmL" class="small"></span></div>
-        </div>
-        <button id="reset" class="linkbtn" data-t="reset"></button>
-      </details>
-      <div class="legend" id="legend"></div>
-      <div id="count"></div>
-    </div>
-    <ul id="list"></ul>
-    <div class="sec" id="shop">
-      <h2 data-t="dossierH"></h2>
-      <div class="small" data-t="dossier"></div>
-      <ul class="inc" data-t="includes"></ul>
-      <p class="small" data-t="notIncluded"></p>
-      <p id="sample"></p>
-    </div>
-    <div class="sec">
-      <h2 data-t="gradesH"></h2>
-      <div class="small" data-t="gradesText"></div>
-    </div>
-    <footer>
-      <span data-t="sources"></span><br>
-      <span data-t="optout"></span> <a id="mail"></a> · <a href="legal.html" data-t="legal"></a>
-    </footer>
-  </div>
+  <button class="sheetbtn" id="sheetbtn" aria-expanded="false" aria-controls="sidescroll"><span data-t="listH"></span><span id="countShort" class="small"></span></button>
+  <div class="listhead"><h2 data-t="listH"></h2><div id="count"></div></div>
+  <div class="scroll" id="sidescroll"><ul id="list"></ul></div>
+  <div class="legend" id="legend"></div>
 </aside>
+
+<!-- about: what it is, the grades, the dossier, sources -->
+<dialog id="info" class="infodlg" aria-labelledby="infoH">
+  <button class="x" id="infoX" type="button" aria-label="close">×</button>
+  <h2 id="infoH" class="dlgtitle" data-t="whatH"></h2>
+  <div data-t="what" class="lead"></div>
+  <div class="cols">
+    <section><h3 data-t="gradesH"></h3><div class="small" data-t="gradesText"></div></section>
+    <section id="shop"><h3 data-t="dossierH"></h3><div class="small" data-t="dossier"></div>
+      <ul class="inc" data-t="includes"></ul><p class="small" data-t="notIncluded"></p><p id="sample"></p></section>
+  </div>
+  <button class="btn primary" id="infoGo" type="button" data-t="infoGo"></button>
+  <footer><span data-t="sources"></span><br>
+    <span data-t="optout"></span> <a id="mail"></a> · <a href="legal.html" data-t="legal"></a></footer>
+</dialog>
 
 <section class="card glass" id="card" hidden aria-live="polite"></section>
 <div class="cmp glass" id="cmp"><button class="btn ghost" id="cmpBtn" type="button"></button></div>
@@ -270,7 +305,7 @@ const T = {
   optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
   approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
   private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
-  houseMark:"Gebäude von ca. {m} m² (auf der Karte mit ⌂ markiert)",houseHow:{next:" direkt neben dem Flurstück",wide:", 100–200 m entfernt: könnte das Gutshaus sein"},
+  houseMark:"Gebäude von ca. {m} m² (auf der Karte mit ⌂ markiert)",houseAt:"Gebäude von ca. {m} m² am Marker",houseHow:{next:" direkt neben dem Flurstück",wide:", 100–200 m entfernt: könnte das Gutshaus sein"},
   teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste, mit einem polnischen Blatt für die Behörden."},
  pl:{tagline:"Dwory i pałace w Polsce – zachować, odbudować, ożywić",
   whatH:"O co chodzi",
@@ -287,7 +322,7 @@ const T = {
   optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
   approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
   private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
-  houseMark:"budynek o pow. ok. {m} m² (na mapie oznaczony ⌂)",houseHow:{next:" tuż obok działki",wide:", 100–200 m dalej: może to być dwór"},
+  houseMark:"budynek o pow. ok. {m} m² (na mapie oznaczony ⌂)",houseAt:"budynek o pow. ok. {m} m² przy znaczniku",houseHow:{next:" tuż obok działki",wide:", 100–200 m dalej: może to być dwór"},
   teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna, z kartą dla urzędów."},
  en:{tagline:"Manor houses in Poland – preserve, rebuild, revive",
   whatH:"What this is",
@@ -304,7 +339,7 @@ const T = {
   optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
   approx:"Location known only at village level – look for the estate on the Messtischblatt.",
   private:"The building stands and is usually lived in: private property, please visit only with permission.",
-  houseMark:"building of about {m} m² (marked ⌂ on the map)",houseHow:{next:" just outside the parcel",wide:", 100–200 m away: could be the manor"},
+  houseMark:"building of about {m} m² (marked ⌂ on the map)",houseAt:"building of about {m} m² at the marker",houseHow:{next:" just outside the parcel",wide:", 100–200 m away: could be the manor"},
   teaser:"Site dossier (coming soon): parcel and area, aerial, LiDAR and utility maps with the parcel outline, distances, nature protection, funding and a checklist, with a Polish sheet for the authorities."}
 };
 // texts of the redesign (merged into T above)
@@ -347,6 +382,11 @@ const T3 = {
    reserve:"national park or nature reserve: building practically ruled out",protected:"protected area: building restricted",forest:"forest on the map: check whether it is forest by law",forest_db:"forest in the forest database: building only after a change of use",register:"in the monument register: the conservator has a say, grants possible",free:"no protected area",
    town_near:"town within {a} km",town_mid:"town {a}–{b} km away",town_far:"town over {b} km away",water:"lake or river nearby"}}};
 for(const l of Object.keys(T3)) Object.assign(T[l], T3[l]);
+const T4 = {
+ de:{infoBtn:"Über ManorMap",infoGo:"Zur Karte",pathF:"Vorhaben",distS:"Entfernung",listH:"Orte"},
+ pl:{infoBtn:"O ManorMap",infoGo:"Do mapy",pathF:"Cel",distS:"Odległość",listH:"Miejsca"},
+ en:{infoBtn:"About",infoGo:"To the map",pathF:"Plan",distS:"Distance",listH:"Places"}};
+for(const l of Object.keys(T4)) Object.assign(T[l], T4[l]);
 
 let lng = (()=>{try{return localStorage.getItem("lang")}catch(e){return null}})()
   || (navigator.language||"de").slice(0,2);
@@ -416,9 +456,10 @@ function drawParcels(){
   const b = map.getBounds().pad(0.2);
   for(const s of shownSites){
     if(s.h && b.contains([s.h[0], s.h[1]])){        // the building the state rests on
-      const far = Math.abs(s.h[0] - s.lat) + Math.abs(s.h[1] - s.lon) > 0.0003;
+      const far = houseFar(s);
+      // only when it is not the site itself: there the chip's stem points at it, and a mark would hide its name
       if(far) window.L.polyline([[s.lat, s.lon], [s.h[0], s.h[1]]], {color:COL[sg(s)], weight:1.5, dashArray:"3 4", interactive:false}).addTo(parcelLayer);
-      window.L.marker([s.h[0], s.h[1]], {interactive:false, keyboard:false, icon: window.L.divIcon({className:"",
+      if(far) window.L.marker([s.h[0], s.h[1]], {interactive:false, keyboard:false, icon: window.L.divIcon({className:"",
         html:`<div class="hmark" style="--c:${COL[sg(s)]}">${icon("standing", COL[sg(s)], 13)}</div>`, iconSize:[20,20], iconAnchor:[10,10]})}).addTo(parcelLayer);
     }
     const ring = PARCELS[s.id];
@@ -555,6 +596,7 @@ async function shareSite(id, btn){
 const LIGHT_OF = {park:"plot",nopark:"plot",parcel_small:"plot",parcel_large:"plot",power_near:"access",power_far:"access",road_near:"access",road_far:"access",
   neighbours_near:"access",neighbours_far:"access",reserve:"rules",protected:"rules",forest:"rules",forest_db:"rules",register:"rules",free:"rules",
   town_near:"location",town_mid:"location",town_far:"location",water:"location"};
+const houseFar = s => Math.abs(s.h[0] - s.lat) + Math.abs(s.h[1] - s.lon) > 0.0003;   // about 25 m
 function siteHtml(s){
   const chip = (k, cls="") => `<span class="${cls}">${esc(k)}</span>`;
   const tags = s.kowr ? chip(t("forSale"), "sale") : "";        // park and register are in the lights
@@ -565,7 +607,7 @@ function siteHtml(s){
     const codes = k === "house" ? [s.status] : w.filter(c => LIGHT_OF[c] === k);
     const lv = L[i], dot = lv === "-" ? `<span class="dot none"></span>` : `<span class="dot" style="--lc:${LC[lv]}"></span>`;
     let txt = codes.length ? codes.map(wt).join(" · ") : esc(t("unknownL"));
-    if(k === "house" && s.h) txt += " · " + esc(t("houseMark").replace("{m}", s.h[2]) + (t("houseHow")[s.h[3]] || ""));
+    if(k === "house" && s.h) txt += " · " + esc(t(houseFar(s) ? "houseMark" : "houseAt").replace("{m}", s.h[2]) + (t("houseHow")[s.h[3]] || ""));
     return `<li>${dot}<b>${esc(t("lights")[k])}</b><span class="w">${txt}</span></li>`;
   }).join("");
   let h = `<div class="cs"><div class="st">${icon(s.status, COL[sg(s)], 22)}<span>${esc(t("status")[s.status] || s.status)}</span></div>
@@ -670,7 +712,10 @@ function render(){
   $("grades").querySelectorAll(".gchip").forEach(b => { b.querySelector(".n").textContent = counts[b.dataset.g].toLocaleString(lng); });
   $("count").textContent = `${list.length.toLocaleString(lng)} ${t("villages")} · ${n.toLocaleString(lng)} ${t("sites")}`;
   $("countShort").textContent = n.toLocaleString(lng) + " " + t("sites");
-  $("nActive").textContent = F.active || "";
+  $("nSt").textContent = STATUSES.length - F.status.size || "";
+  $("nFt").textContent = F.kowr + F.park + F.reg || "";
+  $("nDi").textContent = F.ref ? "1" : "";
+  $("reset").hidden = !F.active;
   const ul = $("list"); ul.innerHTML = "";
   const vkm = v => Math.min(...v.sites.filter(s => keep(s, v)).map(s => km(s, v, F)));
   const vg = v => v.sites.filter(s => keep(s, v)).map(sg).sort((a, b) => rank(a) - rank(b))[0] || v.g;   // best shown grade
@@ -715,6 +760,7 @@ function lang(l){
   if(typeof kmLabel === "function") kmLabel();
   document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.l===l));
   $("shop").hidden = !C.shop;
+  document.querySelectorAll('[data-t="listH"]').forEach(e => e.textContent = t("listH"));
   $("sample").innerHTML = C.sample ? `<a href="sample.pdf" target="_blank">${t("sample")}</a>` : "";
   const mail = $("mail"); mail.textContent = C.email; mail.href = "mailto:"+C.email;
   document.querySelectorAll("#mode button").forEach(b => { b.textContent = t({all:"mAll", new:"mNew", renovation:"mRen"}[b.dataset.m]); b.classList.toggle("on", b.dataset.m===mode); });
@@ -751,7 +797,18 @@ $("kowrOnly").onchange = e => {
   if(pts.length) map.fitBounds(pts, {padding:[60,60], maxZoom:12});
 };
 document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("card").hidden) closeCard(); });
-if(matchMedia("(max-width:760px)").matches) $("intro").open = false;
+// filter panels: one open at a time, closed by a click elsewhere or Escape
+const pops = [...document.querySelectorAll(".pop")];
+pops.forEach(d => d.addEventListener("toggle", () => { if(d.open) pops.forEach(o => { if(o !== d) o.open = false; }); }));
+document.addEventListener("click", e => { if(!e.target.closest(".pop")) pops.forEach(d => d.open = false); });
+document.addEventListener("keydown", e => { if(e.key === "Escape") pops.forEach(d => d.open = false); });
+// about: opens by itself on the first visit
+const info = $("info");
+const openInfo = () => { if(typeof info.showModal === "function") info.showModal(); else info.setAttribute("open", ""); };
+const closeInfo = () => { if(typeof info.close === "function") info.close(); else info.removeAttribute("open"); };
+$("infoBtn").onclick = openInfo; $("infoX").onclick = closeInfo; $("infoGo").onclick = closeInfo;
+info.addEventListener("click", e => { if(e.target === info) closeInfo(); });   // a click on the backdrop
+try{ if(!localStorage.getItem("seenInfo") && !location.hash){ localStorage.setItem("seenInfo", "1"); setTimeout(openInfo, 300); } }catch(e){}
 $("title").textContent = C.name;
 // #GF-1A2B3C4D (shared site) or #lat,lon,zoom[,messtischblatt|ortho] (links from dossiers)
 function openShared(id){
