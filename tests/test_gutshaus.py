@@ -460,6 +460,71 @@ def config_url():
     return config.OVERPASS_URLS[0]
 
 
+NID_INFO = """<BODY><TABLE class="mainTb"><TR><TD> Immovable_Monuments</TD></TR><TR><TD><TABLE>
+<TR><TD class="featureTh"> INSPIREID </TD><TD> </TD><TD class="featureTd"> PL.1.9.ZIPOZ.NID_N_02_ZZ.1 </TD></TR>
+<TR><TD class="featureTh"> LEGALFOUNDATIONDOCUMENT </TD><TD> </TD><TD class="featureTd"> 890/WŁ z 1982-06-25;
+A/4048/890/WŁ z 2010-10-27 </TD></TR>
+<TR><TD class="featureTh"> SITENAME </TD><TD> </TD><TD class="featureTd"> ogrody </TD></TR></TABLE></TD>
+<TD><TABLE><TR><TD class="featureTd"> PL.1.9.ZIPOZ.NID_N_02_BK.2 </TD></TR><TR><TD class="featureTd"> A/1 z 2010 </TD></TR>
+<TR><TD class="featureTd"> oficyna </TD></TR></TABLE></TD></TR></TABLE></BODY>"""
+
+
+def test_register_entries_from_nid_map():
+    """NID's map draws monuments as outlines: one GetFeatureInfo per drawn shape on or next to the parcels."""
+    import io
+    from PIL import Image, ImageDraw
+    from gutshaus.geo import pl_to_ll
+    from gutshaus.sources import nid_map
+    assert [(f["id"][-4:], f["name"], f["docs"]) for f in nid_map.parse_info(NID_INFO)] == [
+        ("ZZ.1", "ogrody", "890/WŁ z 1982-06-25; A/4048/890/WŁ z 2010-10-27"), ("BK.2", "oficyna", "A/1 z 2010")]
+
+    class Http:
+        calls = []
+        def get(self, url, params=None, **kw):
+            self.calls.append(params["request"])
+            if params["request"] == "GetMap":
+                im = Image.new("RGBA", (params["width"], params["height"]), (0, 0, 0, 0))
+                cx, cy = params["width"] // 2, params["height"] // 2              # on the parcel
+                ImageDraw.Draw(im).rectangle([cx - 15, cy - 15, cx + 15, cy + 15], fill=(128, 128, 128, 255), outline=(0, 0, 0, 255))
+                buf = io.BytesIO()
+                im.save(buf, "PNG")
+                return buf.getvalue()
+            return NID_INFO.encode()
+    x0, y0 = 400000.0, 400000.0
+    ring = [list(pl_to_ll(x0 + dx, y0 + dy)) for dx, dy in ((0, 0), (100, 0), (100, 100), (0, 100), (0, 0))]
+    http = Http()
+    found = nid_map.monuments_in(http, [ring], near_m=50)
+    assert {m["name"] for m in found} == {"ogrody", "oficyna"} and all(m["on"] for m in found)
+    assert http.calls == ["GetMap", "GetFeatureInfo"]                  # one shape, one question
+
+
+def test_kowr_register_entries_and_parcels():
+    """Entries NID draws at an offer move there; sites match only on the offered parcels; a member on the offer
+    gives the site its position."""
+    from gutshaus import pipeline
+    from gutshaus.geo import pl_to_ll
+    from gutshaus.sources import kowr
+    x0, y0 = 400000.0, 400000.0
+    ring = [list(pl_to_ll(x0 + dx, y0 + dy)) for dx, dy in ((0, 0), (100, 0), (100, 100), (0, 100), (0, 0))]
+    offer = {"title": "Pałac X", "url": "u", "uid": "kowr:u", "x": x0 + 50, "y": y0 + 50, "parcels_ll": [ring],
+             "monuments": [{"id": "PL.9", "name": "oficyna", "docs": "A/1", "on": True, "x": x0 + 60, "y": y0 + 40},
+                           {"id": "PL.8", "name": "klasztor", "docs": "A/2", "on": False, "x": x0 + 160, "y": y0 + 50}]}
+    entry = {"uid": "nid:PL.9", "source": "nid", "x": 0.0, "y": 0.0, "location": "village centre", "village_xy": [0, 0]}
+    house_off = {"uid": "osm:1", "source": "osm", "x": x0 + 170, "y": y0 + 50, "text": "historic=manor | building=yes"}
+    house_on = {"uid": "osm:2", "source": "osm", "x": x0 + 30, "y": y0 + 30, "text": "historic=manor | building=yes"}
+    cands = [entry, house_off, house_on]
+    assert kowr.pin_candidates(cands, [offer]) == 1
+    assert (entry["x"], entry["location"], "village_xy" in entry) == (x0 + 60, "exact", False)
+    assert entry["on_offer"] and house_on["on_offer"] and not house_off.get("on_offer")
+    assert pipeline.point_rank(house_on) < pipeline.point_rank(house_off)
+    near = {"x": x0 + 170, "y": y0 + 50}                         # 70 m outside the parcels: not for sale
+    on = {"x": x0 + 99, "y": y0 + 50, "registered": False}
+    assert kowr.match([near, on], [offer]) == 1 and not near.get("kowr_offer")
+    assert on["kowr_offer"] == "Pałac X" and on["registered"] and len(on["kowr_monuments"]) == 2
+    lone = kowr.site_from_offer(offer)
+    assert lone["registered"] and lone["nid_ref"] == "PL.9 (A/1)"
+
+
 def test_kowr_offer_locates_village_only_site():
     """A register entry known only by its village moves onto the offer's parcel; an offer nobody explains is added."""
     from shapely.geometry import box

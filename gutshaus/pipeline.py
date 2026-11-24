@@ -91,7 +91,12 @@ def in_own_village(c: dict, site: dict) -> bool:
 
 def point_rank(c: dict) -> int:
     """Which member's position the site takes: 0 the house drawn as a building, 1 the house as a point or a ruin,
-    2 anything else (park, farm building, register entry). min() keeps the first of equal rank."""
+    2 anything else (park, farm building, register entry). min() keeps the first of equal rank. Members on the
+    parcels of a KOWR offer come first (3 lower): the site then shows the part that is for sale."""
+    return _rank(c) - (3 if c.get("on_offer") else 0)
+
+
+def _rank(c: dict) -> int:
     if c.get("source") != "osm":
         return 2
     if house_mapped_as_building(c["text"]):

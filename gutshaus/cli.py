@@ -57,8 +57,9 @@ def run_area(args, out: Path, http: Http, src, teryt: str | None = None,
         log.warning("No candidates in %s", title)
 
     # merge, measure, assess
-    sites = pipeline.merge(cands)
     offers = load_kowr(args, http)
+    kowr.pin_candidates(cands, offers)               # register entries NID draws on / next to an offer
+    sites = pipeline.merge(cands)
     kowr.place_sites(sites, offers, area)          # KOWR's parcels locate village-only entries (or add a site)
     if args.limit:
         sites = sites[: args.limit]
@@ -207,7 +208,7 @@ def cmd_build(args):
     http = Http(root / ".cache")
     offers = load_kowr(args, http)
     for s in sites:
-        for k in ("kowr_offer", "kowr_url", "kowr_tender", "kowr_uid", "kowr_kw"):
+        for k in ("kowr_offer", "kowr_url", "kowr_tender", "kowr_uid", "kowr_kw", "kowr_monuments"):
             s.pop(k, None)
     if offers:
         kowr.match(sites, offers)

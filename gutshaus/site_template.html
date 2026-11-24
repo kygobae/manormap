@@ -140,6 +140,8 @@ footer a,.sec a{color:var(--accent)}
 /* map markers */
 .mchip{display:flex;align-items:center;gap:3px;height:26px;padding:0 8px 0 5px;border-radius:13px;background:rgba(255,255,255,.95);
   border:1.5px solid rgba(24,32,28,.14);box-shadow:0 2px 6px rgba(0,0,0,.2);font:800 12.5px/1 var(--font-ui);color:var(--c);position:relative;white-space:nowrap}
+/* the chip floats above the site with a short stem, so the map's own label on the building stays readable */
+.mchip::after{content:"";position:absolute;left:50%;top:100%;width:2px;height:9px;margin-left:-1px;background:var(--c);border-radius:0 0 1px 1px}
 .mchip.sel{border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 30%,transparent),0 2px 6px rgba(0,0,0,.2)}
 .mchip .sale{position:absolute;right:-7px;top:-8px;width:16px;height:16px;border-radius:50%;background:var(--sale);border:1.5px solid #fff;display:flex;align-items:center;justify-content:center}
 .kpin{position:relative;width:16px;height:16px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 0 0 2px var(--sale)}
@@ -614,7 +616,7 @@ function drawMarkers(){
       let m;
       if(chips && b.contains([s.lat, s.lon]) && nChips++ < CHIP_MAX){     // close up: state icon + grade
         const html = `<div class="mchip${s === selected ? " sel" : ""}" style="--c:${COL[g]}">${icon(s.status, COL[g], 17)}${g}${sale ? `<span class="sale">${TAG("#fff", "#245b8f", 9)}</span>` : ""}</div>`;
-        m = window.L.marker([s.lat, s.lon], {zIndexOffset: sale ? 1000 : 0, title: r.v.v, icon: window.L.divIcon({className:"", html, iconSize:[46,26], iconAnchor:[23,13]})});
+        m = window.L.marker([s.lat, s.lon], {zIndexOffset: sale ? 1000 : 0, title: r.v.v, icon: window.L.divIcon({className:"", html, iconSize:[46,26], iconAnchor:[23,42]})});
       } else if(chips){
         continue;
       } else if(sale){                               // for sale: grade colour, pulsing ring, price-tag badge
