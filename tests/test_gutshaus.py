@@ -1068,3 +1068,43 @@ def test_house_marked_for_standing_sites():
     s = site()
     mark(s, [[x + 5, y]], [300])
     assert site_item("GF-1", {**s, "uid": "u"})["h"][2:] == [300, "near"]
+
+
+def test_buildings_on_the_parcel_and_the_house_parcel():
+    """A lost manor needs a building on its parcel (somewhere to live while rebuilding) for a green house light;
+    a KOWR offer counts all its parcels; a standing manor takes the parcel its house stands on."""
+    import numpy as np
+    from shapely.geometry import box
+    from gutshaus import grades, pipeline
+    from gutshaus.geo import pl_to_ll
+    x, y = 400000.0, 400000.0
+    lon, lat = pl_to_ll(x, y)
+    ring = [list(pl_to_ll(x + dx, y + dy)) for dx, dy in ((-50, -50), (50, -50), (50, 50), (-50, 50), (-50, -50))]
+    base = {"status": "lost", "lat": lat, "lon": lon, "parcel_ll": ring, "parcel_ha": 1.0, "park": True,
+            "dist_power_m": 50, "dist_road_m": 20, "dist_building_m": 100, "dist_town_m": 3000, "protection": "none"}
+    read = lambda pts, areas: (lambda bbox: (np.array(pts, dtype=float), np.array(areas, dtype=float)))
+    with_house, empty = dict(base), dict(base)
+    pipeline.count_buildings([with_house], read([[x + 10, y], [x + 80, y]], [120, 400]))      # one on, one off the parcel
+    pipeline.count_buildings([empty], read([[x + 10, y]], [30]))                              # too small to live in
+    assert with_house["buildings"] == {"n": 1, "max_m2": 120, "m2": 120} and empty["buildings"]["n"] == 0
+    assert grades.lights(with_house)["house"] == {"level": "green", "why": ["lost", "bldg_on"]}
+    assert grades.lights(empty)["house"] == {"level": "amber", "why": ["lost", "bldg_none"]}
+    assert grades.lights(base)["house"]["level"] == "green"                                   # not counted: as before
+    # a KOWR offer: all its parcels count, for buildings and for the area
+    sale = {**base, "kowr_uid": "k", "offer_ha": 40.0}
+    pipeline.count_buildings([sale], read([[x + 80, y]], [400]), {"k": box(x - 100, y - 100, x + 100, y + 100)})
+    assert sale["buildings"]["n"] == 1 and "parcel_large" in grades.lights(sale)["plot"]["why"]
+    # standing: the house stands next to the (park) parcel -> the site takes the house's parcel
+    from shapely.geometry import Polygon
+    house_parcel = Polygon([(x + 60, y - 20), (x + 120, y - 20), (x + 120, y + 20), (x + 60, y + 20)])
+    standing = {**base, "status": "standing", "parcel_id": "park/1", "house": [*pl_to_ll(x + 80, y)[::-1], 300, "next"]}
+    calls = []
+    parcel_at = lambda px, py: calls.append((px, py)) or {"parcel_id": "house/2", "parcel_ha": 0.24, "parcel_geom": house_parcel}
+    assert pipeline.house_parcels([standing], parcel_at) == 1
+    assert standing["parcel_id"] == "house/2" and standing["park_parcel"] == {"id": "park/1", "ha": 1.0}
+    plot = grades.lights(standing)["plot"]
+    assert plot["level"] == "amber" and "park_apart" in plot["why"]          # the park may belong to someone else
+    assert len(standing["parcel_ll"]) == 5 and "identifyParcel=house/2" in standing["link_geoportal"]
+    assert standing["house"][3] == "on"
+    inside = {**base, "status": "standing", "parcel_id": "p/3", "house": [lat, lon, 300, "near"]}
+    assert pipeline.house_parcels([inside], parcel_at) == 0 and len(calls) == 1            # already on its parcel

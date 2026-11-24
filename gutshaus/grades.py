@@ -37,11 +37,22 @@ def lights(site: dict) -> dict[str, dict]:
     c = criteria.compute(site)
     out = {}
 
-    out["house"] = {"level": {"standing": GREEN, "lost": GREEN, "ruin": AMBER, "unknown": AMBER}.get(st),
-                    "why": [st or "unknown"]}
+    # buildings on the parcel (site["buildings"], from `gutshaus build`): somewhere to live while rebuilding
+    b = site.get("buildings") if located else None
+    house_why = [st or "unknown"]
+    level = {"standing": GREEN, "lost": GREEN, "ruin": AMBER, "unknown": AMBER}.get(st)
+    if b is not None and st != "standing":
+        house_why.append("bldg_on" if b.get("n") else "bldg_none")
+        if st == "lost" and not b.get("n"):
+            level = AMBER                          # nothing to live in while the manor is rebuilt
+    out["house"] = {"level": level, "why": house_why}
 
-    ha, (lo, hi) = site.get("parcel_ha") if located else None, config.PARCEL_OK_HA
+    # a KOWR offer sells all its parcels together: their total area counts
+    ha = (site.get("offer_ha") or site.get("parcel_ha")) if located else None
+    lo, hi = config.PARCEL_OK_HA
     why = ["park" if site.get("park") else "nopark"]
+    if site.get("park_parcel"):
+        why.append("park_apart")                   # the house stands on another parcel than the park: owners may differ
     if ha is not None and ha < lo:
         why.append("parcel_small")
     elif ha is not None and ha > hi:

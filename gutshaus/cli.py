@@ -117,6 +117,23 @@ def mark_houses(args, root: Path, sites: list[dict]) -> None:
     log.info("Buildings marked for %d standing / unknown sites", n)
 
 
+def count_buildings(args, root: Path, sites: list[dict], offers: list[dict]) -> None:
+    """Buildings on each parcel from the local OSM extract (skipped without it)."""
+    gpkg = Path(getattr(args, "osm", None) or root / "_osm" / "osm.gpkg")
+    if not gpkg.exists():
+        return
+    import numpy as np
+    import pyogrio
+
+    def read(bbox):
+        b = pyogrio.read_dataframe(gpkg, layer="buildings", bbox=tuple(bbox),
+                                   where=f"area_m2 >= {config.BUILDING_ON_PARCEL_M2}")
+        return (np.column_stack([b.geometry.x, b.geometry.y]) if len(b) else []), (b["area_m2"].values if len(b) else [])
+    areas = {o.get("uid") or o["url"]: a for o in offers or [] if (a := kowr.offer_area(o)) is not None}
+    n = pipeline.count_buildings(sites, read, areas)
+    log.info("Buildings counted on %d parcels", n)
+
+
 def load_kowr(args, http: Http) -> list[dict]:
     """KOWR heritage offers, cached for a day in <out-root>/_kowr.json."""
     if getattr(args, "skip_kowr", False):
@@ -221,12 +238,16 @@ def cmd_build(args):
     http = Http(root / ".cache")
     offers = load_kowr(args, http)
     for s in sites:
-        for k in ("kowr_offer", "kowr_url", "kowr_tender", "kowr_uid", "kowr_kw", "kowr_monuments"):
+        for k in ("kowr_offer", "kowr_url", "kowr_tender", "kowr_uid", "kowr_kw", "kowr_monuments", "offer_ha"):
             s.pop(k, None)
     if offers:
         kowr.match(sites, offers)
     n_fixed = apply_status_overrides(sites, config.STATUS_OVERRIDES)
     mark_houses(args, root, sites)                       # which building a "standing" state rests on (map marker)
+    from .sources import uldk                            # ... and its parcel is the site's parcel (cached lookups)
+    n = pipeline.house_parcels(sites, lambda x, y: uldk.parcel_at(http, x, y))
+    log.info("%d standing sites moved to the parcel their house stands on", n)
+    count_buildings(args, root, sites, offers)           # buildings on the parcel: somewhere to live while rebuilding
     if not getattr(args, "no_forest", False):            # forest stands from the forest database (cached)
         from .sources import bdl
         bdl.annotate(http, sites)
