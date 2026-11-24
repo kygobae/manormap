@@ -1108,3 +1108,27 @@ def test_buildings_on_the_parcel_and_the_house_parcel():
     assert standing["house"][3] == "on"
     inside = {**base, "status": "standing", "parcel_id": "p/3", "house": [lat, lon, 300, "near"]}
     assert pipeline.house_parcels([inside], parcel_at) == 0 and len(calls) == 1            # already on its parcel
+
+
+def test_publish_with_feedback(built, monkeypatch):
+    """With a D1 database and a Turnstile key the site gets a Worker for /api/feedback; without, it stays static."""
+    import json, re
+    from gutshaus import config
+    site = built / "site"
+    read_cfg = lambda: json.loads("\n".join(ln for ln in (site / "wrangler.jsonc").read_text(encoding="utf-8").splitlines()
+                                            if not ln.startswith("//")))
+    data = lambda: json.loads(re.search(r"const D = (\{.*?\});\n", (site / "public" / "index.html").read_text(encoding="utf-8"), re.S).group(1))
+    cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
+    assert "main" not in read_cfg() and not (site / "worker.js").exists() and data()["cfg"]["feedback"] == ""
+    assert "Rückmeldungen über das Formular" not in (site / "public" / "legal.html").read_text(encoding="utf-8")
+    monkeypatch.setattr(config, "FEEDBACK_D1_ID", "db-1")
+    monkeypatch.setattr(config, "TURNSTILE_SITE_KEY", "0xKEY")
+    cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
+    cfg = read_cfg()
+    assert cfg["main"] == "worker.js" and cfg["assets"]["run_worker_first"] == ["/api/*"] and cfg["assets"]["binding"] == "ASSETS"
+    assert cfg["d1_databases"] == [{"binding": "DB", "database_name": "manormap-feedback", "database_id": "db-1"}]
+    worker = (site / "worker.js").read_text(encoding="utf-8")
+    assert "/api/feedback" in worker and "siteverify" in worker and "TURNSTILE_SECRET" in worker
+    assert data()["cfg"]["feedback"] == "0xKEY"
+    legal = (site / "public" / "legal.html").read_text(encoding="utf-8")
+    assert "Rückmeldungen über das Formular" in legal and "Ich bin Eigentümer" in legal and "Nachweis" in legal

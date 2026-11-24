@@ -167,6 +167,28 @@ With `SHOP_ENABLED` off, `gutshaus publish` writes a static site plus `output/si
 Run wrangler only inside `output/site`, never in the repository root: without a config there, wrangler's autoconfig
 offers to upload the whole `output` folder (OSM extract, your verdicts, caches).
 
+### Visitor feedback (optional)
+
+A form on the map ("Report an error" on each site, "Give feedback" in the About dialog) sends data errors, ideas and
+owners' requests to `POST /api/feedback`. A small Worker (`gutshaus/deploy/site_worker.js`) stores them in a Cloudflare
+D1 database; everything else stays static files. Bots are kept out by a hidden honeypot field, a minimum fill-in time,
+Cloudflare Turnstile and at most 5 messages per visitor and day (counted by a daily-salted hash of the IP address; the
+address itself is not stored). Messages older than 12 months are deleted. Owners' requests to remove a site are never
+automatic: ask for proof that matches the parcel, then add its GF-ID to `reserved.txt`.
+
+1. Inside `output/site`: `npx wrangler d1 create manormap-feedback`, then create the table:
+   ```
+   npx wrangler d1 execute manormap-feedback --remote --command "CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, kind TEXT NOT NULL, site TEXT, text TEXT NOT NULL, email TEXT, lang TEXT, iph TEXT, status TEXT NOT NULL DEFAULT 'new'); CREATE INDEX IF NOT EXISTS feedback_iph ON feedback (iph, ts);"
+   ```
+2. Cloudflare dashboard → Turnstile → add a widget for your domain (mode "Managed").
+3. In `gutshaus.json`: `"FEEDBACK_D1_ID": "<database id>"`, `"TURNSTILE_SITE_KEY": "<site key>"`; then
+   `gutshaus publish`, and inside `output/site`: `npx wrangler secret put TURNSTILE_SECRET` (the widget's secret key).
+4. Read new messages inside `output/site`:
+   ```
+   npx wrangler d1 execute manormap-feedback --remote --command "SELECT id, ts, kind, site, email, text FROM feedback WHERE status = 'new' ORDER BY id"
+   ```
+   and mark them done with `UPDATE feedback SET status = 'done' WHERE id = <n>`.
+
 ### Setup (once, for selling dossiers)
 
 1. **Lemon Squeezy** (free account, store verification takes a few days): create a product "Standort-Dossier",

@@ -94,6 +94,18 @@ input[type=search],select{width:100%;min-width:0;padding:7px 11px;border:1px sol
 .infodlg .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px 26px;padding:14px 0;border-top:1px solid var(--line)}
 .infodlg footer{padding:12px 0 0;margin-top:14px;border-top:1px solid var(--line)}
 #infoGo{margin-top:6px}
+.infodlg .actions{margin-top:6px}
+.fbdlg{width:min(560px,calc(100% - 24px))}
+.fbsite{margin:0 0 10px;font-size:.88rem;color:var(--muted)}
+.fbkinds{display:grid;gap:6px;margin:0 0 10px}
+.fbkinds label{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:.9rem}
+.fbkinds label:has(input:checked){border-color:var(--accent);background:var(--hover)}
+.fbnote{font-size:.82rem;background:var(--sale-bg);border-left:3px solid var(--sale);border-radius:8px;padding:8px 10px;margin:0 0 10px}
+.fbl{display:grid;gap:4px;margin:0 0 10px;font-size:.84rem;font-weight:600}
+.fbl textarea,.fbl input{font:inherit;font-weight:400;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;width:100%}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.fbts{min-height:65px;margin:4px 0 6px}
+.fbmsg{font-size:.88rem;font-weight:600;margin:8px 0 0}.fbmsg.ok{color:var(--accent)}.fbmsg.err{color:var(--red)}
 .sec{padding:12px 16px;border-bottom:1px solid var(--line)}
 .sec:last-child{border-bottom:0}
 .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;margin:0 0 6px}
@@ -282,9 +294,28 @@ body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(36
     <section id="shop"><h3 data-t="dossierH"></h3><div class="small" data-t="dossier"></div>
       <ul class="inc" data-t="includes"></ul><p class="small" data-t="notIncluded"></p><p id="sample"></p></section>
   </div>
-  <button class="btn primary" id="infoGo" type="button" data-t="infoGo"></button>
+  <div class="actions"><button class="btn primary" id="infoGo" type="button" data-t="infoGo"></button>
+    <button class="btn plain" id="fbOpen" type="button" data-t="fbAbout" hidden></button></div>
   <footer><span data-t="sources"></span><br>
     <span data-t="optout"></span> <a id="mail"></a> · <a href="legal.html" data-t="legal"></a></footer>
+</dialog>
+
+<!-- feedback: data errors, ideas, owners; stored by the site's Worker (gutshaus/deploy/site_worker.js) -->
+<dialog id="fb" class="infodlg fbdlg" aria-labelledby="fbH">
+  <button class="x" id="fbX" type="button" aria-label="close">×</button>
+  <h2 id="fbH" class="dlgtitle" data-t="fbH"></h2>
+  <form id="fbForm" novalidate>
+    <p class="fbsite" id="fbSite" hidden></p>
+    <div class="fbkinds" id="fbKinds" role="radiogroup"></div>
+    <p class="fbnote" id="fbOwnerNote" data-t="fbOwnerNote" hidden></p>
+    <label class="fbl"><span data-t="fbText"></span><textarea id="fbText" maxlength="3000" rows="5" required></textarea></label>
+    <label class="fbl"><span id="fbEmailL"></span><input type="email" id="fbEmail" maxlength="200" autocomplete="email"></label>
+    <input type="text" name="website" id="fbHp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <div id="fbTs" class="fbts"></div>
+    <p class="small" data-t="fbPrivacy"></p>
+    <div class="actions"><button class="btn primary" id="fbSend" type="submit" data-t="fbSend"></button></div>
+    <p id="fbMsg" class="fbmsg" role="status" aria-live="polite"></p>
+  </form>
 </dialog>
 
 <section class="card glass" id="card" hidden aria-live="polite"></section>
@@ -393,6 +424,29 @@ const T4 = {
  pl:{infoBtn:"O ManorMap",infoGo:"Do mapy",pathF:"Cel",distS:"Odległość",listH:"Miejsca"},
  en:{infoBtn:"About",infoGo:"To the map",pathF:"Plan",distS:"Distance",listH:"Places"}};
 for(const l of Object.keys(T4)) Object.assign(T[l], T4[l]);
+const T5 = {
+ de:{fbH:"Rückmeldung",fbAbout:"Rückmeldung geben",fbCard:"Fehler melden",fbSite:"Betrifft {id} ({place})",
+  fbKinds:{error:"Fehler in den Daten (Zustand, Lage, Park …)",idea:"Idee oder Wunsch für ManorMap",owner:"Ich bin Eigentümer: Eintrag entfernen oder ändern",other:"Sonstiges"},
+  fbOwnerNote:"Wir entfernen Einträge nur nach Prüfung, damit niemand fremde Standorte verschwinden lässt: Wir schreiben Ihnen und bitten um einen Nachweis, der zum Flurstück passt (z. B. Auszug aus Grundbuch oder Kataster). Bis dahin bleibt der Eintrag sichtbar. Statt ihn ganz zu entfernen, können wir auch nur noch das Dorf zeigen.",
+  fbText:"Ihre Nachricht",fbEmail:"E-Mail (freiwillig, für Rückfragen)",fbEmailReq:"E-Mail (nötig für den Nachweis)",fbSend:"Senden",
+  fbPrivacy:"Wir speichern Ihre Nachricht und – falls angegeben – Ihre E-Mail-Adresse, aber nicht Ihre IP-Adresse. Mehr unter „Impressum & Datenschutz“.",
+  fbThanks:"Danke! Ihre Rückmeldung ist angekommen.",
+  fbErr:{captcha:"Bitte warten Sie, bis die Prüfung gegen Bots fertig ist, und senden Sie dann erneut.",limit:"Heute sind schon mehrere Rückmeldungen von Ihnen eingegangen – bitte morgen wieder.",text:"Bitte schreiben Sie ein paar Worte.",email:"Bitte geben Sie eine gültige E-Mail-Adresse an.",fast:"Bitte einen Moment warten und erneut senden.",other:"Senden hat nicht geklappt – bitte später erneut oder per E-Mail an {mail}."}},
+ pl:{fbH:"Uwagi",fbAbout:"Prześlij uwagi",fbCard:"Zgłoś błąd",fbSite:"Dotyczy {id} ({place})",
+  fbKinds:{error:"Błąd w danych (stan, położenie, park …)",idea:"Pomysł lub życzenie dla ManorMap",owner:"Jestem właścicielem: usuń lub zmień wpis",other:"Inne"},
+  fbOwnerNote:"Wpisy usuwamy dopiero po weryfikacji, aby nikt nie mógł ukryć cudzego miejsca: napiszemy do Pana/Pani z prośbą o dokument pasujący do działki (np. odpis z księgi wieczystej lub wypis z ewidencji). Do tego czasu wpis pozostaje widoczny. Zamiast usuwać, możemy też pokazywać tylko wieś.",
+  fbText:"Wiadomość",fbEmail:"E-mail (dobrowolnie, do kontaktu)",fbEmailReq:"E-mail (potrzebny do weryfikacji)",fbSend:"Wyślij",
+  fbPrivacy:"Zapisujemy wiadomość i – jeśli podano – adres e-mail, ale nie adres IP. Więcej w „Nota prawna i prywatność”.",
+  fbThanks:"Dziękujemy! Wiadomość dotarła.",
+  fbErr:{captcha:"Proszę poczekać na zakończenie weryfikacji antybotowej i wysłać ponownie.",limit:"Dziś otrzymaliśmy już kilka wiadomości od Pana/Pani – prosimy jutro.",text:"Proszę napisać kilka słów.",email:"Proszę podać poprawny adres e-mail.",fast:"Proszę chwilę poczekać i wysłać ponownie.",other:"Nie udało się wysłać – prosimy spróbować później lub napisać na {mail}."}},
+ en:{fbH:"Feedback",fbAbout:"Give feedback",fbCard:"Report an error",fbSite:"About {id} ({place})",
+  fbKinds:{error:"Error in the data (state, position, park …)",idea:"Idea or wish for ManorMap",owner:"I am the owner: remove or change this entry",other:"Other"},
+  fbOwnerNote:"We remove entries only after a check, so that nobody can make someone else's site disappear: we will write to you and ask for proof that matches the parcel (e.g. an extract from the land register or cadastre). Until then the entry stays visible. Instead of removing it, we can also show only the village.",
+  fbText:"Your message",fbEmail:"Email (optional, for questions)",fbEmailReq:"Email (needed for the proof)",fbSend:"Send",
+  fbPrivacy:"We store your message and – if given – your email address, but not your IP address. More under “Legal notice & privacy”.",
+  fbThanks:"Thank you! Your feedback has arrived.",
+  fbErr:{captcha:"Please wait until the bot check has finished, then send again.",limit:"We have already received several messages from you today – please try again tomorrow.",text:"Please write a few words.",email:"Please enter a valid email address.",fast:"Please wait a moment and send again.",other:"Sending failed – please try later or write to {mail}."}}};
+for(const l of Object.keys(T5)) Object.assign(T[l], T5[l]);
 
 let lng = (()=>{try{return localStorage.getItem("lang")}catch(e){return null}})()
   || (navigator.language||"de").slice(0,2);
@@ -577,6 +631,7 @@ function showCard(html){
   c.querySelectorAll("[data-cmp]").forEach(b => b.onclick = () => {
     const [la, lo] = b.dataset.cmp.split(",").map(Number); map.setView([la, lo], 16); setCompare(true); });
   c.querySelectorAll("[data-share]").forEach(b => b.onclick = () => shareSite(b.dataset.share, b));
+  c.querySelectorAll("[data-fb]").forEach(b => b.onclick = () => openFeedback(b.dataset.fb));
 }
 function closeCard(){ $("card").hidden = true; cardFor = null; selected = null; setLink(""); drawMarkers(); }
 
@@ -632,7 +687,8 @@ function siteHtml(s){
   if(s.ku && OFFERS[s.ku]) h += offerHtml(OFFERS[s.ku]);
   if(s.status === "standing" && !s.ku) h += `<div class="small">${esc(t("private"))}</div>`;  // KOWR sites are state property
   h += `<div class="actions"><button class="btn plain" type="button" data-share="${esc(s.id)}">${SHARE_ICON} ${esc(t("share"))}</button>`
-    + (s.lat ? `<button class="btn ghost" type="button" data-cmp="${s.lat},${s.lon}">${icon("ruin", "currentColor", 15)} ${esc(t("onMtb"))}</button>` : "") + `</div>`;
+    + (s.lat ? `<button class="btn ghost" type="button" data-cmp="${s.lat},${s.lon}">${icon("ruin", "currentColor", 15)} ${esc(t("onMtb"))}</button>` : "")
+    + (C.feedback ? `<button class="btn plain" type="button" data-fb="${esc(s.id)}">${esc(t("fbCard"))}</button>` : "") + `</div>`;
   if(C.shop) h += `<a class="btn primary" href="${esc(buyUrl(s.id))}" target="_blank" rel="noopener">${t("buy")} ${esc(C.price)}</a><div class="small">${esc(s.id)}</div>`;
   return h + `</div>`;
 }
@@ -832,6 +888,64 @@ const openInfo = () => { if(typeof info.showModal === "function") info.showModal
 const closeInfo = () => { if(typeof info.close === "function") info.close(); else info.removeAttribute("open"); };
 $("infoBtn").onclick = openInfo; $("infoX").onclick = closeInfo; $("infoGo").onclick = closeInfo;
 info.addEventListener("click", e => { if(e.target === info) closeInfo(); });   // a click on the backdrop
+// ---------------------------------------------------------------- feedback
+const FB_KINDS = ["error", "idea", "owner", "other"];
+let fbToken = "", fbOpened = 0, fbWidget = null, fbSiteId = "";
+function fbTurnstile(){                                 // Cloudflare Turnstile, loaded only when the form opens
+  const render = () => { if(fbWidget === null) fbWidget = window.turnstile.render("#fbTs", {sitekey: C.feedback, language: lng,
+    callback: tok => { fbToken = tok; }, "expired-callback": () => { fbToken = ""; }}); };
+  if(window.turnstile) return render();
+  const sc = document.createElement("script");
+  sc.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"; sc.async = true; sc.onload = render;
+  document.head.appendChild(sc);
+}
+function fbKind(){ return (document.querySelector('input[name="fbkind"]:checked') || {}).value || "error"; }
+function fbLabels(){
+  $("fbKinds").innerHTML = FB_KINDS.filter(k => k !== "owner" || fbSiteId).map(k =>
+    `<label><input type="radio" name="fbkind" value="${k}"${k === (fbSiteId ? "error" : "idea") ? " checked" : ""}> <span>${esc(t("fbKinds")[k])}</span></label>`).join("");
+  document.querySelectorAll('input[name="fbkind"]').forEach(r => r.onchange = fbKindChanged);
+  fbKindChanged();
+}
+function fbKindChanged(){
+  const owner = fbKind() === "owner";
+  $("fbOwnerNote").hidden = !owner;
+  $("fbEmailL").textContent = t(owner ? "fbEmailReq" : "fbEmail");
+  $("fbEmail").required = owner;
+}
+function openFeedback(id){
+  fbSiteId = id || "";
+  const v = id && VV.find(v => v.sites.some(s => s.id === id));
+  $("fbSite").hidden = !id;
+  $("fbSite").textContent = id ? t("fbSite").replace("{id}", id).replace("{place}", v ? v.v : "") : "";
+  $("fbText").value = ""; $("fbMsg").textContent = ""; $("fbMsg").className = "fbmsg"; $("fbSend").disabled = false;
+  fbLabels();
+  fbOpened = Date.now();
+  if(info.open) closeInfo();
+  if(typeof $("fb").showModal === "function") $("fb").showModal(); else $("fb").setAttribute("open", "");
+  fbTurnstile();
+}
+const closeFeedback = () => { if(typeof $("fb").close === "function") $("fb").close(); else $("fb").removeAttribute("open"); };
+$("fbX").onclick = closeFeedback;
+$("fb").addEventListener("click", e => { if(e.target === $("fb")) closeFeedback(); });
+$("fbOpen").onclick = () => openFeedback("");
+$("fbForm").onsubmit = async e => {
+  e.preventDefault();
+  const msg = $("fbMsg"), err = k => { msg.className = "fbmsg err"; msg.textContent = (t("fbErr")[k] || t("fbErr").other).replace("{mail}", C.email || ""); };
+  const body = {kind: fbKind(), site: fbSiteId, text: $("fbText").value, email: $("fbEmail").value.trim(), lang: lng,
+                website: $("fbHp").value, t: fbOpened, token: fbToken};
+  if(body.text.trim().length < 5) return err("text");
+  if(body.kind === "owner" && !body.email) return err("email");
+  if(!fbToken) return err("captcha");
+  $("fbSend").disabled = true;
+  try{
+    const r = await fetch("/api/feedback", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+    const j = await r.json().catch(() => ({}));
+    if(j.ok){ msg.className = "fbmsg ok"; msg.textContent = t("fbThanks"); $("fbText").value = ""; setTimeout(closeFeedback, 1800); }
+    else { err(j.error); $("fbSend").disabled = false; }
+  }catch(x){ err("other"); $("fbSend").disabled = false; }
+  fbToken = ""; if(window.turnstile && fbWidget !== null) window.turnstile.reset(fbWidget);
+};
+$("fbOpen").hidden = !C.feedback;
 try{ if(!localStorage.getItem("seenInfo") && !location.hash){ localStorage.setItem("seenInfo", "1"); setTimeout(openInfo, 300); } }catch(e){}
 $("title").textContent = C.name;
 // #GF-1A2B3C4D (shared site) or #lat,lon,zoom[,messtischblatt|ortho] (links from dossiers)
