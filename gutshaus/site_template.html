@@ -258,7 +258,7 @@ const T = {
   notIncluded:"Nicht enthalten: Bebauungsplan / WZ, Grundbuch, Auflagen des Denkmalpflegers, Anschlussbedingungen. Das Dossier sagt Ihnen, wo und wie Sie das prüfen.",
   sample:"Beispiel-Dossier ansehen (PDF)",gradesH:"Die Noten",
   mNew:"Wiederaufbau",mRen:"Sanierung",buy:"Dossier",kowr:"Staatliches Verkaufsangebot (KOWR)",tender:"Ausschreibung",openCard:"Angebot öffnen",
-  park:"Park",reg:"Denkmal",hist:"Historische Karte (Messtischblatt)",forSale:"zum Verkauf",
+  park:"Park",reg:"Denkmal",hist:"Historische Karte (Messtischblatt)",lidar:"Geländerelief (LiDAR)",forSale:"zum Verkauf",
   status:{lost:"Herrenhaus verschwunden",ruin:"Ruine",standing:"Gebäude steht",unlocated:"Lage im Dorf unklar",unknown:"unklar"},
   sources:"Daten: © OpenStreetMap-Mitwirkende (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Historische Karten: IH PAN / pastmaps (CC BY-NC).",
   optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
@@ -274,7 +274,7 @@ const T = {
   notIncluded:"Raport nie obejmuje: MPZP / WZ, księgi wieczystej, wymagań konserwatora, warunków przyłączenia. Wskazuje, gdzie i jak to sprawdzić.",
   sample:"Przykładowy raport (PDF)",gradesH:"Oceny",
   mNew:"Odbudowa",mRen:"Remont",buy:"Raport",kowr:"Oferta sprzedaży KOWR",tender:"Przetarg",openCard:"Otwórz ofertę",
-  park:"park",reg:"zabytek",hist:"Mapa historyczna (Messtischblatt)",forSale:"na sprzedaż",
+  park:"park",reg:"zabytek",hist:"Mapa historyczna (Messtischblatt)",lidar:"Rzeźba terenu (LiDAR)",forSale:"na sprzedaż",
   status:{lost:"dwór nie istnieje",ruin:"ruina",standing:"budynek istnieje",unlocated:"lokalizacja we wsi niepewna",unknown:"nieustalony"},
   sources:"Dane: © współtwórcy OpenStreetMap (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Mapy historyczne: IH PAN / pastmaps (CC BY-NC).",
   optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
@@ -290,7 +290,7 @@ const T = {
   notIncluded:"Not included: zoning plan / WZ, land register, conservator requirements, utility connection terms. The dossier tells you where and how to check them.",
   sample:"See a sample dossier (PDF)",gradesH:"Grades",
   mNew:"Rebuilding",mRen:"Renovation",buy:"Dossier",kowr:"State sale offer (KOWR)",tender:"Tender",openCard:"Open offer",
-  park:"park",reg:"listed",hist:"Historical map (Messtischblatt)",forSale:"for sale",
+  park:"park",reg:"listed",hist:"Historical map (Messtischblatt)",lidar:"Terrain relief (LiDAR)",forSale:"for sale",
   status:{lost:"manor gone",ruin:"ruin",standing:"building stands",unlocated:"position in village unclear",unknown:"unclear"},
   sources:"Data: © OpenStreetMap contributors (ODbL), National Heritage Institute (NID), GUGiK/Geoportal, GDOŚ, KOWR. Historical maps: IH PAN / pastmaps (CC BY-NC).",
   optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
@@ -380,6 +380,8 @@ const map = window.L.map("map", {preferCanvas:true, zoomControl:false}).setView(
 window.L.control.zoom({position:"bottomright"}).addTo(map);
 const wms = (url, layers, o={}) => window.L.tileLayer.wms(url, Object.assign({layers, format:"image/png", transparent:true, version:"1.1.1"}, o));
 const ortho = wms("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution","Raster",{transparent:false, attribution:"GUGiK / Geoportal"});
+// LiDAR terrain relief: foundations, terraces, avenues and ponds of vanished manors show up under the trees
+const lidar = wms("https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief","Raster",{transparent:false, attribution:"GUGiK / Geoportal (LiDAR)"});
 const osm = window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
 const MTB_URL = "https://pastmaps.cenagis.edu.pl/geoserver/ihpan/wms", MTB_ATTR = "IH PAN, pastmaps (CC BY-NC)";
 const mtb = wms(MTB_URL,"m25k_3857",{transparent:false, attribution:MTB_ATTR});
@@ -387,7 +389,7 @@ const markers = window.L.layerGroup().addTo(map);
 const kowrLayer = window.L.layerGroup().addTo(map);
 function ctl(){
   if(map._ctl) map.removeControl(map._ctl);
-  map._ctl = window.L.control.layers({"OpenStreetMap":osm, "Orthophoto (Geoportal)":ortho, [t("hist")]:mtb},
+  map._ctl = window.L.control.layers({"OpenStreetMap":osm, "Orthophoto (Geoportal)":ortho, [t("lidar")]:lidar, [t("hist")]:mtb},
                                      {[t("kowr")]:kowrLayer}, {position:"bottomright"}).addTo(map);
 }
 
