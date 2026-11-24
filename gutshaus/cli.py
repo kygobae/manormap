@@ -104,6 +104,19 @@ def run_area(args, out: Path, http: Http, src, teryt: str | None = None,
     return ser
 
 
+def mark_houses(args, root: Path, sites: list[dict]) -> None:
+    """Big buildings from the local OSM extract (skipped without it: the public API is too slow for all of Poland)."""
+    gpkg = Path(getattr(args, "osm", None) or root / "_osm" / "osm.gpkg")
+    if not gpkg.exists():
+        log.info("No local OSM extract: buildings of standing sites not marked")
+        return
+    import numpy as np
+    import pyogrio
+    b = pyogrio.read_dataframe(gpkg, layer="buildings", where=f"area_m2 >= {config.MANOR_BUILDING_MIN_M2}")
+    n = pipeline.mark_houses(sites, np.column_stack([b.geometry.x, b.geometry.y]), b["area_m2"].values)
+    log.info("Buildings marked for %d standing / unknown sites", n)
+
+
 def load_kowr(args, http: Http) -> list[dict]:
     """KOWR heritage offers, cached for a day in <out-root>/_kowr.json."""
     if getattr(args, "skip_kowr", False):
@@ -213,6 +226,7 @@ def cmd_build(args):
     if offers:
         kowr.match(sites, offers)
     n_fixed = apply_status_overrides(sites, config.STATUS_OVERRIDES)
+    mark_houses(args, root, sites)                       # which building a "standing" state rests on (map marker)
     if not getattr(args, "no_forest", False):            # forest stands from the forest database (cached)
         from .sources import bdl
         bdl.annotate(http, sites)

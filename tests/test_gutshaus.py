@@ -1045,3 +1045,26 @@ def test_status_overrides_from_the_ground(built, monkeypatch):
              if x["uid"] == ruin["uid"])
     assert s["status"] == "lost" and s["status_data"] == "ruin" and s["status_note"] == "nur Fundamente erhalten"
     assert grades.path(s) == "new"                                                 # nothing left: rebuilding
+
+
+def test_house_marked_for_standing_sites():
+    """The building a "standing" state rests on is stored (and published) so the map can show it."""
+    import numpy as np
+    from gutshaus import pipeline
+    from gutshaus.geo import pl_to_ll
+    from gutshaus.publish import site_item
+    x, y = 400000.0, 400000.0
+    lon, lat = pl_to_ll(x, y)
+    ring = [list(pl_to_ll(x + dx, y + dy)) for dx, dy in ((-150, -150), (150, -150), (150, 150), (-150, 150), (-150, -150))]
+    site = lambda **kw: {"status": "standing", "lat": lat, "lon": lon, "parcel_ll": ring, **kw}
+    mark = lambda s, pts, areas: (pipeline.mark_houses([s], np.array(pts, dtype=float), np.array(areas, dtype=float)), s.get("house"))
+    # the largest big building within 100 m, else the largest on the parcel, else one just outside it
+    assert mark(site(), [[x + 60, y + 60], [x + 75, y]], [300, 900])[1][2:] == [900, "near"]
+    assert mark(site(), [[x + 140, y]], [500])[1][3] == "on"
+    assert mark(site(), [[x + 170, y]], [500])[1][3] == "next"
+    assert mark(site(), [[x + 250, y]], [500]) == (0, None)                  # 100 m outside the parcel
+    assert mark(site(status="lost"), [[x + 10, y]], [500]) == (0, None)
+    assert mark(site(status="unknown"), [[x + 150, y], [x + 190, y]], [400, 800])[1][2:] == [800, "wide"]
+    s = site()
+    mark(s, [[x + 5, y]], [300])
+    assert site_item("GF-1", {**s, "uid": "u"})["h"][2:] == [300, "near"]

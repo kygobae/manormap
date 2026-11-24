@@ -89,6 +89,9 @@ def site_item(did: str, s: dict) -> dict:
             "park": bool(s.get("park")), "registered": bool(s.get("registered")), "kowr": bool(s.get("kowr_offer"))}
     if s.get("status") != "unlocated" and s.get("lat") is not None:
         item["lat"], item["lon"] = round(s["lat"], 5), round(s["lon"], 5)
+        if s.get("house"):                               # the building a "standing" state rests on (OSM, public)
+            lat, lon, m2, how = s["house"]
+            item["h"] = [round(lat, 5), round(lon, 5), m2, how]
     if s.get("kowr_url"):
         item["ku"] = s.get("kowr_uid") or s["kowr_url"]  # the matched KOWR offer (D.kowr[].url): shown in this site's popup, not separately
     return item

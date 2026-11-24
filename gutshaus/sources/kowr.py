@@ -359,13 +359,21 @@ def pin_candidates(cands: list[dict], offers: list[dict]) -> int:
     wrong building: entries NID draws on or next to an offer go to where NID draws them. Candidates on the offered
     parcels are marked (c["on_offer"]) so that a site's position and parcel come from the part that is for sale.
     Returns the number of entries moved."""
-    pos = {"nid:" + m["id"]: m for o in offers for m in o.get("monuments") or []}
+    pos = {}
+    for o in offers:
+        oa = offer_area(o)
+        for m in o.get("monuments") or []:
+            xy = (m["x"], m["y"])
+            # an ensemble drawn over the offer can have its centre outside the offered parcels: use the offer's point
+            if m.get("on") and oa is not None and oa.distance(Point(xy)) > ON_OFFER_M and o.get("x") is not None:
+                xy = (o["x"], o["y"])
+            pos["nid:" + m["id"]] = xy
     areas = [a for a in (offer_area(o) for o in offers) if a is not None]
     n = 0
     for c in cands:
-        m = pos.get(c.get("uid"))
-        if m and (c.get("x"), c.get("y")) != (m["x"], m["y"]):
-            c.update({"x": m["x"], "y": m["y"], "location": "exact", "approx": False})
+        xy = pos.get(c.get("uid"))
+        if xy and (c.get("x"), c.get("y")) != xy:
+            c.update({"x": xy[0], "y": xy[1], "location": "exact", "approx": False})
             c.pop("village_xy", None)
             c.pop("rivals_xy", None)
             n += 1

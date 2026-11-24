@@ -173,6 +173,60 @@ def assess(site: dict, ctx: dict | None, parcel: dict | None, infra: dict | None
     return out
 
 
+ON_HOUSE_M = 15              # the site point is on this building (house drawn in OSM)
+
+
+def mark_houses(sites: list[dict], bxy, barea) -> int:
+    """site["house"] = [lat, lon, m², how]: the building a "standing" (or "unknown") state rests on, so the map can
+    show it. Same rules as classify_status: a big building on the site point, else the largest within
+    MANOR_SEARCH_RADIUS_M ("near"), else the largest on the parcel ("on") or just outside it ("next"); for "unknown"
+    the largest within MANOR_LOST_RADIUS_M ("wide"). bxy: EPSG:2180 points of buildings ≥ MANOR_BUILDING_MIN_M2,
+    barea their areas. Returns the number of sites marked."""
+    import json
+    import numpy as np
+    import shapely
+    from shapely.geometry import Polygon
+    from .geo import ll_to_pl
+    tree = shapely.STRtree(shapely.points(bxy)) if len(bxy) else None
+    n = 0
+    for s in sites:
+        s.pop("house", None)
+        if tree is None or s.get("status") not in ("standing", "unknown") or s.get("lat") is None:
+            continue
+        x, y = ll_to_pl(s["lon"], s["lat"])
+        idx = tree.query(Point(x, y), predicate="dwithin", distance=config.PARCEL_SEARCH_MAX_M)
+        if not len(idx):
+            continue
+        d = np.hypot(bxy[idx, 0] - x, bxy[idx, 1] - y)
+        pick = how = None
+        if s["status"] == "unknown":
+            near = idx[d <= config.MANOR_LOST_RADIUS_M]
+            pick, how = (near[np.argmax(barea[near])], "wide") if len(near) else (None, None)
+        elif d.min() <= ON_HOUSE_M:
+            pick, how = idx[np.argmin(d)], "near"
+        elif (d <= config.MANOR_SEARCH_RADIUS_M).any():
+            near = idx[d <= config.MANOR_SEARCH_RADIUS_M]
+            pick, how = near[np.argmax(barea[near])], "near"
+        else:
+            ring = s.get("parcel_ll") or []
+            ring = json.loads(ring) if isinstance(ring, str) else ring
+            if len(ring) >= 4:
+                parcel = Polygon([ll_to_pl(lon, lat) for lon, lat in ring]).buffer(0)
+                dp = shapely.distance(parcel, shapely.points(bxy[idx]))
+                for limit, label in ((0, "on"), (config.PARCEL_MARGIN_M, "next")):
+                    ok = idx[dp <= limit]
+                    if len(ok):
+                        pick, how = ok[np.argmax(barea[ok])], label
+                        break
+        if pick is None:
+            continue
+        from .geo import pl_to_ll
+        lon, lat = pl_to_ll(float(bxy[pick, 0]), float(bxy[pick, 1]))
+        s["house"] = [round(lat, 6), round(lon, 6), int(round(float(barea[pick]))), how]
+        n += 1
+    return n
+
+
 def links(s: dict) -> dict:
     lat, lon = s["lat"], s["lon"]
     d = {

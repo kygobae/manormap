@@ -140,6 +140,7 @@ footer a,.sec a{color:var(--accent)}
 /* map markers */
 .mchip{display:flex;align-items:center;gap:3px;height:26px;padding:0 8px 0 5px;border-radius:13px;background:rgba(255,255,255,.95);
   border:1.5px solid rgba(24,32,28,.14);box-shadow:0 2px 6px rgba(0,0,0,.2);font:800 12.5px/1 var(--font-ui);color:var(--c);position:relative;white-space:nowrap}
+.hmark{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.92);border:1.5px solid var(--c);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 /* the chip floats above the site with a short stem, so the map's own label on the building stays readable */
 .mchip::after{content:"";position:absolute;left:50%;top:100%;width:2px;height:9px;margin-left:-1px;background:var(--c);border-radius:0 0 1px 1px}
 .mchip.sel{border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 30%,transparent),0 2px 6px rgba(0,0,0,.2)}
@@ -269,6 +270,7 @@ const T = {
   optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
   approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
   private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
+  houseMark:"Gebäude von ca. {m} m² (auf der Karte mit ⌂ markiert)",houseHow:{next:" direkt neben dem Flurstück",wide:", 100–200 m entfernt: könnte das Gutshaus sein"},
   teaser:"Standort-Dossier (bald verfügbar): Flurstück und Fläche, Luftbild, LiDAR- und Leitungskarte mit Flurstücksgrenze, Entfernungen, Schutzgebiete, Förderung und Checkliste, mit einem polnischen Blatt für die Behörden."},
  pl:{tagline:"Dwory i pałace w Polsce – zachować, odbudować, ożywić",
   whatH:"O co chodzi",
@@ -285,6 +287,7 @@ const T = {
   optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
   approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
   private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
+  houseMark:"budynek o pow. ok. {m} m² (na mapie oznaczony ⌂)",houseHow:{next:" tuż obok działki",wide:", 100–200 m dalej: może to być dwór"},
   teaser:"Raport o lokalizacji (wkrótce): działka i powierzchnia, ortofotomapa, mapa LiDAR i uzbrojenia z granicą działki, odległości, ochrona przyrody, dotacje i lista kontrolna, z kartą dla urzędów."},
  en:{tagline:"Manor houses in Poland – preserve, rebuild, revive",
   whatH:"What this is",
@@ -301,6 +304,7 @@ const T = {
   optout:"Owners who do not want to be listed, write to",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
   approx:"Location known only at village level – look for the estate on the Messtischblatt.",
   private:"The building stands and is usually lived in: private property, please visit only with permission.",
+  houseMark:"building of about {m} m² (marked ⌂ on the map)",houseHow:{next:" just outside the parcel",wide:", 100–200 m away: could be the manor"},
   teaser:"Site dossier (coming soon): parcel and area, aerial, LiDAR and utility maps with the parcel outline, distances, nature protection, funding and a checklist, with a Polish sheet for the authorities."}
 };
 // texts of the redesign (merged into T above)
@@ -411,6 +415,12 @@ function drawParcels(){
   }
   const b = map.getBounds().pad(0.2);
   for(const s of shownSites){
+    if(s.h && b.contains([s.h[0], s.h[1]])){        // the building the state rests on
+      const far = Math.abs(s.h[0] - s.lat) + Math.abs(s.h[1] - s.lon) > 0.0003;
+      if(far) window.L.polyline([[s.lat, s.lon], [s.h[0], s.h[1]]], {color:COL[sg(s)], weight:1.5, dashArray:"3 4", interactive:false}).addTo(parcelLayer);
+      window.L.marker([s.h[0], s.h[1]], {interactive:false, keyboard:false, icon: window.L.divIcon({className:"",
+        html:`<div class="hmark" style="--c:${COL[sg(s)]}">${icon("standing", COL[sg(s)], 13)}</div>`, iconSize:[20,20], iconAnchor:[10,10]})}).addTo(parcelLayer);
+    }
     const ring = PARCELS[s.id];
     if(ring && b.contains([s.lat, s.lon]))
       window.L.polygon(ring, {color:COL[sg(s)], weight: s === selected ? 3 : 2, fillOpacity: s === selected ? .16 : .08, interactive:false}).addTo(parcelLayer);
@@ -554,7 +564,8 @@ function siteHtml(s){
   const rows = LIGHTS.map((k, i) => {
     const codes = k === "house" ? [s.status] : w.filter(c => LIGHT_OF[c] === k);
     const lv = L[i], dot = lv === "-" ? `<span class="dot none"></span>` : `<span class="dot" style="--lc:${LC[lv]}"></span>`;
-    const txt = codes.length ? codes.map(wt).join(" · ") : esc(t("unknownL"));
+    let txt = codes.length ? codes.map(wt).join(" · ") : esc(t("unknownL"));
+    if(k === "house" && s.h) txt += " · " + esc(t("houseMark").replace("{m}", s.h[2]) + (t("houseHow")[s.h[3]] || ""));
     return `<li>${dot}<b>${esc(t("lights")[k])}</b><span class="w">${txt}</span></li>`;
   }).join("");
   let h = `<div class="cs"><div class="st">${icon(s.status, COL[sg(s)], 22)}<span>${esc(t("status")[s.status] || s.status)}</span></div>
