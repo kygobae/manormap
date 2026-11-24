@@ -92,6 +92,9 @@ def site_item(did: str, s: dict) -> dict:
         if s.get("house"):                               # the building a "standing" state rests on (OSM, public)
             lat, lon, m2, how = s["house"]
             item["h"] = [round(lat, 5), round(lon, 5), m2, how]
+        ha = s.get("offer_ha") or s.get("parcel_ha")   # land area: all parcels of a KOWR offer, else the site's parcel
+        if ha:
+            item["ha"] = round(ha, 2)
     if s.get("kowr_url"):
         item["ku"] = s.get("kowr_uid") or s["kowr_url"]  # the matched KOWR offer (D.kowr[].url): shown in this site's popup, not separately
     return item

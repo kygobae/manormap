@@ -1068,6 +1068,10 @@ def test_house_marked_for_standing_sites():
     s = site()
     mark(s, [[x + 5, y]], [300])
     assert site_item("GF-1", {**s, "uid": "u"})["h"][2:] == [300, "near"]
+    # the land area: a KOWR offer's parcels together, else the site's parcel
+    assert site_item("GF-1", {**s, "uid": "u", "parcel_ha": 1.234})["ha"] == 1.23
+    assert site_item("GF-1", {**s, "uid": "u", "parcel_ha": 1.2, "offer_ha": 4.5})["ha"] == 4.5
+    assert "ha" not in site_item("GF-1", {**s, "uid": "u"})
 
 
 def test_buildings_on_the_parcel_and_the_house_parcel():
