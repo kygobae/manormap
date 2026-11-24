@@ -431,21 +431,21 @@ const T5 = {
   fbText:"Ihre Nachricht",fbEmail:"E-Mail (freiwillig, für Rückfragen)",fbEmailReq:"E-Mail (nötig für den Nachweis)",fbSend:"Senden",
   fbPrivacy:"Wir speichern Ihre Nachricht und – falls angegeben – Ihre E-Mail-Adresse, aber nicht Ihre IP-Adresse. Mehr unter „Impressum & Datenschutz“.",
   fbThanks:"Danke! Ihre Rückmeldung ist angekommen.",
-  fbErr:{captcha:"Bitte warten Sie, bis die Prüfung gegen Bots fertig ist, und senden Sie dann erneut.",limit:"Heute sind schon mehrere Rückmeldungen von Ihnen eingegangen – bitte morgen wieder.",text:"Bitte schreiben Sie ein paar Worte.",email:"Bitte geben Sie eine gültige E-Mail-Adresse an.",fast:"Bitte einen Moment warten und erneut senden.",other:"Senden hat nicht geklappt – bitte später erneut oder per E-Mail an {mail}."}},
+  fbErr:{wait:"Bitte warten Sie, bis die Prüfung gegen Bots fertig ist (Häkchen), und senden Sie dann erneut.",captcha:"Die Prüfung gegen Bots wurde vom Server nicht bestätigt. Bitte noch einmal senden; klappt es weiter nicht, schreiben Sie an {mail}.",limit:"Heute sind schon mehrere Rückmeldungen von Ihnen eingegangen – bitte morgen wieder.",text:"Bitte schreiben Sie ein paar Worte.",email:"Bitte geben Sie eine gültige E-Mail-Adresse an.",fast:"Bitte einen Moment warten und erneut senden.",other:"Senden hat nicht geklappt – bitte später erneut oder per E-Mail an {mail}."}},
  pl:{fbH:"Uwagi",fbAbout:"Prześlij uwagi",fbCard:"Zgłoś błąd",fbSite:"Dotyczy {id} ({place})",
   fbKinds:{error:"Błąd w danych (stan, położenie, park …)",idea:"Pomysł lub życzenie dla ManorMap",owner:"Jestem właścicielem: usuń lub zmień wpis",other:"Inne"},
   fbOwnerNote:"Wpisy usuwamy dopiero po weryfikacji, aby nikt nie mógł ukryć cudzego miejsca: napiszemy do Pana/Pani z prośbą o dokument pasujący do działki (np. odpis z księgi wieczystej lub wypis z ewidencji). Do tego czasu wpis pozostaje widoczny. Zamiast usuwać, możemy też pokazywać tylko wieś.",
   fbText:"Wiadomość",fbEmail:"E-mail (dobrowolnie, do kontaktu)",fbEmailReq:"E-mail (potrzebny do weryfikacji)",fbSend:"Wyślij",
   fbPrivacy:"Zapisujemy wiadomość i – jeśli podano – adres e-mail, ale nie adres IP. Więcej w „Nota prawna i prywatność”.",
   fbThanks:"Dziękujemy! Wiadomość dotarła.",
-  fbErr:{captcha:"Proszę poczekać na zakończenie weryfikacji antybotowej i wysłać ponownie.",limit:"Dziś otrzymaliśmy już kilka wiadomości od Pana/Pani – prosimy jutro.",text:"Proszę napisać kilka słów.",email:"Proszę podać poprawny adres e-mail.",fast:"Proszę chwilę poczekać i wysłać ponownie.",other:"Nie udało się wysłać – prosimy spróbować później lub napisać na {mail}."}},
+  fbErr:{wait:"Proszę poczekać na zakończenie weryfikacji antybotowej (znaczek) i wysłać ponownie.",captcha:"Serwer nie potwierdził weryfikacji antybotowej. Proszę wysłać jeszcze raz; jeśli nadal się nie uda, prosimy napisać na {mail}.",limit:"Dziś otrzymaliśmy już kilka wiadomości od Pana/Pani – prosimy jutro.",text:"Proszę napisać kilka słów.",email:"Proszę podać poprawny adres e-mail.",fast:"Proszę chwilę poczekać i wysłać ponownie.",other:"Nie udało się wysłać – prosimy spróbować później lub napisać na {mail}."}},
  en:{fbH:"Feedback",fbAbout:"Give feedback",fbCard:"Report an error",fbSite:"About {id} ({place})",
   fbKinds:{error:"Error in the data (state, position, park …)",idea:"Idea or wish for ManorMap",owner:"I am the owner: remove or change this entry",other:"Other"},
   fbOwnerNote:"We remove entries only after a check, so that nobody can make someone else's site disappear: we will write to you and ask for proof that matches the parcel (e.g. an extract from the land register or cadastre). Until then the entry stays visible. Instead of removing it, we can also show only the village.",
   fbText:"Your message",fbEmail:"Email (optional, for questions)",fbEmailReq:"Email (needed for the proof)",fbSend:"Send",
   fbPrivacy:"We store your message and – if given – your email address, but not your IP address. More under “Legal notice & privacy”.",
   fbThanks:"Thank you! Your feedback has arrived.",
-  fbErr:{captcha:"Please wait until the bot check has finished, then send again.",limit:"We have already received several messages from you today – please try again tomorrow.",text:"Please write a few words.",email:"Please enter a valid email address.",fast:"Please wait a moment and send again.",other:"Sending failed – please try later or write to {mail}."}}};
+  fbErr:{wait:"Please wait until the bot check has finished (tick), then send again.",captcha:"The server could not confirm the bot check. Please send once more; if it keeps failing, write to {mail}.",limit:"We have already received several messages from you today – please try again tomorrow.",text:"Please write a few words.",email:"Please enter a valid email address.",fast:"Please wait a moment and send again.",other:"Sending failed – please try later or write to {mail}."}}};
 for(const l of Object.keys(T5)) Object.assign(T[l], T5[l]);
 
 let lng = (()=>{try{return localStorage.getItem("lang")}catch(e){return null}})()
@@ -935,7 +935,7 @@ $("fbForm").onsubmit = async e => {
                 website: $("fbHp").value, t: fbOpened, token: fbToken};
   if(body.text.trim().length < 5) return err("text");
   if(body.kind === "owner" && !body.email) return err("email");
-  if(!fbToken) return err("captcha");
+  if(!fbToken) return err("wait");
   $("fbSend").disabled = true;
   try{
     const r = await fetch("/api/feedback", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
