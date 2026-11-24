@@ -53,8 +53,11 @@ async function feedback(request, env) {
   const ip = request.headers.get("CF-Connecting-IP") || "";
   const token = b.token;
   const hosts = String(env.TURNSTILE_HOSTNAMES || "").split(",").map((h) => h.trim()).filter(Boolean);
-  if (typeof token !== "string" || !token || token.length > 2048 || !hosts.length || !env.TURNSTILE_SECRET)
+  if (!env.TURNSTILE_SECRET || !hosts.length) {
+    console.log("turnstile: not configured", { secret: !!env.TURNSTILE_SECRET, hosts: hosts.length });
     return json({ ok: false, error: "captcha" }, 403);
+  }
+  if (typeof token !== "string" || !token || token.length > 2048) return json({ ok: false, error: "captcha" }, 403);
   let check;
   try {
     const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
@@ -67,8 +70,11 @@ async function feedback(request, env) {
     return json({ ok: false, error: "captcha" }, 403);
   }
   // single-use tokens (siteverify rejects a replay), issued by our widget on our own domain
-  if (check.success !== true || check.action !== ACTION || !hosts.includes(check.hostname))
+  if (check.success !== true || check.action !== ACTION || !hosts.includes(check.hostname)) {
+    // no personal data: Cloudflare's error codes and what the token was issued for (see `npx wrangler tail`)
+    console.log("turnstile: rejected", { codes: check["error-codes"], action: check.action, hostname: check.hostname });
     return json({ ok: false, error: "captcha" }, 403);
+  }
 
   const now = new Date().toISOString();
   const day = now.slice(0, 10);
