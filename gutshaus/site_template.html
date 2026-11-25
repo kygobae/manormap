@@ -386,13 +386,12 @@ const T = {
 // texts of the redesign (merged into T above)
 const T2 = {
  de:{share:"Teilen",copied:"Link kopiert",shareTitle:"{place} – ManorMap",offerPartial:" (davon {f} im Kataster gefunden und gezeichnet)",offerArea1:"1 Flurstück, {ha} ha – auf der Karte blau gestrichelt",offerArea:"{n} Flurstücke, {ha} ha – auf der Karte blau gestrichelt",dragHint:"Linie auf der Karte ziehen",tenderPast:"Der Ausschreibungstermin laut KOWR ({d}) ist vorbei; den nächsten Termin bei KOWR erfragen.",filtersBtn:"Filter & Liste",gradeF:"Note",close:"Schließen",cmpOn:"Damals & heute vergleichen",cmpOff:"Vergleich beenden",then:"Messtischblatt",now:"heute",
-     onMtb:"Auf dem Messtischblatt vergleichen",lgStanding:"steht",lgRuin:"Ruine",lgLost:"verschwunden",lgUnknown:"unklar",lgVillage:"nur Dorf bekannt",deName:"deutsch"},
+     lgStanding:"steht",lgRuin:"Ruine",lgLost:"verschwunden",lgUnknown:"unklar",lgVillage:"nur Dorf bekannt",deName:"deutsch"},
  pl:{share:"Udostępnij",copied:"Link skopiowany",shareTitle:"{place} – ManorMap",offerPartial:" (w ewidencji znaleziono i narysowano {f})",offerArea1:"1 działka, {ha} ha – na mapie niebieska linia przerywana",offerArea:"działki: {n}, {ha} ha – na mapie niebieska linia przerywana",dragHint:"Przeciągnij linię na mapie",tenderPast:"Podany przez KOWR termin przetargu ({d}) minął; o kolejny termin zapytaj KOWR.",filtersBtn:"Filtry i lista",gradeF:"Ocena",close:"Zamknij",cmpOn:"Porównaj dawniej i dziś",cmpOff:"Zakończ porównanie",then:"Messtischblatt",now:"dziś",
-     onMtb:"Porównaj z mapą Messtischblatt",lgStanding:"istnieje",lgRuin:"ruina",lgLost:"nie istnieje",lgUnknown:"nieustalony",lgVillage:"znana tylko wieś",deName:"niem."},
+     lgStanding:"istnieje",lgRuin:"ruina",lgLost:"nie istnieje",lgUnknown:"nieustalony",lgVillage:"znana tylko wieś",deName:"niem."},
  en:{share:"Share",copied:"Link copied",shareTitle:"{place} – ManorMap",offerPartial:" ({f} of them found in the cadastre and drawn)",offerArea1:"1 parcel, {ha} ha – dashed blue on the map",offerArea:"{n} parcels, {ha} ha – dashed blue on the map",dragHint:"Drag the line on the map",tenderPast:"KOWR's tender date ({d}) has passed; ask KOWR for the next one.",filtersBtn:"Filters & list",gradeF:"Grade",close:"Close",cmpOn:"Compare then & now",cmpOff:"End comparison",then:"Messtischblatt",now:"today",
-     onMtb:"Compare on the Messtischblatt",lgStanding:"stands",lgRuin:"ruin",lgLost:"gone",lgUnknown:"unclear",lgVillage:"village only",deName:"German"}};
+     lgStanding:"stands",lgRuin:"ruin",lgLost:"gone",lgUnknown:"unclear",lgVillage:"village only",deName:"German"}};
 for(const l of Object.keys(T2)) Object.assign(T[l], T2[l]);
-
 // one grade from five traffic lights (gutshaus/grades.py)
 const T3 = {
  de:{mAll:"Alle",pathL:{renovation:"Sanierung",new:"Wiederaufbau",either:"Sanierung oder Wiederaufbau"},
@@ -641,8 +640,6 @@ function showCard(html){
   c.innerHTML = `<button class="x" type="button" aria-label="${esc(t("close"))}">×</button>` + html;
   c.hidden = false;
   c.querySelector(".x").onclick = closeCard;
-  c.querySelectorAll("[data-cmp]").forEach(b => b.onclick = () => {
-    const [la, lo] = b.dataset.cmp.split(",").map(Number); map.setView([la, lo], 16); setCompare(true); });
   c.querySelectorAll("[data-share]").forEach(b => b.onclick = () => shareSite(b.dataset.share, b));
   c.querySelectorAll("[data-fb]").forEach(b => b.onclick = () => openFeedback(b.dataset.fb));
 }
@@ -714,7 +711,6 @@ function siteHtml(s){
   else if(s.kg && OFFERS[s.kg]) h += offerHtml(OFFERS[s.kg]);        // dropped off KOWR's lists lately
   if(s.status === "standing" && !s.ku) h += `<div class="small">${esc(t("private"))}</div>`;  // KOWR sites are state property
   h += `<div class="actions"><button class="btn plain" type="button" data-share="${esc(s.id)}">${SHARE_ICON} ${esc(t("share"))}</button>`
-    + (s.lat ? `<button class="btn ghost" type="button" data-cmp="${s.lat},${s.lon}">${icon("ruin", "currentColor", 15)} ${esc(t("onMtb"))}</button>` : "")
     + (C.feedback ? `<button class="btn plain" type="button" data-fb="${esc(s.id)}">${esc(t("fbCard"))}</button>` : "") + `</div>`;
   if(C.shop) h += `<a class="btn primary" href="${esc(buyUrl(s.id))}" target="_blank" rel="noopener">${t("buy")} ${esc(C.price)}</a><div class="small">${esc(s.id)}</div>`;
   return h + `</div>`;
