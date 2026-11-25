@@ -594,14 +594,16 @@ def test_traffic_light_grade():
             "land_cover": "agri", "protection": "none", "c_protection": 1.0, "parcel_ha": 3}
     standing, lost = {**base, "status": "standing"}, {**base, "status": "lost"}
     ruin, unknown = {**base, "status": "ruin"}, {**base, "status": "unknown"}
-    # what is left sets the path; both main paths can reach A
+    # the dossier still names the project; the grade is a buyer's: a standing house is best, nothing left is D
     assert (grades.path(standing), grades.path(lost), grades.path(ruin)) == ("renovation", "new", "either")
-    assert grades.grade_of(standing) == "A" and grades.grade_of(lost) == "A"
+    assert grades.grade_of(standing) == "A" and grades.grade_of(lost) == "D"
+    assert grades.grade_of({**lost, "buildings": {"n": 1, "max_m2": 120}}) == "B"   # somewhere to live: amber
+    assert grades.grade_of({**standing, "house_use": "hotel"}) == "B"               # in use: rarely for sale
     L = grades.lights(standing)
     assert list(L) == ["house", "plot", "access", "rules", "location"] and all(x["level"] == "green" for x in L.values())
     assert "register" in L["rules"]["why"] and "water" in L["location"]["why"]
-    # ruins and unclear cases: house amber, at best B
-    assert grades.lights(ruin)["house"]["level"] == "amber" and grades.grade_of(ruin) == "B"
+    # ruins: house amber, at best C; unclear cases at best B
+    assert grades.lights(ruin)["house"]["level"] == "amber" and grades.grade_of(ruin) == "C"
     assert grades.grade_of(unknown) == "B"
     # nature reserve / national park: knock-out
     assert grades.grade_of({**standing, "protection": "national park"}) == "D"
@@ -611,8 +613,13 @@ def test_traffic_light_grade():
     # no park and a far town: two lights off green
     far = {**standing, "park": False, "dist_town_m": 20000}
     assert grades.lights(far)["location"]["level"] == "red" and grades.grade_of(far) == "C"
-    assert grades.grade_of({**far, "dist_power_m": 5000, "dist_road_m": 2000, "dist_building_m": 3000}) == "D"
+    cut_off = {**far, "dist_power_m": 5000, "dist_road_m": 2000, "dist_building_m": 3000}
+    assert grades.grade_of(cut_off) == "C" and grades.grade_of({**cut_off, "status": "unknown"}) == "D"
     assert [grades.grade_rank(g) for g in "AB?"] == [0, 1, 4]
+    # a standing house is connected and may be renovated in a protected landscape: neither counts for it
+    remote = {**standing, "dist_power_m": 5000, "protection": "landscape park"}
+    assert grades.lights(remote)["access"]["level"] != "green" and grades.grade_of(remote) == "A"
+    assert grades.grade_of({**remote, "status": "unknown"}) in "CD"
 
 
 def test_commune_label():
@@ -656,7 +663,7 @@ def test_forest_database():
     assert "forest_db" in grades.lights(site)["rules"]["why"] and grades.lights(site)["rules"]["level"] == "amber"
     park_trees = {**site, "land_cover": "forest"}          # OSM wood, BDL: only a strip -> not forest
     bdl.annotate(Http(0.2), [park_trees])
-    assert grades.lights(park_trees)["rules"]["level"] == "green" and grades.grade_of(park_trees) == "A"
+    assert grades.lights(park_trees)["rules"]["level"] == "green" and grades.grade_of({**park_trees, "status": "standing"}) == "A"
     unasked = {k: v for k, v in park_trees.items() if not k.startswith("forest_")}
     assert "forest" in grades.lights(unasked)["rules"]["why"]                   # OSM fallback
 
@@ -685,7 +692,7 @@ def test_publish_site(built, monkeypatch):
     outlines = json.loads((built / "site" / "public" / "parcels.json").read_text(encoding="utf-8"))
     assert grades.dossier_id(sites[0]["uid"]) not in outlines                # a reserved site's parcel stays private
     items = [x for v in data["villages"] for x in v["sites"]]
-    assert all(x["grade"] in "ABCD?" and x["path"] in ("renovation", "new", "either") and len(x["L"]) == 5 for x in items)
+    assert all(x["grade"] in "ABCD?" and "path" not in x and len(x["L"]) == 5 for x in items)
     assert all(v["g"] == min((x["grade"] for x in v["sites"]), key=grades.grade_rank) for v in data["villages"])
     for s in sites:                                                       # no parcel data on the public site
         if s.get("parcel_id"):
@@ -908,7 +915,7 @@ def test_public_filters(built):
     html = (built / "site" / "public" / "index.html").read_text(encoding="utf-8")
     for el in ('id="kowrOnly"', 'id="parkOnly"', 'id="regOnly"', 'id="statuses"', 'id="ref"', 'id="km"', 'id="reset"'):
         assert el in html, el
-    assert "shown.has(sg(s)) && onPath(s) && F.status.has(s.status) && (!F.kowr || s.ku)" in html  # AND, not "KOWR overrides grade"
+    assert "shown.has(sg(s)) && F.status.has(s.status) && (!F.kowr || s.ku)" in html  # AND, not "KOWR overrides grade"
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     assert data["cfg"]["refs"]["Berlin"] == list(config.REFERENCE_POINTS["Berlin"])
 
@@ -1091,9 +1098,9 @@ def test_buildings_on_the_parcel_and_the_house_parcel():
     pipeline.count_buildings([with_house], read([[x + 10, y], [x + 80, y]], [120, 400]))      # one on, one off the parcel
     pipeline.count_buildings([empty], read([[x + 10, y]], [30]))                              # too small to live in
     assert with_house["buildings"] == {"n": 1, "max_m2": 120, "m2": 120} and empty["buildings"]["n"] == 0
-    assert grades.lights(with_house)["house"] == {"level": "green", "why": ["lost", "bldg_on"]}
-    assert grades.lights(empty)["house"] == {"level": "amber", "why": ["lost", "bldg_none"]}
-    assert grades.lights(base)["house"]["level"] == "green"                                   # not counted: as before
+    assert grades.lights(with_house)["house"] == {"level": "amber", "why": ["lost", "bldg_on"]}
+    assert grades.lights(empty)["house"] == {"level": "red", "why": ["lost", "bldg_none"]}
+    assert grades.lights(base)["house"]["level"] == "red"                                     # not counted: nothing known
     # a KOWR offer: all its parcels count, for buildings and for the area
     sale = {**base, "kowr_uid": "k", "offer_ha": 40.0}
     pipeline.count_buildings([sale], read([[x + 80, y]], [400]), {"k": box(x - 100, y - 100, x + 100, y + 100)})
@@ -1186,3 +1193,19 @@ def test_house_in_use(tags, use):
     assert house_use(text) == use
     L = lights({"status": "standing", "text": text, "lat": 52, "lon": 17})
     assert L["house"]["level"] == ("amber" if use else "green") and (("use_" + use) in L["house"]["why"]) == bool(use)
+
+
+def test_churches_are_never_the_house():
+    """A church or chapel next to a lost manor neither makes it 'standing' nor counts as an estate."""
+    from shapely.geometry import Point, box
+    from gutshaus.classify import text_flags
+    from gutshaus.pipeline import classify_status
+    from gutshaus.sources.osm import summarise_context
+    site = {"text": "dwór | dwór | XIX w. | Wieś", "name": "dwór", "location": "exact"}
+    church = summarise_context(Point(0, 0), [({"building": "church"}, box(20, -15, 60, 15))])
+    assert not church["big_buildings"] and classify_status(site, church) == "lost"
+    house = summarise_context(Point(0, 0), [({"building": "yes"}, box(20, -15, 60, 15))])
+    assert classify_status(site, house) == "standing"
+    assert text_flags("kościół dworski, ob. filialny | kościół | Świątniki")["excluded"]
+    assert text_flags("kaplica dworska | kaplica | Mgowo")["excluded"]
+    assert not text_flags("pałac z kaplicą | pałac | Czernica")["excluded"]

@@ -15,7 +15,7 @@ STATUS_DE = {"lost": "Herrenhaus nicht mehr vorhanden", "ruin": "Ruine / Reste v
 
 GREEN, AMBER, RED = "green", "amber", "red"
 GRADE_ORDER = "ABCD?"
-# what is left decides the path: renovate what stands, rebuild where nothing stands; ruins and unclear cases both
+# what is left suggests the project (the dossier's texts); the public grade does not depend on it
 PATHS = {"standing": "renovation", "lost": "new", "ruin": "either", "unknown": "either", "unlocated": "either"}
 
 
@@ -38,14 +38,15 @@ def lights(site: dict) -> dict[str, dict]:
     c = criteria.compute(site)
     out = {}
 
-    # buildings on the parcel (site["buildings"], from `gutshaus build`): somewhere to live while rebuilding
+    # the house, from a buyer's view: a standing house is best; a ruin, or a lost manor with another building on the
+    # parcel (somewhere to live, site["buildings"] from `gutshaus build`) is a weakness; nothing to live in is red
     b = site.get("buildings") if located else None
     house_why = [st or "unknown"]
-    level = {"standing": GREEN, "lost": GREEN, "ruin": AMBER, "unknown": AMBER}.get(st)
+    level = {"standing": GREEN, "lost": RED, "ruin": AMBER, "unknown": AMBER}.get(st)
     if b is not None and st != "standing":
         house_why.append("bldg_on" if b.get("n") else "bldg_none")
-        if st == "lost" and not b.get("n"):
-            level = AMBER                          # nothing to live in while the manor is rebuilt
+    if st == "lost" and b and b.get("n"):
+        level = AMBER
     use = (site["house_use"] if "house_use" in site else house_use(site.get("text") or "")) if st == "standing" else ""
     if use:                                        # a hotel, school, offices ...: rarely for sale, little to renovate
         house_why.append("use_" + use)
@@ -100,17 +101,38 @@ def lights(site: dict) -> dict[str, dict]:
     return out
 
 
+def counts(site: dict, L: dict) -> dict:
+    """The lights that count for the grade. A standing house is already connected and may be renovated in a
+    protected landscape: for it, utilities & access and a protected area (not forest, not a reserve) do not count."""
+    if site.get("status") != "standing":
+        return L
+    out = {k: x for k, x in L.items() if k != "access"}
+    r = L["rules"]
+    if r["level"] == AMBER and not {"forest", "forest_db"} & set(r["why"]):
+        out["rules"] = {**r, "level": GREEN}
+    return out
+
+
+def weaknesses(L: dict) -> int:
+    """Amber lights count one, red two (the house's red and a blocker decide the grade on their own)."""
+    return sum({AMBER: 1, RED: 2}.get(x["level"], 0) for x in L.values())
+
+
 def grade_of(site: dict, lights_: dict | None = None) -> str:
-    """A all five green · B four green, no red · C three green, at most one red · D otherwise ·
-    D in a national park or nature reserve · '?' when only the village is known."""
+    """How good a starting point the place is for a home of your own at a manor (config "Grades"):
+    D when no house is left or a rule stands in the way (national park, nature reserve) · A everything green ·
+    B one weakness · C two or three, or a ruin · D four or more · '?' when only the village is known."""
     if site.get("status") == "unlocated":
         return "?"
-    L = lights_ or lights(site)
-    if L["rules"]["level"] == RED:
+    L = counts(site, lights_ or lights(site))
+    if L["rules"]["level"] == RED or L["house"]["level"] == RED:
         return "D"
-    levels = [x["level"] for x in L.values()]
-    g, r = levels.count(GREEN), levels.count(RED)
-    return "A" if g == 5 else "B" if g == 4 and not r else "C" if g >= 3 and r <= 1 else "D"
+    n = weaknesses(L)
+    if n == 0 and all(x["level"] == GREEN for x in L.values()):
+        return "A"
+    if n <= 1 and site.get("status") != "ruin":
+        return "B"
+    return "C" if n <= 3 else "D"
 
 
 def grade_rank(g: str) -> int:

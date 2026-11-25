@@ -179,7 +179,7 @@ def _way(o, tags, wkb, w):
 def _area(o, tags, wkb, w):
     kind = "way" if o.from_way() else "relation"
     oid = o.orig_id()
-    if "building" in tags:
+    if "building" in tags and not osm_remote.is_worship(tags):   # a church is never the house
         w.add("buildings", wkb.create_multipolygon(o), {})
     poi = osm_remote.poi_kind(tags)  # not `kind`: that is way/relation here
     if poi:
