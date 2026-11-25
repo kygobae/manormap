@@ -177,6 +177,8 @@ footer a,.sec a{color:var(--accent)}
 .offer{padding:8px 10px;background:var(--sale-bg);border-left:3px solid var(--sale);border-radius:8px;font-size:.82rem}
 .offer a{color:var(--sale)}
 .offer svg{vertical-align:-1px;margin-right:4px}
+.offer.gone{background:#f1f2f1;border-left-color:#8a928d;color:#4d5651}
+.chips span.gonechip{border-color:#8a928d;color:#5d6963}
 .btn{display:inline-flex;justify-content:center;align-items:center;gap:6px;border:0;border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:700;font-size:.85rem;text-decoration:none}
 .btn.primary{background:var(--accent);color:var(--on-accent)}
 .btn.ghost{background:rgba(122,90,46,.1);color:var(--past)}
@@ -332,7 +334,7 @@ const T = {
  de:{tagline:"Gutshäuser in Polen – bewahren, wiederaufbauen, neu beleben",
   whatH:"Worum es geht",
   what:"Tausende Gutshäuser und Parks prägen bis heute die Landschaften Polens – ein gemeinsames Erbe von Polen und Deutschen. Manche stehen noch und warten auf neue Besitzer, von anderen sind nur Park und Allee geblieben. Wir verbinden historische Karten, das polnische Denkmalregister und aktuelle Geodaten und zeigen für jeden Ort, wie gut er sich für eine Sanierung oder einen Wiederaufbau eignet. Punkte zeigen die genaue Lage; ein Kreis heißt: nur das Dorf ist bekannt.",whatShop:" Flurstück, Karten und alle Daten stehen im Dossier.",
-  search:"Dorf suchen (polnisch oder deutsch) …",listInView:"{n} Orte in diesem Kartenausschnitt",listHits:"{n} Treffer",listMore:"+{n} weitere",listZoom:"{n} weitere: näher heranzoomen",listEmpty:"Hier keine Orte: Karte verschieben oder Filter ändern",listNoHits:"Kein Dorf gefunden",allRegions:"Alle Woiwodschaften",sites:"Standorte",villages:"Dörfer",
+  search:"Dorf suchen (polnisch oder deutsch) …",goneL:"Nicht mehr im KOWR-Angebot",goneSince:"seit {d}: vermutlich verkauft oder zurückgezogen",goneChip:"vermutlich verkauft",listInView:"{n} Orte in diesem Kartenausschnitt",listHits:"{n} Treffer",listMore:"+{n} weitere",listZoom:"{n} weitere: näher heranzoomen",listEmpty:"Hier keine Orte: Karte verschieben oder Filter ändern",listNoHits:"Kein Dorf gefunden",allRegions:"Alle Woiwodschaften",sites:"Standorte",villages:"Dörfer",
   dossierH:"Das Standort-Dossier",dossier:"Automatisch erstellt, als PDF sofort nach dem Kauf. Auf Deutsch, Polnisch oder Englisch, immer mit einem polnischen Blatt für Gemeinde, Denkmalpfleger und Notar.",
   includes:"<li>genaue Lage, Flurstücksnummer und -fläche</li><li>Luftbild und LiDAR-Relief mit Flurstücksgrenze</li><li>Leitungskarte; Entfernung zu Strom, Straße, Nachbarn, Wasser</li><li>Naturschutz, Flächennutzung, Denkmalregister</li><li>staatliches Verkaufsangebot (KOWR), falls vorhanden</li><li>Note mit Begründung und Checkliste der nächsten Schritte</li><li>Fördermöglichkeiten: Zuschüsse des Denkmalpflegers, des Kulturministeriums, der Woiwodschaft und der Gemeinde</li>",
   notIncluded:"Nicht enthalten: Bebauungsplan / WZ, Grundbuch, Auflagen des Denkmalpflegers, Anschlussbedingungen. Das Dossier sagt Ihnen, wo und wie Sie das prüfen.",
@@ -349,7 +351,7 @@ const T = {
  pl:{tagline:"Dwory i pałace w Polsce – zachować, odbudować, ożywić",
   whatH:"O co chodzi",
   what:"Tysiące dworów i parków do dziś kształtuje krajobraz Polski – to wspólne dziedzictwo Polaków i Niemców. Niektóre wciąż stoją i czekają na nowych właścicieli, z innych zostały tylko park i aleja. Łączymy mapy historyczne, polski rejestr zabytków i aktualne dane przestrzenne i pokazujemy dla każdego miejsca, na ile nadaje się do remontu lub odbudowy. Punkty pokazują dokładną lokalizację; okrąg oznacza, że znana jest tylko wieś.",whatShop:" Działka, mapy i wszystkie dane są w raporcie.",
-  search:"Szukaj wsi (polska lub niemiecka nazwa) …",listInView:"{n} miejsc w tym widoku",listHits:"{n} wyników",listMore:"+{n} kolejne",listZoom:"Jeszcze {n}: przybliż mapę",listEmpty:"Brak miejsc w tym widoku: przesuń mapę lub zmień filtry",listNoHits:"Nie znaleziono wsi",allRegions:"Wszystkie województwa",sites:"miejsc",villages:"wsi",
+  search:"Szukaj wsi (polska lub niemiecka nazwa) …",goneL:"Nie ma już w ofercie KOWR",goneSince:"od {d}: prawdopodobnie sprzedane lub wycofane",goneChip:"prawdopodobnie sprzedane",listInView:"{n} miejsc w tym widoku",listHits:"{n} wyników",listMore:"+{n} kolejne",listZoom:"Jeszcze {n}: przybliż mapę",listEmpty:"Brak miejsc w tym widoku: przesuń mapę lub zmień filtry",listNoHits:"Nie znaleziono wsi",allRegions:"Wszystkie województwa",sites:"miejsc",villages:"wsi",
   dossierH:"Raport o lokalizacji",dossier:"Generowany automatycznie, PDF od razu po zakupie. Po polsku, niemiecku lub angielsku, zawsze z polską kartą dla gminy, konserwatora i notariusza.",
   includes:"<li>dokładna lokalizacja, numer i powierzchnia działki</li><li>ortofotomapa i cieniowanie LiDAR z granicą działki</li><li>mapa uzbrojenia; odległość do linii energetycznej, drogi, sąsiadów, wody</li><li>ochrona przyrody, użytkowanie terenu, rejestr zabytków</li><li>oferta KOWR, jeśli istnieje</li><li>ocena z uzasadnieniem i lista kolejnych kroków</li><li>możliwości dofinansowania: dotacje konserwatora, ministerstwa, województwa i gminy</li>",
   notIncluded:"Raport nie obejmuje: MPZP / WZ, księgi wieczystej, wymagań konserwatora, warunków przyłączenia. Wskazuje, gdzie i jak to sprawdzić.",
@@ -366,7 +368,7 @@ const T = {
  en:{tagline:"Manor houses in Poland – preserve, rebuild, revive",
   whatH:"What this is",
   what:"Thousands of manor houses and parks still shape Poland's landscapes – a heritage shared by Poles and Germans. Some still stand and are waiting for new owners; of others only the park and the avenue remain. We combine historical maps, the Polish monument register and current geodata and show for every place how well it suits renovation or rebuilding. Dots show the exact site; a ring means only the village is known.",whatShop:" The parcel, maps and all data are in the dossier.",
-  search:"Search village (Polish or German name) …",listInView:"{n} places in this view",listHits:"{n} results",listMore:"+{n} more",listZoom:"{n} more: zoom in",listEmpty:"No places here: move the map or change the filters",listNoHits:"No village found",allRegions:"All voivodeships",sites:"sites",villages:"villages",
+  search:"Search village (Polish or German name) …",goneL:"No longer offered by KOWR",goneSince:"since {d}: probably sold or withdrawn",goneChip:"probably sold",listInView:"{n} places in this view",listHits:"{n} results",listMore:"+{n} more",listZoom:"{n} more: zoom in",listEmpty:"No places here: move the map or change the filters",listNoHits:"No village found",allRegions:"All voivodeships",sites:"sites",villages:"villages",
   dossierH:"The site dossier",dossier:"Generated automatically, PDF right after purchase. In English, German or Polish, always with a Polish sheet for the municipality, conservator and notary.",
   includes:"<li>exact location, parcel number and area</li><li>aerial photo and LiDAR relief with the parcel outline</li><li>utility map; distance to power line, road, neighbours, water</li><li>nature protection, land use, monument register</li><li>state sale offer (KOWR), if any</li><li>grade with explanation and a checklist of next steps</li><li>funding options: grants from the heritage conservator, the ministry of culture, the voivodeship and the municipality</li>",
   notIncluded:"Not included: zoning plan / WZ, land register, conservator requirements, utility connection terms. The dossier tells you where and how to check them.",
@@ -594,13 +596,16 @@ function cmpUi(){
 
 // KOWR offers matched to a site are shown on that site (badge + card); only unmatched ones get their own marker
 const OFFERS = Object.fromEntries(D.kowr.map(o => [o.id || o.url, o]));
-const MATCHED = new Set(VV.flatMap(v => v.sites.map(s => s.ku).filter(Boolean)));
+const MATCHED = new Set(VV.flatMap(v => v.sites.flatMap(s => [s.ku, s.kg]).filter(Boolean)));
 const ha = x => new Intl.NumberFormat(lng === "en" ? "en-GB" : lng, {maximumFractionDigits: 2}).format(x);
 const areaTxt = o => o.pl && o.pl.length
   ? t((o.pn || o.pl.length) > 1 ? "offerArea" : "offerArea1").replace("{n}", o.pn || o.pl.length).replace("{ha}", ha(o.ha || o.pha))
     + (o.pf && o.pn && o.pf < o.pn ? t("offerPartial").replace("{f}", o.pf) : "")
   : (o.ha ? ha(o.ha) + " ha" : "");
-const offerHtml = o => `<div class="offer"><b>${TAG("#245b8f", "#eaf1f8", 12)}${esc(t("kowr"))}</b><br>${esc(o.t)}<br>`
+const fmtDay = d => { try { return new Date(d + "T12:00:00").toLocaleDateString(lng, {day:"numeric", month:"long", year:"numeric"}); } catch(e) { return d; } };
+const goneHtml = o => `<div class="offer gone"><b>${TAG("#8a928d", "#f1f2f1", 12)}${esc(t("goneL"))}</b><br>${esc(o.t)}<br>`
+  + `<i>${esc(t("goneSince").replace("{d}", fmtDay(o.gone)))}</i></div>`;
+const offerHtml = o => o.gone ? goneHtml(o) : `<div class="offer"><b>${TAG("#245b8f", "#eaf1f8", 12)}${esc(t("kowr"))}</b><br>${esc(o.t)}<br>`
   + [esc(areaTxt(o)), o.reg ? esc(t("regL")) + " " + esc(o.reg) : ""].filter(Boolean).join(" · ")
   + (o.price ? `<br><b>${esc(t("priceL"))}: ${esc(zl(o.price))}</b>${o.disc ? ` · ${esc(t("discL"))} ${o.disc} %` : ""}` : "")
   + (o.tender ? `<br>${o.past ? `<i>${esc(t("tenderPast").replace("{d}", o.tender))}</i>` : `${esc(t("tender"))}: ${esc(o.tender)}`}` : "")
@@ -624,7 +629,7 @@ function drawOfferAreas(){
 map.on("zoomend moveend", drawOfferAreas);
 for(const o of D.kowr){
   if(MATCHED.has(o.id || o.url)) continue;
-  window.L.marker([o.lat,o.lon], {title:o.t, icon: window.L.divIcon({className:"", html:`<div style="background:#245b8f;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25)">${TAG("#fff", "#245b8f", 13)}</div>`, iconSize:[24,24]})})
+  window.L.marker([o.lat,o.lon], {title:o.t, icon: window.L.divIcon({className:"", html:`<div style="background:${o.gone ? "#8a928d" : "#245b8f"};border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25)">${TAG("#fff", "#245b8f", 13)}</div>`, iconSize:[24,24]})})
    .on("click", () => showCard(`<p class="place">${esc(o.t)}</p>${offerHtml(o)}`))
    .addTo(kowrLayer);
 }
@@ -677,7 +682,7 @@ const LIGHT_OF = {park:"plot",nopark:"plot",parcel_small:"plot",parcel_large:"pl
 const houseFar = s => Math.abs(s.h[0] - s.lat) + Math.abs(s.h[1] - s.lon) > 0.0003;   // about 25 m
 function siteHtml(s){
   const chip = (k, cls="") => `<span class="${cls}">${esc(k)}</span>`;
-  const tags = s.kowr ? chip(t("forSale"), "sale") : "";        // park and register are in the parts
+  const tags = s.kowr ? chip(t("forSale"), "sale") : s.kg ? chip(t("goneChip"), "gonechip") : "";        // park and register are in the parts
   const W = t("why"), town = C.town || [7, 15];
   const txt = c => (W[c] || c).replace("{a}", town[0]).replace("{b}", town[1]);
   const item = (k, text) => `<li><span class="ic ${k}">${ICON[k]}</span><span>${esc(text)}</span></li>`;
@@ -706,6 +711,7 @@ function siteHtml(s){
     <ul class="lights">${rows}</ul>`;
   if(tags) h += `<div class="chips">${tags}</div>`;
   if(s.ku && OFFERS[s.ku]) h += offerHtml(OFFERS[s.ku]);
+  else if(s.kg && OFFERS[s.kg]) h += offerHtml(OFFERS[s.kg]);        // dropped off KOWR's lists lately
   if(s.status === "standing" && !s.ku) h += `<div class="small">${esc(t("private"))}</div>`;  // KOWR sites are state property
   h += `<div class="actions"><button class="btn plain" type="button" data-share="${esc(s.id)}">${SHARE_ICON} ${esc(t("share"))}</button>`
     + (s.lat ? `<button class="btn ghost" type="button" data-cmp="${s.lat},${s.lon}">${icon("ruin", "currentColor", 15)} ${esc(t("onMtb"))}</button>` : "")
@@ -748,10 +754,10 @@ function drawMarkers(){
   for(const r of RES){
     for(const s of r.located){
       shownSites.push(s);
-      const g = sg(s), sale = s.ku && showSale;        // the "state sale offer" overlay switches the highlighting
+      const g = sg(s), sale = s.ku && showSale, sold = !s.ku && s.kg && showSale;        // the "state sale offer" overlay switches the highlighting
       let m;
       if(chips && b.contains([s.lat, s.lon]) && nChips++ < CHIP_MAX){     // close up: state icon + grade
-        const html = `<div class="mchip${s === selected ? " sel" : ""}" style="--c:${COL[g]}">${icon(s.status, COL[g], 17)}${g}${sale ? `<span class="sale">${TAG("#fff", "#245b8f", 9)}</span>` : ""}</div>`;
+        const html = `<div class="mchip${s === selected ? " sel" : ""}" style="--c:${COL[g]}">${icon(s.status, COL[g], 17)}${g}${sale ? `<span class="sale">${TAG("#fff", "#245b8f", 9)}</span>` : sold ? `<span class="sale" style="background:#8a928d">${TAG("#fff", "#8a928d", 9)}</span>` : ""}</div>`;
         m = window.L.marker([s.lat, s.lon], {zIndexOffset: sale ? 1000 : 0, title: r.v.v, icon: window.L.divIcon({className:"", html, iconSize:[46,26], iconAnchor:[23,42]})});
       } else if(chips){
         continue;
@@ -821,7 +827,7 @@ function renderList(){
     li.innerHTML = `<span class="g ${gcls(g)}">${g}</span>`
       + `<span class="n"><span class="nm">${esc(v.v)}</span>${v.de ? `<span class="de">${esc(v.de)}</span>` : ""}`
       + `<br><span class="small">${esc(v.pw)}${facts ? " · " + esc(facts) : ""}</span></span>`
-      + `<span class="c">${s.ku ? `<span class="sale" title="${esc(t("forSale"))}">${TAG("#245b8f", "#fff", 14)}</span>` : ""}`
+      + `<span class="c">${s.ku ? `<span class="sale" title="${esc(t("forSale"))}">${TAG("#245b8f", "#fff", 14)}</span>` : s.kg ? `<span class="sale" title="${esc(t("goneChip"))}">${TAG("#8a928d", "#fff", 14)}</span>` : ""}`
       + `<span title="${esc(t("status")[s.status] || "")}">${icon(s.status, COL[g], 18)}</span></span>`;
     li.onclick = () => focusVillage(r);
     li.onkeydown = e => { if(e.key === "Enter") focusVillage(r); };
@@ -851,7 +857,7 @@ for(const g of GRADES){
 function legend(){
   const it = (st, k) => `<span>${icon(st, "#5d6963", 15)}${esc(t(k))}</span>`;
   $("legend").innerHTML = it("standing","lgStanding") + it("ruin","lgRuin") + it("lost","lgLost") + it("unknown","lgUnknown") + it("unlocated","lgVillage")
-    + `<span>${TAG("#245b8f", "#fff", 13)}${esc(t("forSale"))}</span>`;
+    + `<span>${TAG("#245b8f", "#fff", 13)}${esc(t("forSale"))}</span><span>${TAG("#8a928d", "#fff", 13)}${esc(t("goneChip"))}</span>`;
 }
 
 // phones: the panel is a bottom sheet

@@ -1240,3 +1240,23 @@ def test_nearest_services():
               "city": (np.array([[x, y + 31000]]), np.array(["Poznań"]))}
     assert pipeline.nearest_services(sites, places) == 1
     assert sites[0]["services"] == {"shop": 1200, "city": ["Poznań", 31000]} and "services" not in sites[1]
+
+
+def test_kowr_offers_that_dropped_off(tmp_path):
+    """Offers seen before but gone from KOWR's lists stay KOWR_GONE_DAYS as 'probably sold' and mark their site."""
+    from gutshaus.sources import kowr
+    from gutshaus.geo import ll_to_pl
+    path = tmp_path / "_kowr_history.json"
+    x, y = ll_to_pl(15.5, 53.2)
+    konotop = {"uid": "k1", "title": "Konotop", "url": "u1", "lat": 53.2, "lon": 15.5, "x": x, "y": y,
+               "tender": "24.11.2026"}
+    other = {"uid": "k2", "title": "Rynarcice", "url": "u2", "lat": 51.5, "lon": 16.2}
+    kowr.remember([konotop, other], path, "2026-11-24")
+    kowr.remember([other], path, "2026-11-25")                      # Konotop is no longer listed
+    assert [o["uid"] for o in kowr.recently_gone(path, [other], "2026-11-25")] == ["k1"]
+    assert kowr.recently_gone(path, [other], "2026-11-25")[0]["gone"] == "2026-11-24"
+    assert kowr.recently_gone(path, [other], "2027-03-01") == []    # older than KOWR_GONE_DAYS
+    assert kowr.recently_gone(path, [konotop, other], "2026-11-25") == []   # listed again
+    site = {"lat": 53.2, "lon": 15.5, "precinct": "Konotop"}
+    assert kowr.match([site], kowr.recently_gone(path, [other], "2026-11-25"), gone=True) == 1
+    assert site["kowr_gone"] == {"uid": "k1", "t": "Konotop", "since": "2026-11-24"} and "kowr_offer" not in site

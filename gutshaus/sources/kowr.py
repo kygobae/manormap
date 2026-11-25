@@ -302,12 +302,54 @@ def fetch(http: Http) -> list[dict]:
     return offers
 
 
+# ------------------------------------------------------------------ offers that dropped off the lists
+HISTORY_KEYS = ("uid", "title", "url", "lat", "lon", "x", "y", "parcels", "parcels_ll", "parcels_ha", "area_ha",
+                "obreb", "gmina", "powiat", "voivodeship", "place", "tender", "source", "register")
+
+
+def history_path(cache: Path) -> Path:
+    return Path(cache).with_name("_kowr_history.json")
+
+
+def remember(offers: list[dict], path: Path, today: str | None = None) -> dict:
+    """Every offer ever seen, with first_seen / last_seen (ISO dates), in <out-root>/_kowr_history.json."""
+    today = today or time.strftime("%Y-%m-%d")
+    hist = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    for o in offers:
+        uid = o.get("uid") or o.get("url")
+        old = hist.get(uid) or {}
+        hist[uid] = {**{k: o[k] for k in HISTORY_KEYS if o.get(k) is not None},
+                     "first_seen": old.get("first_seen") or today, "last_seen": today}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(hist, ensure_ascii=False, default=str), encoding="utf-8")
+    return hist
+
+
+def recently_gone(path: Path, current: list[dict], today: str | None = None) -> list[dict]:
+    """Offers seen before but not in `current`, gone for at most config.KOWR_GONE_DAYS: {..., "gone": last_seen}.
+    KOWR does not say why (sold, withdrawn, a tender without bidders): the map says "probably sold"."""
+    if not Path(path).exists():
+        return []
+    import datetime as dt
+    now = dt.date.fromisoformat(today or time.strftime("%Y-%m-%d"))
+    ids = {o.get("uid") or o.get("url") for o in current}
+    out = []
+    for uid, h in json.loads(Path(path).read_text(encoding="utf-8")).items():
+        if uid in ids or h.get("lat") is None:
+            continue
+        days = (now - dt.date.fromisoformat(h["last_seen"])).days
+        if 0 < days <= config.KOWR_GONE_DAYS:
+            out.append({**h, "uid": uid, "gone": h["last_seen"]})
+    return out
+
+
 def load_or_fetch(http: Http, cache: Path, max_age_h: float = 24, refresh: bool = False) -> list[dict]:
     """Offers cached in <out-root>/_kowr.json, refreshed daily."""
     if cache.exists() and not refresh and time.time() - cache.stat().st_mtime < max_age_h * 3600:
         offers = json.loads(cache.read_text(encoding="utf-8"))
         if add_monuments(http, offers):                     # offers cached before register entries were looked up
             cache.write_text(json.dumps(offers, ensure_ascii=False, default=str), encoding="utf-8")
+        remember(offers, history_path(cache), time.strftime("%Y-%m-%d", time.localtime(cache.stat().st_mtime)))
         return offers
     old = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else []
     try:
@@ -323,6 +365,7 @@ def load_or_fetch(http: Http, cache: Path, max_age_h: float = 24, refresh: bool 
     add_monuments(http, offers)
     cache.parent.mkdir(parents=True, exist_ok=True)
     cache.write_text(json.dumps(offers, ensure_ascii=False, default=str), encoding="utf-8")
+    remember(offers, history_path(cache))
     return offers
 
 
@@ -451,9 +494,10 @@ def site_from_offer(o: dict) -> dict:
             "sources": "kowr", "names": [name], "nid_names": [], "also_known_as": ""}
 
 
-def match(sites: list[dict], offers: list[dict], radius_m: float | None = None) -> int:
+def match(sites: list[dict], offers: list[dict], radius_m: float | None = None, gone: bool = False) -> int:
     """Flag sites on the offered parcels (within radius of the offer when its parcels are unknown, in the same
-    obręb when the offer could not be located). Returns the number of flagged sites."""
+    obręb when the offer could not be located). Returns the number of flagged sites. With gone=True (offers from
+    recently_gone) a site not on a current offer gets kowr_gone = {uid, t, since} instead."""
     areas = [offer_area(o) for o in offers]
     n = 0
     for s in sites:
@@ -466,6 +510,12 @@ def match(sites: list[dict], offers: list[dict], radius_m: float | None = None) 
             if o.get("x") is None and same_precinct(o, s):
                 hit = o
                 break
+        if hit and gone:
+            if not s.get("kowr_offer"):
+                s["kowr_gone"] = {"uid": hit.get("uid") or hit["url"], "t": hit.get("title") or hit.get("place"),
+                                  "since": hit["gone"]}
+                n += 1
+            continue
         if hit:
             s["kowr_offer"] = hit.get("title") or hit.get("place")
             s["kowr_url"] = hit["url"]
