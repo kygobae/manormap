@@ -257,10 +257,15 @@ def cmd_build(args):
     http = Http(root / ".cache")
     offers = load_kowr(args, http)
     for s in sites:
-        for k in ("kowr_offer", "kowr_url", "kowr_tender", "kowr_uid", "kowr_kw", "kowr_monuments", "offer_ha"):
+        for k in ("kowr_offer", "kowr_url", "kowr_tender", "kowr_uid", "kowr_kw", "kowr_monuments", "offer_ha",
+                  "kowr_gone"):
             s.pop(k, None)
     if offers:
         kowr.match(sites, offers)
+    gone = kowr.recently_gone(kowr.history_path(root / "_kowr.json"), offers) if not getattr(args, "skip_kowr", False) else []
+    if gone:                                             # dropped off KOWR's lists lately: probably sold
+        log.info("KOWR: %d offers gone in the last %d days, %d sites marked", len(gone), config.KOWR_GONE_DAYS,
+                 kowr.match(sites, gone, gone=True))
     n_fixed = apply_status_overrides(sites, config.STATUS_OVERRIDES)
     mark_houses(args, root, sites)                       # which building a "standing" state rests on (map marker)
     from .sources import uldk                            # ... and its parcel is the site's parcel (cached lookups)

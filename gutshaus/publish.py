@@ -99,6 +99,8 @@ def site_item(did: str, s: dict) -> dict:
         ha = s.get("offer_ha") or s.get("parcel_ha")   # land area: all parcels of a KOWR offer, else the site's parcel
         if ha:
             item["ha"] = round(ha, 2)
+    if s.get("kowr_gone"):
+        item["kg"] = s["kowr_gone"]["uid"]               # a KOWR offer here dropped off the lists lately
     if s.get("kowr_url"):
         item["ku"] = s.get("kowr_uid") or s["kowr_url"]  # the matched KOWR offer (D.kowr[].url): shown in this site's popup, not separately
     return item
@@ -189,6 +191,7 @@ def offers(sites: list[dict], kowr_json: Path | None) -> list[dict]:
         return []
     raw = json.loads(Path(kowr_json).read_text(encoding="utf-8"))
     raw = raw.get("offers", raw) if isinstance(raw, dict) else raw
+    raw = raw + kowr.recently_gone(kowr.history_path(Path(kowr_json)), raw)   # greyed: probably sold
     # a card's planned tender period can lie in the past while the card is still online: say so instead of
     # showing the old date as if it were coming
     return [{"id": o.get("uid") or o.get("url"), "t": o.get("title"), "url": o.get("url"), "lat": o.get("lat"),
@@ -198,7 +201,7 @@ def offers(sites: list[dict], kowr_json: Path | None) -> list[dict]:
              # the whole tender area (often the manor with its farmland): KOWR publishes these parcels itself
              "pl": [[[lat, lon] for lon, lat in ring] for ring in o.get("parcels_ll") or []],
              "pn": len(o.get("parcels") or []) or o.get("parcels_found"), "pf": o.get("parcels_found"),
-             "pha": o.get("parcels_ha")}
+             "pha": o.get("parcels_ha"), "gone": o.get("gone")}
             for o in raw if o.get("lat") is not None]
 
 

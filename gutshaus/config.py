@@ -230,6 +230,9 @@ SURROUNDINGS_RADIUS_M = {"wind": 3000, "main_road": 2000, "railway": 2000, "live
 LIVESTOCK_MIN_M2 = 800
 LIVESTOCK_BUILDINGS = ("cowshed", "sty", "chicken_coop", "stable")
 MAIN_ROADS = ("motorway", "trunk", "primary")
+# An offer that drops off KOWR's lists (card removed, all tenders past) stays on the map this many days, greyed:
+# "no longer offered since ...: probably sold or withdrawn" (KOWR publishes no machine-readable results)
+KOWR_GONE_DAYS = 90
 # A KOWR fetch with fewer offers than this share of the cached ones is treated as failed (the cache is kept)
 KOWR_MIN_SHARE = 0.6
 # KOWR branches, only used if the overview gov.pl/web/kowr/harmonogramy (which links every branch's schedule page)
