@@ -137,7 +137,9 @@ details.intro[open] summary::after{content:"–"}
 #list .n{flex:1;min-width:0}
 #list .nm{font-family:var(--font-place);font-weight:600;font-size:.98rem}
 #list .de{color:var(--muted);font-size:.78rem;margin-left:4px}
-#list .c{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+#list .c{display:flex;gap:4px;align-items:center}
+#list li.more{cursor:default;color:var(--muted);font-size:.8rem;justify-content:center;text-align:center}
+#list li.more:hover{background:none}
 ul.inc{margin:4px 0 0;padding-left:18px;font-size:.82rem}
 footer{font-size:.74rem;color:var(--muted);padding:12px 16px}
 footer a,.sec a{color:var(--accent)}
@@ -330,7 +332,7 @@ const T = {
  de:{tagline:"Gutshäuser in Polen – bewahren, wiederaufbauen, neu beleben",
   whatH:"Worum es geht",
   what:"Tausende Gutshäuser und Parks prägen bis heute die Landschaften Polens – ein gemeinsames Erbe von Polen und Deutschen. Manche stehen noch und warten auf neue Besitzer, von anderen sind nur Park und Allee geblieben. Wir verbinden historische Karten, das polnische Denkmalregister und aktuelle Geodaten und zeigen für jeden Ort, wie gut er sich für eine Sanierung oder einen Wiederaufbau eignet. Punkte zeigen die genaue Lage; ein Kreis heißt: nur das Dorf ist bekannt.",whatShop:" Flurstück, Karten und alle Daten stehen im Dossier.",
-  search:"Dorf suchen (polnisch oder deutsch) …",allRegions:"Alle Woiwodschaften",sites:"Standorte",villages:"Dörfer",
+  search:"Dorf suchen (polnisch oder deutsch) …",listInView:"{n} Orte in diesem Kartenausschnitt",listHits:"{n} Treffer",listMore:"+{n} weitere",listZoom:"{n} weitere: näher heranzoomen",listEmpty:"Hier keine Orte: Karte verschieben oder Filter ändern",listNoHits:"Kein Dorf gefunden",allRegions:"Alle Woiwodschaften",sites:"Standorte",villages:"Dörfer",
   dossierH:"Das Standort-Dossier",dossier:"Automatisch erstellt, als PDF sofort nach dem Kauf. Auf Deutsch, Polnisch oder Englisch, immer mit einem polnischen Blatt für Gemeinde, Denkmalpfleger und Notar.",
   includes:"<li>genaue Lage, Flurstücksnummer und -fläche</li><li>Luftbild und LiDAR-Relief mit Flurstücksgrenze</li><li>Leitungskarte; Entfernung zu Strom, Straße, Nachbarn, Wasser</li><li>Naturschutz, Flächennutzung, Denkmalregister</li><li>staatliches Verkaufsangebot (KOWR), falls vorhanden</li><li>Note mit Begründung und Checkliste der nächsten Schritte</li><li>Fördermöglichkeiten: Zuschüsse des Denkmalpflegers, des Kulturministeriums, der Woiwodschaft und der Gemeinde</li>",
   notIncluded:"Nicht enthalten: Bebauungsplan / WZ, Grundbuch, Auflagen des Denkmalpflegers, Anschlussbedingungen. Das Dossier sagt Ihnen, wo und wie Sie das prüfen.",
@@ -347,7 +349,7 @@ const T = {
  pl:{tagline:"Dwory i pałace w Polsce – zachować, odbudować, ożywić",
   whatH:"O co chodzi",
   what:"Tysiące dworów i parków do dziś kształtuje krajobraz Polski – to wspólne dziedzictwo Polaków i Niemców. Niektóre wciąż stoją i czekają na nowych właścicieli, z innych zostały tylko park i aleja. Łączymy mapy historyczne, polski rejestr zabytków i aktualne dane przestrzenne i pokazujemy dla każdego miejsca, na ile nadaje się do remontu lub odbudowy. Punkty pokazują dokładną lokalizację; okrąg oznacza, że znana jest tylko wieś.",whatShop:" Działka, mapy i wszystkie dane są w raporcie.",
-  search:"Szukaj wsi (polska lub niemiecka nazwa) …",allRegions:"Wszystkie województwa",sites:"miejsc",villages:"wsi",
+  search:"Szukaj wsi (polska lub niemiecka nazwa) …",listInView:"{n} miejsc w tym widoku",listHits:"{n} wyników",listMore:"+{n} kolejne",listZoom:"Jeszcze {n}: przybliż mapę",listEmpty:"Brak miejsc w tym widoku: przesuń mapę lub zmień filtry",listNoHits:"Nie znaleziono wsi",allRegions:"Wszystkie województwa",sites:"miejsc",villages:"wsi",
   dossierH:"Raport o lokalizacji",dossier:"Generowany automatycznie, PDF od razu po zakupie. Po polsku, niemiecku lub angielsku, zawsze z polską kartą dla gminy, konserwatora i notariusza.",
   includes:"<li>dokładna lokalizacja, numer i powierzchnia działki</li><li>ortofotomapa i cieniowanie LiDAR z granicą działki</li><li>mapa uzbrojenia; odległość do linii energetycznej, drogi, sąsiadów, wody</li><li>ochrona przyrody, użytkowanie terenu, rejestr zabytków</li><li>oferta KOWR, jeśli istnieje</li><li>ocena z uzasadnieniem i lista kolejnych kroków</li><li>możliwości dofinansowania: dotacje konserwatora, ministerstwa, województwa i gminy</li>",
   notIncluded:"Raport nie obejmuje: MPZP / WZ, księgi wieczystej, wymagań konserwatora, warunków przyłączenia. Wskazuje, gdzie i jak to sprawdzić.",
@@ -364,7 +366,7 @@ const T = {
  en:{tagline:"Manor houses in Poland – preserve, rebuild, revive",
   whatH:"What this is",
   what:"Thousands of manor houses and parks still shape Poland's landscapes – a heritage shared by Poles and Germans. Some still stand and are waiting for new owners; of others only the park and the avenue remain. We combine historical maps, the Polish monument register and current geodata and show for every place how well it suits renovation or rebuilding. Dots show the exact site; a ring means only the village is known.",whatShop:" The parcel, maps and all data are in the dossier.",
-  search:"Search village (Polish or German name) …",allRegions:"All voivodeships",sites:"sites",villages:"villages",
+  search:"Search village (Polish or German name) …",listInView:"{n} places in this view",listHits:"{n} results",listMore:"+{n} more",listZoom:"{n} more: zoom in",listEmpty:"No places here: move the map or change the filters",listNoHits:"No village found",allRegions:"All voivodeships",sites:"sites",villages:"villages",
   dossierH:"The site dossier",dossier:"Generated automatically, PDF right after purchase. In English, German or Polish, always with a Polish sheet for the municipality, conservator and notary.",
   includes:"<li>exact location, parcel number and area</li><li>aerial photo and LiDAR relief with the parcel outline</li><li>utility map; distance to power line, road, neighbours, water</li><li>nature protection, land use, monument register</li><li>state sale offer (KOWR), if any</li><li>grade with explanation and a checklist of next steps</li><li>funding options: grants from the heritage conservator, the ministry of culture, the voivodeship and the municipality</li>",
   notIncluded:"Not included: zoning plan / WZ, land register, conservator requirements, utility connection terms. The dossier tells you where and how to check them.",
@@ -393,7 +395,7 @@ for(const l of Object.keys(T2)) Object.assign(T[l], T2[l]);
 const T3 = {
  de:{mAll:"Alle",pathL:{renovation:"Sanierung",new:"Wiederaufbau",either:"Sanierung oder Wiederaufbau"},
   gradeQ:"noch keine Note: nur das Dorf ist bekannt",
-  gradesText:"Die Note zeigt, wie gut sich ein Ort als Ausgangspunkt für ein eigenes Zuhause am Gutshaus eignet. Wie im Zeugnis bekommt jeder Teil eine Note: <b>Haus</b> (steht es noch?), <b>Lage</b> (Einkaufen, Schule, Arzt, nächste Stadt), <b>Park & Grundstück</b>, <b>Schutz & Planung</b> und <b>Erschließung</b>. Die Gesamtnote ist ihr gewichteter Durchschnitt: Haus 35 %, Lage 25 %, Park & Grundstück 20 %, Schutz & Planung 10 %, Erschließung 10 %. In einem Nationalpark oder Naturschutzgebiet ist sie immer D.<br><b>A</b> sehr gut · <b>B</b> gut · <b>C</b> befriedigend · <b>D</b> schwach · <b>?</b> nur das Dorf ist bekannt.<br>Die Note beurteilt nicht den Zustand des Gebäudes, den Preis oder ob der Ort zu verkaufen ist.",gradeLbl:{A:"sehr gut",B:"gut",C:"befriedigend",D:"schwach","?":"noch keine Note: nur das Dorf ist bekannt"},svL:{shop:"Einkaufen",school:"Schule",doctor:"Arzt"},
+  gradesText:"Die Note zeigt, wie gut sich ein Ort als Ausgangspunkt für ein eigenes Zuhause am Gutshaus eignet. Wie im Zeugnis bekommt jeder Teil eine Note: <b>Haus</b> (steht es noch?), <b>Lage</b> (Einkaufen, Schule, Arzt, nächste Stadt), <b>Park & Grundstück</b>, <b>Schutz & Planung</b> und <b>Erschließung</b>. Die Gesamtnote ist ihr gewichteter Durchschnitt: Haus 35 %, Lage 25 %, Park & Grundstück 20 %, Schutz & Planung 10 %, Erschließung 10 %. In einem Nationalpark oder Naturschutzgebiet ist sie immer D.<br><b>A</b> sehr gut · <b>B</b> gut · <b>C</b> befriedigend · <b>D</b> eingeschränkt · <b>?</b> nur das Dorf ist bekannt.<br>Die Note beurteilt nicht den Zustand des Gebäudes, den Preis oder ob der Ort zu verkaufen ist.",gradeLbl:{A:"sehr gut",B:"gut",C:"befriedigend",D:"eingeschränkt","?":"noch keine Note: nur das Dorf ist bekannt"},svL:{shop:"Einkaufen",school:"Schule",doctor:"Arzt"},
   lights:{house:"Haus",plot:"Park & Grundstück",access:"Erschließung",rules:"Schutz & Planung",location:"Lage"},unknownL:"unbekannt",areaL:"Grundstück {a} ha",
   why:{power_village:"Nachbarhäuser haben Strom",use_hotel:"genutzt als Hotel oder Pension",use_school:"genutzt als Schule oder Hochschule",use_office:"genutzt als Amt oder Büro",use_care:"genutzt als Klinik oder Pflegeheim",use_museum:"genutzt als Museum oder Kulturhaus",use_flats:"Wohnungen: oft mehrere Eigentümer",use_church:"kirchlich genutzt",park_apart:"Park auf einem eigenen Flurstück: die Eigentümer können verschieden sein",bldg_on:"Gebäude auf dem Flurstück: Wohnen während der Bauzeit denkbar",bldg_none:"kein Gebäude auf dem Flurstück: während der Bauzeit woanders wohnen",standing:"Herrenhaus steht: den Zustand vor Ort prüfen",lost:"Herrenhaus verschwunden: kein Haus zum Sanieren",nohouse:"kein Haus mehr",ruin:"Ruine: der Denkmalschutz entscheidet über die Mauern",unknown:"Zustand unklar: vor Ort prüfen",unlocated:"Lage im Dorf noch unbekannt",
    park:"historischer Park",nopark:"kein Park verzeichnet",parcel_small:"Flurstück sehr klein",parcel_large:"Flurstück sehr groß (über 15 ha)",
@@ -402,7 +404,7 @@ const T3 = {
    town_near:"Stadt unter {a} km",town_mid:"Stadt {a}–{b} km entfernt",town_far:"Stadt über {b} km entfernt",water:"See oder Fluss in der Nähe"}},
  pl:{mAll:"Wszystkie",pathL:{renovation:"Remont",new:"Odbudowa",either:"Remont lub odbudowa"},
   gradeQ:"jeszcze bez oceny: znana tylko wieś",
-  gradesText:"Ocena pokazuje, na ile miejsce nadaje się na własny dom przy dawnym dworze. Jak na świadectwie każda część dostaje ocenę: <b>budynek</b> (czy stoi?), <b>położenie</b> (sklep, szkoła, lekarz, najbliższe miasto), <b>park i działka</b>, <b>ochrona i planowanie</b> oraz <b>media i dojazd</b>. Ocena ogólna to ich średnia ważona: budynek 35 %, położenie 25 %, park i działka 20 %, ochrona i planowanie 10 %, media i dojazd 10 %. W parku narodowym lub rezerwacie zawsze D.<br><b>A</b> bardzo dobra · <b>B</b> dobra · <b>C</b> dostateczna · <b>D</b> słaba · <b>?</b> znana tylko wieś.<br>Ocena nie dotyczy stanu budynku, ceny ani tego, czy miejsce jest na sprzedaż.",gradeLbl:{A:"bardzo dobra",B:"dobra",C:"dostateczna",D:"słaba","?":"jeszcze bez oceny: znana tylko wieś"},svL:{shop:"Sklep",school:"Szkoła",doctor:"Lekarz"},
+  gradesText:"Ocena pokazuje, na ile miejsce nadaje się na własny dom przy dawnym dworze. Jak na świadectwie każda część dostaje ocenę: <b>budynek</b> (czy stoi?), <b>położenie</b> (sklep, szkoła, lekarz, najbliższe miasto), <b>park i działka</b>, <b>ochrona i planowanie</b> oraz <b>media i dojazd</b>. Ocena ogólna to ich średnia ważona: budynek 35 %, położenie 25 %, park i działka 20 %, ochrona i planowanie 10 %, media i dojazd 10 %. W parku narodowym lub rezerwacie zawsze D.<br><b>A</b> bardzo dobra · <b>B</b> dobra · <b>C</b> dostateczna · <b>D</b> z ograniczeniami · <b>?</b> znana tylko wieś.<br>Ocena nie dotyczy stanu budynku, ceny ani tego, czy miejsce jest na sprzedaż.",gradeLbl:{A:"bardzo dobra",B:"dobra",C:"dostateczna",D:"z ograniczeniami","?":"jeszcze bez oceny: znana tylko wieś"},svL:{shop:"Sklep",school:"Szkoła",doctor:"Lekarz"},
   lights:{house:"Budynek",plot:"Park i działka",access:"Media i dojazd",rules:"Ochrona i planowanie",location:"Położenie"},unknownL:"brak danych",areaL:"działka {a} ha",
   why:{power_village:"sąsiednie budynki mają prąd",use_hotel:"użytkowany jako hotel lub pensjonat",use_school:"użytkowany jako szkoła lub uczelnia",use_office:"siedziba urzędu lub biura",use_care:"szpital lub dom opieki",use_museum:"muzeum lub dom kultury",use_flats:"mieszkania: często wielu właścicieli",use_church:"użytkowany przez Kościół lub zakon",park_apart:"park na osobnej działce: właściciele mogą być różni",bldg_on:"budynek na działce: można w nim mieszkać w czasie budowy",bldg_none:"brak budynku na działce: w czasie budowy trzeba mieszkać gdzie indziej",standing:"dwór istnieje: stan sprawdzić na miejscu",lost:"dwór nie istnieje: nie ma czego remontować",nohouse:"dworu już nie ma",ruin:"ruina: o murach decyduje konserwator",unknown:"stan niejasny: sprawdzić na miejscu",unlocated:"lokalizacja we wsi jeszcze nieznana",
    park:"zabytkowy park",nopark:"brak parku w danych",parcel_small:"bardzo mała działka",parcel_large:"bardzo duża działka (ponad 15 ha)",
@@ -411,7 +413,7 @@ const T3 = {
    town_near:"miasto w promieniu {a} km",town_mid:"miasto {a}–{b} km",town_far:"miasto dalej niż {b} km",water:"jezioro lub rzeka w pobliżu"}},
  en:{mAll:"All",pathL:{renovation:"Renovation",new:"Rebuilding",either:"Renovation or rebuilding"},
   gradeQ:"no grade yet: only the village is known",
-  gradesText:"The grade shows how good a starting point a place is for your own home at a manor. Like a school report, each part gets a grade: <b>house</b> (is it still standing?), <b>location</b> (shopping, school, doctor, nearest city), <b>park & plot</b>, <b>protection & planning</b> and <b>utilities & access</b>. The overall grade is their weighted average: house 35 %, location 25 %, park & plot 20 %, protection & planning 10 %, utilities & access 10 %. In a national park or nature reserve it is always D.<br><b>A</b> excellent · <b>B</b> good · <b>C</b> fair · <b>D</b> poor · <b>?</b> only the village is known.<br>The grade does not judge the condition of the building, the price or whether the place is for sale.",gradeLbl:{A:"excellent",B:"good",C:"fair",D:"poor","?":"no grade yet: only the village is known"},svL:{shop:"Shopping",school:"School",doctor:"Doctor"},
+  gradesText:"The grade shows how good a starting point a place is for your own home at a manor. Like a school report, each part gets a grade: <b>house</b> (is it still standing?), <b>location</b> (shopping, school, doctor, nearest city), <b>park & plot</b>, <b>protection & planning</b> and <b>utilities & access</b>. The overall grade is their weighted average: house 35 %, location 25 %, park & plot 20 %, protection & planning 10 %, utilities & access 10 %. In a national park or nature reserve it is always D.<br><b>A</b> excellent · <b>B</b> good · <b>C</b> fair · <b>D</b> limited · <b>?</b> only the village is known.<br>The grade does not judge the condition of the building, the price or whether the place is for sale.",gradeLbl:{A:"excellent",B:"good",C:"fair",D:"limited","?":"no grade yet: only the village is known"},svL:{shop:"Shopping",school:"School",doctor:"Doctor"},
   lights:{house:"House",plot:"Park & plot",access:"Utilities & access",rules:"Protection & planning",location:"Location"},unknownL:"unknown",areaL:"plot {a} ha",
   why:{power_village:"neighbouring houses have power",use_hotel:"in use as a hotel or guesthouse",use_school:"in use as a school or university",use_office:"in use as offices or a public authority",use_care:"in use as a clinic or care home",use_museum:"in use as a museum or cultural centre",use_flats:"flats: often several owners",use_church:"in church use",park_apart:"park on a separate parcel: the owners may differ",bldg_on:"building on the parcel: somewhere to live during the works",bldg_none:"no building on the parcel: live elsewhere during the works",standing:"manor stands: check its condition on site",lost:"manor gone: nothing to renovate",nohouse:"no house left",ruin:"ruin: the conservator decides about the walls",unknown:"condition unclear: check on site",unlocated:"position in the village not known yet",
    park:"historic park",nopark:"no park recorded",parcel_small:"very small parcel",parcel_large:"very large parcel (over 15 ha)",
@@ -791,25 +793,53 @@ function render(){
   const counts = {A:0,B:0,C:0,D:0,"?":0};
   for(const v of VV) for(const s of v.sites) counts[sg(s)]++;
   $("grades").querySelectorAll(".gchip").forEach(b => { b.querySelector(".n").textContent = counts[b.dataset.g].toLocaleString(lng); });
-  $("count").textContent = `${list.length.toLocaleString(lng)} ${t("villages")} · ${n.toLocaleString(lng)} ${t("sites")}`;
-  $("countShort").textContent = n.toLocaleString(lng) + " " + t("sites");
   $("nSt").textContent = STATUSES.length - F.status.size || "";
   $("nFt").textContent = F.kowr + F.park + F.reg || "";
   $("reset").hidden = !F.active;
-  const ul = $("list"); ul.innerHTML = "";
-  const vg = v => v.sites.filter(s => keep(s, v)).map(sg).sort((a, b) => rank(a) - rank(b))[0] || v.g;   // best shown grade
-  const byV = new Map(RES.map(r => [r.v, r]));
-  list.sort((a,b) => rank(vg(a)) - rank(vg(b)) || a.v.localeCompare(b.v));
-  for(const v of list.slice(0, 200)){
-    const li = document.createElement("li");
-    li.tabIndex = 0;
-    li.innerHTML = `<span class="g ${gcls(vg(v))}">${vg(v)}</span><span class="n"><span class="nm">${esc(v.v)}</span>${v.de?`<span class="de">${esc(v.de)}</span>`:""}<br><span class="small">${esc(v.pw)}</span></span><span class="c">${F.ref ? Math.round(vkm(v)) + " km" : v.sites.filter(s => keep(s, v)).length}</span>`;
-    li.onclick = () => focusVillage(byV.get(v));
-    li.onkeydown = e => { if(e.key === "Enter") focusVillage(byV.get(v)); };
-    ul.appendChild(li);
-  }
+  renderList();
   if(cardFor) openCard(...cardFor);
 }
+// the list shows the places in the current map view (like a map search), or every hit while searching by name;
+// best first: grade, then the weighted average behind it. At most LIST_MAX entries: zoom in for the rest.
+const LIST_MAX = 200;
+function renderList(){
+  const searching = !!norm($("q").value);
+  const b = map.getBounds().pad(-0.02);
+  const inView = r => [...r.located, ...(r.located.length ? [] : [r.v])].some(x => b.contains([x.lat, x.lon]));
+  const best = r => [...r.located, ...r.approx].sort((a, c) => rank(sg(a)) - rank(sg(c)) || (c.sc || 0) - (a.sc || 0))[0];
+  const rows = (searching ? RES : RES.filter(inView)).map(r => ({r, s: best(r)}))
+    .sort((a, c) => rank(sg(a.s)) - rank(sg(c.s)) || (c.s.sc || 0) - (a.s.sc || 0) || a.r.v.v.localeCompare(c.r.v.v));
+  const ul = $("list"); ul.innerHTML = "";
+  const n = rows.length;
+  $("count").textContent = t(searching ? "listHits" : "listInView").replace("{n}", n.toLocaleString(lng));
+  $("countShort").textContent = n.toLocaleString(lng);
+  for(const {r, s} of rows.slice(0, LIST_MAX)){
+    const v = r.v, g = sg(s), more = r.located.length + r.approx.length - 1;
+    const facts = [s.ha ? ha(s.ha) + " ha" : "", more > 0 ? t("listMore").replace("{n}", more) : ""].filter(Boolean).join(" · ");
+    const li = document.createElement("li");
+    li.tabIndex = 0;
+    li.innerHTML = `<span class="g ${gcls(g)}">${g}</span>`
+      + `<span class="n"><span class="nm">${esc(v.v)}</span>${v.de ? `<span class="de">${esc(v.de)}</span>` : ""}`
+      + `<br><span class="small">${esc(v.pw)}${facts ? " · " + esc(facts) : ""}</span></span>`
+      + `<span class="c">${s.ku ? `<span class="sale" title="${esc(t("forSale"))}">${TAG("#245b8f", "#fff", 14)}</span>` : ""}`
+      + `<span title="${esc(t("status")[s.status] || "")}">${icon(s.status, COL[g], 18)}</span></span>`;
+    li.onclick = () => focusVillage(r);
+    li.onkeydown = e => { if(e.key === "Enter") focusVillage(r); };
+    ul.appendChild(li);
+  }
+  if(n > LIST_MAX){
+    const li = document.createElement("li");
+    li.className = "more";
+    li.textContent = t("listZoom").replace("{n}", (n - LIST_MAX).toLocaleString(lng));
+    ul.appendChild(li);
+  } else if(!n){
+    const li = document.createElement("li");
+    li.className = "more";
+    li.textContent = t(searching ? "listNoHits" : "listEmpty");
+    ul.appendChild(li);
+  }
+}
+map.on("moveend", () => { if(RES) renderList(); });
 const gradesEl = $("grades");
 for(const g of GRADES){
   const b = document.createElement("button");

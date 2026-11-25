@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from . import config
-from .grades import STATUS_DE, dossier_id, grade_of, grade_rank, lights
+from .grades import STATUS_DE, dossier_id, grade_of, grade_rank, lights, score_of
 from .sources import kowr
 
 log = logging.getLogger(__name__)
@@ -85,6 +85,7 @@ def site_item(did: str, s: dict) -> dict:
     item = {"id": did, "grade": grade_of(s, L), "status": s.get("status", "unknown"),
             # the five parts' grades (A-D, - unknown) in config.LIGHT_KEYS order and their reason codes
             "L": "".join(x["grade"] or "-" for x in L.values()),
+            "sc": round(score_of(L), 2) if score_of(L) is not None else None,   # the average behind the grade (list order)
             "w": [w for k, x in L.items() for w in x["why"] if not (k == "house" and w == s.get("status"))],
             "park": bool(s.get("park")), "registered": bool(s.get("registered")), "kowr": bool(s.get("kowr_offer"))}
     if s.get("status") != "unlocated" and s.get("lat") is not None:
