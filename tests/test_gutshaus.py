@@ -1260,3 +1260,22 @@ def test_kowr_offers_that_dropped_off(tmp_path):
     site = {"lat": 53.2, "lon": 15.5, "precinct": "Konotop"}
     assert kowr.match([site], kowr.recently_gone(path, [other], "2026-11-25"), gone=True) == 1
     assert site["kowr_gone"] == {"uid": "k1", "t": "Konotop", "since": "2026-11-24"} and "kowr_offer" not in site
+
+
+def test_extract_lock_and_count_check(tmp_path):
+    import geopandas as gpd
+    import pytest
+    from shapely.geometry import Point
+    from gutshaus.sources import osm_local
+    lock = tmp_path / "osm.lock"
+    with osm_local._exclusive(lock):
+        with pytest.raises(RuntimeError, match="Another osm-extract"):
+            with osm_local._exclusive(lock):
+                pass
+    with osm_local._exclusive(lock):              # released again
+        pass
+    g = tmp_path / "x.gpkg"
+    gpd.GeoDataFrame({"name": ["a", "b"]}, geometry=[Point(0, 0), Point(1, 1)], crs=2180).to_file(g, layer="places")
+    osm_local._check_counts(g, {"places": 2})
+    with pytest.raises(RuntimeError, match="incomplete"):
+        osm_local._check_counts(g, {"places": 50002})

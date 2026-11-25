@@ -7,8 +7,10 @@ that file: fast, offline, and without loading the public Overpass servers.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -108,11 +110,46 @@ class _Writer:
         return self.counts
 
 
+@contextlib.contextmanager
+def _exclusive(lock: Path):
+    """Hold an OS lock on `lock` (released when the process ends, even when killed). Two extracts writing the
+    same .tmp.gpkg and node cache overwrite each other's batches: a 2026-11 run silently lost 2.35M buildings."""
+    f = open(lock, "a+")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        raise RuntimeError(f"Another osm-extract is writing {lock.parent}: wait for it to finish or stop it first")
+    try:
+        yield
+    finally:
+        f.close()
+
+
+def _check_counts(path: Path, counts: dict) -> None:
+    """Every feature the extract wrote must be in the file; raise before it replaces a good osm.gpkg."""
+    bad = {layer: (n, pyogrio.read_info(path, layer=layer)["features"]) for layer, n in counts.items()}
+    bad = {layer: v for layer, v in bad.items() if v[0] != v[1]}
+    if bad:
+        raise RuntimeError(f"OSM extract incomplete (layer: written, in file): {bad}; {path} kept for inspection")
+
+
 def extract(pbf: Path, out: Path, node_cache: Path | None = None) -> dict:
     """Read an OSM extract and write the layers this tool needs to `out` (GeoPackage)."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with _exclusive(out.with_suffix(".lock")):
+        return _extract(pbf, out, node_cache)
+
+
+def _extract(pbf: Path, out: Path, node_cache: Path | None) -> dict:
     import osmium
 
-    out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp.gpkg")
     if tmp.exists():
         tmp.unlink()
@@ -140,6 +177,7 @@ def extract(pbf: Path, out: Path, node_cache: Path | None = None) -> dict:
     del fp  # release the node-location cache file (Windows keeps it locked otherwise)
     import gc
     gc.collect()
+    _check_counts(tmp, counts)
     if out.exists():
         out.unlink()
     tmp.replace(out)
