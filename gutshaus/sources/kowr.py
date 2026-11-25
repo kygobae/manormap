@@ -309,11 +309,17 @@ def load_or_fetch(http: Http, cache: Path, max_age_h: float = 24, refresh: bool 
         if add_monuments(http, offers):                     # offers cached before register entries were looked up
             cache.write_text(json.dumps(offers, ensure_ascii=False, default=str), encoding="utf-8")
         return offers
+    old = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else []
     try:
         offers = fetch(http)
     except Exception as e:
         log.warning("KOWR offers unavailable (%s)", e)
-        return json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else []
+        return old
+    # gov.pl sometimes times out on the branches' schedules (2026-11-24: 15 instead of ~60 offers, all the north
+    # gone): a fetch that loses most offers is a failed fetch, not the market. Keep the cache, try again next time.
+    if len(offers) < config.KOWR_MIN_SHARE * len(old):
+        log.warning("KOWR: only %d offers fetched against %d cached: keeping the cache", len(offers), len(old))
+        return old
     add_monuments(http, offers)
     cache.parent.mkdir(parents=True, exist_ok=True)
     cache.write_text(json.dumps(offers, ensure_ascii=False, default=str), encoding="utf-8")

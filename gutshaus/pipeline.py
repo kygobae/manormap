@@ -246,6 +246,27 @@ def mark_houses(sites: list[dict], bxy, barea) -> int:
     return n
 
 
+def nearest_services(sites: list[dict], places: dict[str, tuple]) -> int:
+    """site["services"] = {"shop": m, "school": m, "doctor": m, "station": m, "city": [name, m]} for located sites.
+    places: kind -> (xy array (n, 2) in EPSG:2180, names). Straight-line distances, rounded to 100 m."""
+    import shapely
+    from .geo import ll_to_pl
+    trees = {k: (shapely.STRtree(shapely.points(xy)), names) for k, (xy, names) in places.items() if len(xy)}
+    n = 0
+    for s in sites:
+        if s.get("status") == "unlocated" or s.get("lat") is None:
+            continue
+        pt = Point(*ll_to_pl(s["lon"], s["lat"]))
+        out = {}
+        for k, (tree, names) in trees.items():
+            idx, dist = tree.query_nearest(pt, return_distance=True)
+            d = int(round(float(dist[0]) / 100) * 100)
+            out[k] = [str(names[int(idx[0])]), d] if k == "city" else d
+        s["services"] = out
+        n += 1
+    return n
+
+
 def house_parcels(sites: list[dict], parcel_at) -> int:
     """For a standing manor the parcel that matters is the one the house stands on. When the building a "standing"
     state rests on (site["house"]) lies outside the site's parcel (often the register's park parcel), the site takes
