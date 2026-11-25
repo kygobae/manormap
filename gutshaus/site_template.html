@@ -166,8 +166,7 @@ footer a,.sec a{color:var(--accent)}
 .lights .pg.none{background:#fff;color:#8a928d;border:1.5px dashed #b7bdb9}
 .lights ul.rs{grid-column:2;margin:0;padding:0;list-style:none;display:grid;gap:2px}
 .lights ul.rs li{display:flex;gap:6px;align-items:baseline;font-size:.8rem;color:var(--ink,#1d2a24)}
-.lights .ic{flex:0 0 14px;height:14px;border-radius:50%;display:inline-grid;place-items:center;font-size:.62rem;font-weight:800;color:#fff;transform:translateY(2px)}
-.lights .ic.g{background:var(--green)}.lights .ic.w{background:var(--amber)}.lights .ic.x{background:var(--red)}.lights .ic.i{background:#9aa39e}
+.lights .ic{flex:0 0 1.25em;font-size:.8rem;line-height:1;text-align:center;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .lights .dot{width:12px;height:12px;border-radius:50%;margin-top:3px;background:var(--lc);box-shadow:0 0 0 2px color-mix(in srgb,var(--lc) 22%,transparent)}
 .lights .dot.none{background:#fff;border:2px dashed #b7bdb9;box-shadow:none}
 .lights b{font-weight:700}.lights span.w{grid-column:2;color:var(--muted)}
@@ -468,7 +467,7 @@ const GOOD = new Set(["standing","park","power_near","power_village","road_near"
 const BLOCK = new Set(["reserve","bldg_none"]);
 const INFO = new Set(["register","unknown","unlocated"]);
 const kind = c => GOOD.has(c) ? "g" : BLOCK.has(c) ? "x" : INFO.has(c) ? "i" : "w";
-const ICON = {g:"✓", w:"!", x:"✕", i:"i"};
+const ICON = {g:"✅", w:"⚠️", x:"⛔", i:"ℹ️"};          // emoji: no hand-drawn badge to misalign
 const LETTER_COL = {A:"var(--green)", B:"#8fb339", C:"var(--amber)", D:"var(--red)"};
 const sg = s => s.grade;
 const LC = {g:"var(--green)", a:"var(--amber)", r:"var(--red)"};
