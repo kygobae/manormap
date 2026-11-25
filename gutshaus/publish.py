@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from . import config
-from .grades import STATUS_DE, dossier_id, grade_of, grade_rank, lights, path
+from .grades import STATUS_DE, dossier_id, grade_of, grade_rank, lights
 from .sources import kowr
 
 log = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ def site_item(did: str, s: dict) -> dict:
     """One site on the public map. Located sites carry their exact position (as in OSM and the register, which are
     public); sites known only by their village do not. Never parcel numbers, owners or scores."""
     L = lights(s)
-    item = {"id": did, "grade": grade_of(s, L), "path": path(s), "status": s.get("status", "unknown"),
+    item = {"id": did, "grade": grade_of(s, L), "status": s.get("status", "unknown"),
             # the five lights as one letter each (g/a/r, - unknown) and their reason codes (no distances)
             "L": "".join((x["level"] or "-")[0] for x in L.values()),
             "w": [w for k, x in L.items() for w in x["why"] if not (k == "house" and w == s.get("status"))],
@@ -126,8 +126,6 @@ SHARE_STATUS = {"de": {"lost": "Herrenhaus verschwunden", "ruin": "Ruine", "stan
                        "unlocated": "lokalizacja we wsi niepewna", "unknown": "stan nieustalony"}}
 
 
-SHARE_PATH = {"de": {"renovation": "Sanierung", "new": "Wiederaufbau", "either": "Sanierung oder Wiederaufbau"},
-              "pl": {"renovation": "remont", "new": "odbudowa", "either": "remont lub odbudowa"}}
 
 
 def share_page(v: dict, item: dict) -> str:
@@ -138,8 +136,8 @@ def share_page(v: dict, item: dict) -> str:
     sid = item["id"]
     place = v["v"] + (f" ({v['de']})" if v.get("de") else "")
     title = f"{place} – {config.SITE_NAME}"
-    de = [f"Note {item['grade']} · {SHARE_PATH['de'][item['path']]}", SHARE_STATUS["de"].get(item["status"], "")]
-    pl = [f"Ocena {item['grade']} · {SHARE_PATH['pl'][item['path']]}", SHARE_STATUS["pl"].get(item["status"], "")]
+    de = [f"Note {item['grade']}", SHARE_STATUS["de"].get(item["status"], "")]
+    pl = [f"Ocena {item['grade']}", SHARE_STATUS["pl"].get(item["status"], "")]
     extra_de = [x for x, on in (("Park", item.get("park")), ("Denkmal", item.get("registered")),
                                 ("zum Verkauf (KOWR)", item.get("kowr"))) if on]
     extra_pl = [x for x, on in (("park", item.get("park")), ("zabytek", item.get("registered")),

@@ -155,8 +155,9 @@ EXCLUDE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 # Never an estate, even with an estate word, unless the house itself is named: a monastery's outbuilding
-# ("oficyna przyklasztorna", Krzeszów) or a town house with its back building ("kamienica z oficyną")
-HARD_EXCLUDE_PATTERN = re.compile(r"przyklasztor|kamienic", re.IGNORECASE)
+# ("oficyna przyklasztorna", Krzeszów), a town house with its back building ("kamienica z oficyną"), a church or
+# chapel of the estate ("kościół dworski", "kaplica dworska"). "pałac z kaplicą" stays: the house is named
+HARD_EXCLUDE_PATTERN = re.compile(r"przyklasztor|kamienic|ko[sś]ci[oó][lł]|kaplic|cerkiew|klasztor(?!n)", re.IGNORECASE)
 # What the house is used for today, from its OSM tags (building=*, amenity=*, tourism=*, office=*): a house in
 # use (hotel, school, offices, flats ...) is rarely for sale and seldom needs renovating. Grades: house amber.
 HOUSE_USE = {
@@ -171,6 +172,10 @@ HOUSE_USE = {
     "flats": {"building": {"apartments"}},
     "church": {"building": {"convent", "monastery", "presbytery", "church"}, "amenity": {"monastery", "place_of_worship"}},
 }
+# Churches and chapels are never the house: often the biggest building next to a lost manor (Krzeszów: the
+# basilica). They are left out of the buildings that make a site "standing", mark the house or count on the parcel.
+WORSHIP_BUILDINGS = {"church", "chapel", "cathedral", "basilica", "religious", "mosque", "synagogue", "temple",
+                     "bell_tower", "shrine", "monastery"}
 # ... or from the house's OSM name ("Dom Pomocy Społecznej w Jarogniewicach", "Hotel Pałac Mierzęcin"), folded
 HOUSE_USE_NAMES = {
     "hotel": re.compile(r"(hotel|pensjonat|zajazd|resort|spa)|osrodek (szkoleniowo-)?wypoczynk|osrodek konferenc"),
@@ -267,18 +272,22 @@ def load_overrides(path=None) -> str | None:
 
 
 # --- Grades: five traffic lights -----------------------------------------------
-# One public grade per site, from five lights (green / amber / red; None = unknown). Shown on the public site and
-# in dossiers; personal weights (CRITERIA, gutshaus.json) only affect the review.html score, never these.
-#   house     what is left fits a path: standing -> renovation, lost -> rebuilding (green); ruin or unclear (amber)
+# One public grade per site. It answers: how good a starting point is this place for a home of your own at a
+# manor? (house standing, park, good location, no rule in the way). It does not judge the building's condition,
+# the price or whether the place is for sale. Shown on the public site and in dossiers; personal weights
+# (CRITERIA, gutshaus.json) only affect the review.html score, never these.
+#   house     standing green (in use as hotel, school ... amber); ruin, unclear, or lost with another building on
+#             the parcel amber; lost with nothing to live in red
 #   plot      historic park on a parcel of PARCEL_OK_HA (green), else amber
 #   access    mean of the power, road and neighbours criteria (0..1): >= ACCESS_GREEN green, >= ACCESS_AMBER amber
-#   rules     national park / nature reserve red (and grade D); other protection or forest amber. Forest comes from
-#             the forest database (BDL: stands on the manor's spot or on FOREST_SHARE_PCT of the parcel); OSM's
-#             land cover only where BDL could not be asked
+#   rules     national park / nature reserve red; other protection or forest amber. Forest comes from the forest
+#             database (BDL: stands on the manor's spot or on FOREST_SHARE_PCT of the parcel); OSM's land cover only
+#             where BDL could not be asked
 #   location  nearest town within TOWN_GREEN_M green, TOWN_AMBER_M amber, further red
-# Grade: A all five green · B four green, no red · C three green, at most one red · D otherwise ·
-# "?" when the site is known only by its village. Calibrated 2026-11-24 on 9,045 sites:
-# A 614 · B 1,637 · C 1,873 · D 1,882 · ? 3,039 (A about 10 % of located sites).
+# Grade (grades.grade_of): weaknesses = amber lights + 2 x red lights. For a standing house, utilities & access and
+# a protected landscape do not count (it is connected, and renovating is allowed there); forest and reserves do.
+#   D  no house left (house red) or a rule in the way (rules red), or 4+ weaknesses
+#   A  all five green · B one weakness (not a ruin) · C two or three, or a ruin · ? only the village is known
 LIGHT_KEYS = ["house", "plot", "access", "rules", "location"]
 ACCESS_GREEN, ACCESS_AMBER = 0.85, 0.4
 TOWN_GREEN_M, TOWN_AMBER_M = 7000, 15000

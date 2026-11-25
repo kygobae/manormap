@@ -252,6 +252,11 @@ def context(op: Overpass, sites: list[dict]) -> dict[str, dict]:
 
 FOREST = {("landuse", "forest"), ("natural", "wood"), ("natural", "scrub")}
 AGRI = {("landuse", v) for v in ("farmland", "meadow", "grass", "orchard", "allotments", "farmyard")} | {("natural", "grassland")}
+def is_worship(tags: dict) -> bool:
+    """A church, chapel ... (config.WORSHIP_BUILDINGS or amenity=place_of_worship): never the manor."""
+    return tags.get("building") in config.WORSHIP_BUILDINGS or tags.get("amenity") == "place_of_worship"
+
+
 BUILT = {("landuse", v) for v in ("residential", "industrial", "commercial", "retail", "construction")}
 
 
@@ -263,6 +268,8 @@ def summarise_context(pt: Point, feats: list) -> dict:
     cover_dist = 1e9
     wide, nearby = 0, []
     for tags, poly in feats:
+        if "building" in tags and is_worship(tags):
+            continue                       # never the house (same as the local extract, which leaves them out)
         d = poly.distance(pt)
         if "building" in tags and poly.area >= config.MANOR_BUILDING_MIN_M2:
             wide += d <= config.MANOR_LOST_RADIUS_M
