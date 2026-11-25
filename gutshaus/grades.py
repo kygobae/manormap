@@ -31,30 +31,31 @@ def path(site: dict) -> str:
 
 
 def lights(site: dict) -> dict[str, dict]:
-    """{key: {"level": green|amber|red|None, "why": [reason codes]}} for config.LIGHT_KEYS.
+    """{key: {"grade": A|B|C|D|None, "level": green|amber|red|None, "why": [reason codes]}} for config.LIGHT_KEYS:
+    one school grade per part (config "Grades"); level is the grade as a traffic light (A green, B/C amber, D red).
     Reason codes are language-neutral; the site and the dossier turn them into text."""
     st = site.get("status")
     located = st != "unlocated"
     c = criteria.compute(site)
     out = {}
 
-    # the house, from a buyer's view: a standing house is best; a ruin, or a lost manor with another building on the
-    # parcel (somewhere to live, site["buildings"] from `gutshaus build`) is a weakness; nothing to live in is red
+    # house, from a buyer's view: standing best; in use (hotel, school ...) rarely for sale; a ruin, an unclear state
+    # or a lost manor with another building to live in (site["buildings"], `gutshaus build`) fair; nothing left poor
     b = site.get("buildings") if located else None
-    house_why = [st or "unknown"]
-    level = {"standing": GREEN, "lost": RED, "ruin": AMBER, "unknown": AMBER}.get(st)
+    why = [st or "unknown"]
+    g = {"standing": "A", "ruin": "C", "unknown": "C", "lost": "D"}.get(st)
     if b is not None and st != "standing":
-        house_why.append("bldg_on" if b.get("n") else "bldg_none")
+        why.append("bldg_on" if b.get("n") else "bldg_none")
     if st == "lost" and b and b.get("n"):
-        level = AMBER
+        g = "C"
     use = (site["house_use"] if "house_use" in site else house_use(site.get("text") or "")) if st == "standing" else ""
-    if use:                                        # a hotel, school, offices ...: rarely for sale, little to renovate
-        house_why.append("use_" + use)
-        level = AMBER
-    out["house"] = {"level": level, "why": house_why}
+    if use:
+        why.append("use_" + use)
+        g = "B"
+    out["house"] = _part(g, why)
 
-    # a KOWR offer sells all its parcels together: their total area counts
-    ha = (site.get("offer_ha") or site.get("parcel_ha")) if located else None
+    # park & plot: a historic park on a parcel of PARCEL_OK_HA is best; a big garden without a park is still good
+    ha = (site.get("offer_ha") or site.get("parcel_ha")) if located else None   # a KOWR offer: all its parcels
     lo, hi = config.PARCEL_OK_HA
     why = ["park" if site.get("park") else "nopark"]
     if site.get("park_parcel"):
@@ -63,16 +64,31 @@ def lights(site: dict) -> dict[str, dict]:
         why.append("parcel_small")
     elif ha is not None and ha > hi:
         why.append("parcel_large")
-    out["plot"] = {"level": GREEN if why == ["park"] else AMBER, "why": why}
-
-    parts = {k: c[f"c_{k}"] for k in ("power", "road", "neighbours") if c[f"c_{k}"] is not None}
-    mean = sum(parts.values()) / len(parts) if parts else None
-    out["access"] = {"level": None if mean is None else GREEN if mean >= config.ACCESS_GREEN
-                     else AMBER if mean >= config.ACCESS_AMBER else RED,
-                     "why": [f"{k}_{'near' if v >= 0.5 else 'far'}" for k, v in parts.items()]}
-
     if not located:
-        out["rules"] = {"level": None, "why": []}
+        g = None
+    elif ha is not None and ha < lo:
+        g = "C" if site.get("park") else "D"
+    elif site.get("park"):
+        g = "A" if len(why) == 1 else "B"
+    else:
+        g = "B" if ha is not None and ha >= config.GARDEN_GOOD_HA else "C"
+    out["plot"] = _part(g, why)
+
+    # utilities & access: public road, neighbours (water, sewage) and, for isolated sites only, a power line
+    parts = {k: c[f"c_{k}"] for k in ("power", "road", "neighbours") if c[f"c_{k}"] is not None}
+    village = (parts.get("neighbours") or 0) >= 0.5       # houses around: the village has power (low voltage unmapped)
+    if village or st == "standing":                       # ... and a standing house is connected
+        parts.pop("power", None)
+    mean = sum(parts.values()) / len(parts) if parts else None
+    g = None if mean is None or not located else "A" if mean >= config.ACCESS_GREEN else "B" if mean >= 0.6 \
+        else "C" if mean >= config.ACCESS_AMBER else "D"
+    out["access"] = _part(g, (["power_village"] if village else [])
+                          + [f"{k}_{'near' if v >= 0.5 else 'far'}" for k, v in parts.items()])
+
+    # protection & planning: a reserve or national park rules building out (and caps the grade at D); forest needs a
+    # change of use; a protected landscape restricts new building (not a renovation)
+    if not located:
+        out["rules"] = _part(None, [])
     else:
         prot = site.get("protection") or ("nature reserve" if site.get("c_protection") == 0 else "none")
         why = []
@@ -86,53 +102,68 @@ def lights(site: dict) -> dict[str, dict]:
                 why.append("forest_db")
         elif site.get("land_cover") == "forest":     # only OSM's land cover: park trees often look like forest
             why.append("forest")
-        level = RED if "reserve" in why else AMBER if why else GREEN
+        g = "D" if "reserve" in why else "C" if "forest_db" in why else \
+            "B" if "forest" in why or ("protected" in why and st != "standing") else "A"
         if site.get("registered"):
             why.append("register")                 # the conservator decides, both ways; subsidies possible
-        out["rules"] = {"level": level, "why": why or ["free"]}
+        out["rules"] = _part(g, why or ["free"])
 
-    d = site.get("dist_town_m") if located else None
-    why = [] if d is None else ["town_near" if d <= config.TOWN_GREEN_M else "town_mid" if d <= config.TOWN_AMBER_M
-                                else "town_far"]
+    out["location"] = location(site) if located else _part(None, [])
     if located and (c["c_water"] or 0) >= 0.5:
-        why.append("water")
-    out["location"] = {"level": None if d is None else {"town_near": GREEN, "town_mid": AMBER}.get(why[0], RED),
-                       "why": why}
-    return out
+        out["location"]["why"].append("water")
+    return {k: out[k] for k in config.LIGHT_KEYS}          # by weight, house first
 
 
-def counts(site: dict, L: dict) -> dict:
-    """The lights that count for the grade. A standing house is already connected and may be renovated in a
-    protected landscape: for it, utilities & access and a protected area (not forest, not a reserve) do not count."""
-    if site.get("status") != "standing":
-        return L
-    out = {k: x for k, x in L.items() if k != "access"}
-    r = L["rules"]
-    if r["level"] == AMBER and not {"forest", "forest_db"} & set(r["why"]):
-        out["rules"] = {**r, "level": GREEN}
-    return out
+def _part(grade, why: list) -> dict:
+    return {"grade": grade, "level": {"A": GREEN, "B": AMBER, "C": AMBER, "D": RED}.get(grade), "why": why}
 
 
-def weaknesses(L: dict) -> int:
-    """Amber lights count one, red two (the house's red and a blocker decide the grade on their own)."""
-    return sum({AMBER: 1, RED: 2}.get(x["level"], 0) for x in L.values())
+def location(site: dict) -> dict:
+    """Everyday life: supermarket, school and doctor nearby, and a city within reach (config SERVICES_NEAR_M,
+    CITY_*_M); without that data (no `gutshaus build` yet) the nearest town."""
+    sv = site.get("services")
+    if not sv:
+        d = site.get("dist_town_m")
+        if d is None:
+            return _part(None, [])
+        code = "town_near" if d <= config.TOWN_GREEN_M else "town_mid" if d <= config.TOWN_AMBER_M else "town_far"
+        return _part({"town_near": "A", "town_mid": "B"}.get(code, "C"), [code])
+    why, miss = [], 0
+    for k, limit in config.SERVICES_NEAR_M.items():
+        near = sv.get(k) is not None and sv[k] <= limit
+        why.append(f"{k}_{'near' if near else 'far'}")
+        miss += not near
+    cd = (sv.get("city") or [None, None])[1]
+    city = "city_near" if cd is not None and cd <= config.CITY_GREEN_M else \
+        "city_mid" if cd is not None and cd <= config.CITY_AMBER_M else "city_far"
+    why.append(city)
+    miss += {"city_near": 0, "city_mid": 1}.get(city, 2)
+    return _part("ABCD"[min(miss, 3)], why)
+
+
+POINTS = {"A": 4, "B": 3, "C": 2, "D": 1}
+
+
+def score_of(L: dict):
+    """Weighted average of the parts (A 4 · B 3 · C 2 · D 1, weights config.GRADE_WEIGHTS); parts without a grade
+    are left out and the other weights scaled up."""
+    w = [(config.GRADE_WEIGHTS[k], POINTS[x["grade"]]) for k, x in L.items() if x.get("grade")]
+    total = sum(a for a, _ in w)
+    return sum(a * p for a, p in w) / total if total else None
 
 
 def grade_of(site: dict, lights_: dict | None = None) -> str:
-    """How good a starting point the place is for a home of your own at a manor (config "Grades"):
-    D when no house is left or a rule stands in the way (national park, nature reserve) · A everything green ·
-    B one weakness · C two or three, or a ruin · D four or more · '?' when only the village is known."""
+    """One grade like a school report: the weighted average of the five parts, rounded with config.GRADE_CUTS
+    (A from 3.8, B from 3.2, C from 2.5, else D). A national park or nature reserve caps it at D. '?' when only the village is known."""
     if site.get("status") == "unlocated":
         return "?"
-    L = counts(site, lights_ or lights(site))
-    if L["rules"]["level"] == RED or L["house"]["level"] == RED:
+    L = lights_ or lights(site)
+    sc = score_of(L)
+    if sc is None:
+        return "?"
+    if L["rules"]["grade"] == "D":
         return "D"
-    n = weaknesses(L)
-    if n == 0 and all(x["level"] == GREEN for x in L.values()):
-        return "A"
-    if n <= 1 and site.get("status") != "ruin":
-        return "B"
-    return "C" if n <= 3 else "D"
+    return next((g for g, cut in config.GRADE_CUTS.items() if sc >= cut), "D")
 
 
 def grade_rank(g: str) -> int:

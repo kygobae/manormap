@@ -588,38 +588,40 @@ def test_grades_ignore_personal_weights(built):
 
 
 def test_traffic_light_grade():
+    """Each part gets a school grade; the overall grade is their weighted average (config GRADE_WEIGHTS)."""
     from gutshaus import grades
+    sv = {"shop": 800, "school": 2000, "doctor": 3000, "station": 5000, "city": ["Koszalin", 20000]}
     base = {"uid": "x", "name": "x", "lat": 54, "lon": 16, "park": True, "registered": True, "kowr_offer": "x",
             "dist_power_m": 50, "dist_road_m": 20, "dist_building_m": 100, "dist_town_m": 3000, "dist_water_m": 100,
-            "land_cover": "agri", "protection": "none", "c_protection": 1.0, "parcel_ha": 3}
+            "land_cover": "agri", "protection": "none", "c_protection": 1.0, "parcel_ha": 3, "services": sv}
     standing, lost = {**base, "status": "standing"}, {**base, "status": "lost"}
-    ruin, unknown = {**base, "status": "ruin"}, {**base, "status": "unknown"}
-    # the dossier still names the project; the grade is a buyer's: a standing house is best, nothing left is D
+    ruin = {**base, "status": "ruin"}
     assert (grades.path(standing), grades.path(lost), grades.path(ruin)) == ("renovation", "new", "either")
-    assert grades.grade_of(standing) == "A" and grades.grade_of(lost) == "D"
-    assert grades.grade_of({**lost, "buildings": {"n": 1, "max_m2": 120}}) == "B"   # somewhere to live: amber
-    assert grades.grade_of({**standing, "house_use": "hotel"}) == "B"               # in use: rarely for sale
     L = grades.lights(standing)
-    assert list(L) == ["house", "plot", "access", "rules", "location"] and all(x["level"] == "green" for x in L.values())
+    assert list(L) == ["house", "location", "plot", "rules", "access"]            # by weight, house first
+    assert all(x["grade"] == "A" for x in L.values()) and grades.grade_of(standing) == "A"
     assert "register" in L["rules"]["why"] and "water" in L["location"]["why"]
-    # ruins: house amber, at best C; unclear cases at best B
-    assert grades.lights(ruin)["house"]["level"] == "amber" and grades.grade_of(ruin) == "C"
-    assert grades.grade_of(unknown) == "B"
-    # nature reserve / national park: knock-out
+    # the house weighs most: nothing left pulls an otherwise perfect site down to C (35 % D)
+    assert grades.lights(lost)["house"]["grade"] == "D" and grades.grade_of(lost) == "C"
+    assert grades.lights({**lost, "buildings": {"n": 1, "max_m2": 120}})["house"]["grade"] == "C"
+    assert grades.grade_of({**standing, "house_use": "hotel"}) == "B"               # in use: rarely for sale
+    assert grades.grade_of(ruin) == "B"                                             # the rest perfect: 3.3
+    # nature reserve / national park: always D
     assert grades.grade_of({**standing, "protection": "national park"}) == "D"
-    # forest on the map or a landscape park: amber, not red
-    forest = {**standing, "land_cover": "forest"}
-    assert grades.lights(forest)["rules"]["level"] == "amber" and grades.grade_of(forest) == "B"
-    # no park and a far town: two lights off green
-    far = {**standing, "park": False, "dist_town_m": 20000}
-    assert grades.lights(far)["location"]["level"] == "red" and grades.grade_of(far) == "C"
-    cut_off = {**far, "dist_power_m": 5000, "dist_road_m": 2000, "dist_building_m": 3000}
-    assert grades.grade_of(cut_off) == "C" and grades.grade_of({**cut_off, "status": "unknown"}) == "D"
+    # location from everyday life: each missing service one step, a far city two
+    far = {**standing, "services": {**sv, "shop": 9000, "doctor": 12000, "city": ["Koszalin", 80000]}}
+    assert grades.lights(far)["location"]["grade"] == "D" and grades.grade_of(far) == "B"
+    # a big garden without a park is good, a tiny parcel without one poor
+    assert grades.lights({**standing, "park": False, "parcel_ha": 2})["plot"]["grade"] == "B"
+    assert grades.lights({**standing, "park": False, "parcel_ha": 0.1})["plot"]["grade"] == "D"
+    # power: a village with neighbours is connected even without a mapped line
+    village = {**lost, "dist_power_m": 5000}
+    assert grades.lights(village)["access"]["grade"] == "A" and "power_village" in grades.lights(village)["access"]["why"]
+    isolated = {**village, "dist_building_m": 3000}
+    assert grades.lights(isolated)["access"]["grade"] in "CD"
+    # without services (no build yet): the nearest town
+    assert grades.lights({k: v for k, v in standing.items() if k != "services"})["location"]["why"][0] == "town_near"
     assert [grades.grade_rank(g) for g in "AB?"] == [0, 1, 4]
-    # a standing house is connected and may be renovated in a protected landscape: neither counts for it
-    remote = {**standing, "dist_power_m": 5000, "protection": "landscape park"}
-    assert grades.lights(remote)["access"]["level"] != "green" and grades.grade_of(remote) == "A"
-    assert grades.grade_of({**remote, "status": "unknown"}) in "CD"
 
 
 def test_commune_label():
@@ -907,17 +909,17 @@ def test_schedule_rows(row, expect):
 
 
 def test_public_filters(built):
-    """The map's filters: grade, condition, features and distance all narrow the result together (AND), and the
-    distance filter has the reference cities."""
+    """The map's filters: grade, condition and features narrow the result together (AND); there is no distance
+    filter any more (removed 2026-11-25)."""
     import json, re
     from gutshaus import config
     cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "none.txt")])
     html = (built / "site" / "public" / "index.html").read_text(encoding="utf-8")
-    for el in ('id="kowrOnly"', 'id="parkOnly"', 'id="regOnly"', 'id="statuses"', 'id="ref"', 'id="km"', 'id="reset"'):
+    for el in ('id="kowrOnly"', 'id="parkOnly"', 'id="regOnly"', 'id="statuses"', 'id="reset"'):
         assert el in html, el
     assert "shown.has(sg(s)) && F.status.has(s.status) && (!F.kowr || s.ku)" in html  # AND, not "KOWR overrides grade"
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
-    assert data["cfg"]["refs"]["Berlin"] == list(config.REFERENCE_POINTS["Berlin"])
+    assert 'id="ref"' not in html and 'id="km"' not in html
 
 
 
@@ -1098,9 +1100,9 @@ def test_buildings_on_the_parcel_and_the_house_parcel():
     pipeline.count_buildings([with_house], read([[x + 10, y], [x + 80, y]], [120, 400]))      # one on, one off the parcel
     pipeline.count_buildings([empty], read([[x + 10, y]], [30]))                              # too small to live in
     assert with_house["buildings"] == {"n": 1, "max_m2": 120, "m2": 120} and empty["buildings"]["n"] == 0
-    assert grades.lights(with_house)["house"] == {"level": "amber", "why": ["lost", "bldg_on"]}
-    assert grades.lights(empty)["house"] == {"level": "red", "why": ["lost", "bldg_none"]}
-    assert grades.lights(base)["house"]["level"] == "red"                                     # not counted: nothing known
+    assert grades.lights(with_house)["house"] == {"grade": "C", "level": "amber", "why": ["lost", "bldg_on"]}
+    assert grades.lights(empty)["house"] == {"grade": "D", "level": "red", "why": ["lost", "bldg_none"]}
+    assert grades.lights(base)["house"]["grade"] == "D"                                       # not counted: nothing known
     # a KOWR offer: all its parcels count, for buildings and for the area
     sale = {**base, "kowr_uid": "k", "offer_ha": 40.0}
     pipeline.count_buildings([sale], read([[x + 80, y]], [400]), {"k": box(x - 100, y - 100, x + 100, y + 100)})
@@ -1209,3 +1211,32 @@ def test_churches_are_never_the_house():
     assert text_flags("kościół dworski, ob. filialny | kościół | Świątniki")["excluded"]
     assert text_flags("kaplica dworska | kaplica | Mgowo")["excluded"]
     assert not text_flags("pałac z kaplicą | pałac | Czernica")["excluded"]
+
+
+def test_kowr_partial_fetch_keeps_the_cache(tmp_path, monkeypatch):
+    """A fetch that loses most offers (gov.pl timing out on the schedules) does not replace a good cache."""
+    import json
+    from gutshaus.sources import kowr
+    cache = tmp_path / "_kowr.json"
+    cache.write_text(json.dumps([{"uid": f"k{i}"} for i in range(60)]), encoding="utf-8")
+    import os
+    os.utime(cache, (0, 0))                                            # old: a refresh is due
+    monkeypatch.setattr(kowr, "fetch", lambda http: [{"uid": f"k{i}"} for i in range(15)])
+    monkeypatch.setattr(kowr, "add_monuments", lambda http, offers: 0)
+    assert len(kowr.load_or_fetch(None, cache)) == 60 and len(json.loads(cache.read_text())) == 60
+    monkeypatch.setattr(kowr, "fetch", lambda http: [{"uid": f"k{i}"} for i in range(55)])
+    assert len(kowr.load_or_fetch(None, cache)) == 55                   # a normal change is taken
+
+
+def test_nearest_services():
+    """Nearest supermarket, school, doctor and city per located site (rounded to 100 m)."""
+    import numpy as np
+    from gutshaus import pipeline
+    from gutshaus.geo import ll_to_pl, pl_to_ll
+    x, y = ll_to_pl(16.0, 52.0)
+    lon, lat = pl_to_ll(x, y)
+    sites = [{"status": "standing", "lat": lat, "lon": lon}, {"status": "unlocated", "lat": lat, "lon": lon}]
+    places = {"shop": (np.array([[x + 1240, y], [x + 5000, y]]), np.array(["Biedronka", "Lidl"])),
+              "city": (np.array([[x, y + 31000]]), np.array(["Poznań"]))}
+    assert pipeline.nearest_services(sites, places) == 1
+    assert sites[0]["services"] == {"shop": 1200, "city": ["Poznań", 31000]} and "services" not in sites[1]

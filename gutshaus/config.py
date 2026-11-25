@@ -230,6 +230,8 @@ SURROUNDINGS_RADIUS_M = {"wind": 3000, "main_road": 2000, "railway": 2000, "live
 LIVESTOCK_MIN_M2 = 800
 LIVESTOCK_BUILDINGS = ("cowshed", "sty", "chicken_coop", "stable")
 MAIN_ROADS = ("motorway", "trunk", "primary")
+# A KOWR fetch with fewer offers than this share of the cached ones is treated as failed (the cache is kept)
+KOWR_MIN_SHARE = 0.6
 # KOWR branches, only used if the overview gov.pl/web/kowr/harmonogramy (which links every branch's schedule page)
 # is unavailable: then gov.pl/web/kowr/ot-<branch>2 is tried. Wrocław also has heritage cards.
 KOWR_BRANCHES = ["bialystok", "bydgoszcz", "czestochowa", "gorzow", "kielce", "koszalin", "krakow", "lodz", "lublin",
@@ -271,24 +273,37 @@ def load_overrides(path=None) -> str | None:
     return str(p)
 
 
-# --- Grades: five traffic lights -----------------------------------------------
-# One public grade per site. It answers: how good a starting point is this place for a home of your own at a
-# manor? (house standing, park, good location, no rule in the way). It does not judge the building's condition,
-# the price or whether the place is for sale. Shown on the public site and in dossiers; personal weights
-# (CRITERIA, gutshaus.json) only affect the review.html score, never these.
-#   house     standing green (in use as hotel, school ... amber); ruin, unclear, or lost with another building on
-#             the parcel amber; lost with nothing to live in red
-#   plot      historic park on a parcel of PARCEL_OK_HA (green), else amber
-#   access    mean of the power, road and neighbours criteria (0..1): >= ACCESS_GREEN green, >= ACCESS_AMBER amber
-#   rules     national park / nature reserve red; other protection or forest amber. Forest comes from the forest
-#             database (BDL: stands on the manor's spot or on FOREST_SHARE_PCT of the parcel); OSM's land cover only
-#             where BDL could not be asked
-#   location  nearest town within TOWN_GREEN_M green, TOWN_AMBER_M amber, further red
-# Grade (grades.grade_of): weaknesses = amber lights + 2 x red lights. For a standing house, utilities & access and
-# a protected landscape do not count (it is connected, and renovating is allowed there); forest and reserves do.
-#   D  no house left (house red) or a rule in the way (rules red), or 4+ weaknesses
-#   A  all five green · B one weakness (not a ruin) · C two or three, or a ruin · ? only the village is known
-LIGHT_KEYS = ["house", "plot", "access", "rules", "location"]
+# --- Grades: five parts and one overall grade ----------------------------------
+# The grade answers: how good a starting point is this place for a home of your own at a manor? It does not judge
+# the condition of the building, the price or whether the place is for sale. Shown on the public site and in
+# dossiers; personal weights (CRITERIA, gutshaus.json) only affect the review.html score, never these.
+# Each part gets a school grade A-D (grades.lights):
+#   house     standing A · in use (hotel, school, offices, flats) B · ruin, unclear, or lost with another building
+#             to live in C · lost with nothing left D
+#   plot      historic park on a parcel of PARCEL_OK_HA A (B with a separate park parcel or an odd size) · no park
+#             but a garden of GARDEN_GOOD_HA or more B · no park C · parcel under PARCEL_OK_HA[0]: C with a park, else D
+#   access    public road, neighbours and (isolated sites only) a power line: mean >= ACCESS_GREEN A, >= 0.6 B,
+#             >= ACCESS_AMBER C, else D
+#   rules     nature reserve / national park D (and the overall grade D) · forest in the forest database C ·
+#             forest only on the OSM map, or a protected area (not for a standing house) B · else A
+#   location  supermarket, school, doctor within SERVICES_NEAR_M and a city within CITY_*_M (see below)
+# Overall: the weighted average (A 4 · B 3 · C 2 · D 1) with GRADE_WEIGHTS, from a buyer's view: the house decides
+# between moving in and a large renovation or new build; location is daily life and cannot be changed; the plot is
+# the reason to buy a manor; rules mostly mean paperwork (the real blockers cap the grade); utilities can be bought.
+# Rounded with GRADE_CUTS (A from 3.8, B from 3.2, C from 2.5, else D). "?" when only the village is known.
+GRADE_WEIGHTS = {"house": 35, "location": 25, "plot": 20, "rules": 10, "access": 10}
+# Stricter than school rounding, so that A means excellent: about A 16 % · B 50 % · C 26 % · D 8 % of located sites
+GRADE_CUTS = {"A": 3.8, "B": 3.2, "C": 2.5}
+GARDEN_GOOD_HA = 1.0
+# Location from everyday life (`gutshaus build`, local OSM extract): the nearest supermarket or grocery, school
+# and doctor within SERVICES_NEAR_M, and the nearest city (OSM place=city: the 66 cities with powiat rights) within
+# CITY_GREEN_M or CITY_AMBER_M. Each missing service counts one, a city beyond green one, beyond amber two:
+# 0 A, 1 B, 2 C, 3+ D. Sites without this data fall back to the nearest town (TOWN_*_M).
+SERVICES_NEAR_M = {"shop": 2000, "school": 4000, "doctor": 6000}   # about the 75th percentile of all sites
+CITY_GREEN_M, CITY_AMBER_M = 30000, 50000                           # median 30 km, 90 % within 52 km
+# Power: OSM rarely maps the village's low-voltage lines. A site with neighbouring houses (c_neighbours >= 0.5) is
+# connected: the power line distance only counts for isolated sites.
+LIGHT_KEYS = ["house", "location", "plot", "rules", "access"]   # by weight: the card and dossier show them in this order
 ACCESS_GREEN, ACCESS_AMBER = 0.85, 0.4
 TOWN_GREEN_M, TOWN_AMBER_M = 7000, 15000
 PARCEL_OK_HA = (0.3, 15)

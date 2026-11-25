@@ -157,9 +157,15 @@ footer a,.sec a{color:var(--accent)}
 .gb b{font-size:1.9rem;line-height:1;font-weight:800;color:var(--c)}
 .gb span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700;line-height:1.2}
 .gb.on{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c);background:#fff}
-.gb .pth{display:flex;flex-direction:column;gap:1px}.gb .pth small{font-size:.74rem;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:500}
+.gb .pth{display:flex;flex-direction:column;gap:1px;font-size:.95rem;text-transform:none;letter-spacing:0;color:var(--c)}.gb .pth small{font-size:.74rem;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:500}
 .lights{display:grid;gap:7px;margin:0;padding:0;list-style:none}
-.lights li{display:grid;grid-template-columns:14px 1fr;gap:2px 8px;align-items:start;font-size:.82rem;line-height:1.35}
+.lights li{display:grid;grid-template-columns:22px 1fr;gap:3px 8px;align-items:start;font-size:.82rem;line-height:1.35}
+.lights .pg{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-weight:800;font-size:.8rem;color:#fff;background:var(--lc)}
+.lights .pg.none{background:#fff;color:#8a928d;border:1.5px dashed #b7bdb9}
+.lights ul.rs{grid-column:2;margin:0;padding:0;list-style:none;display:grid;gap:2px}
+.lights ul.rs li{display:flex;gap:6px;align-items:baseline;font-size:.8rem;color:var(--ink,#1d2a24)}
+.lights .ic{flex:0 0 14px;height:14px;border-radius:50%;display:inline-grid;place-items:center;font-size:.62rem;font-weight:800;color:#fff;transform:translateY(2px)}
+.lights .ic.g{background:var(--green)}.lights .ic.w{background:var(--amber)}.lights .ic.x{background:var(--red)}.lights .ic.i{background:#9aa39e}
 .lights .dot{width:12px;height:12px;border-radius:50%;margin-top:3px;background:var(--lc);box-shadow:0 0 0 2px color-mix(in srgb,var(--lc) 22%,transparent)}
 .lights .dot.none{background:#fff;border:2px dashed #b7bdb9;box-shadow:none}
 .lights b{font-weight:700}.lights span.w{grid-column:2;color:var(--muted)}
@@ -266,10 +272,6 @@ body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(36
       <label class="kfilter"><input type="checkbox" id="kowrOnly"> <span data-t="kowrOnly"></span></label>
       <label class="kfilter"><input type="checkbox" id="parkOnly"> <span data-t="parkOnly"></span></label>
       <label class="kfilter"><input type="checkbox" id="regOnly"> <span data-t="regOnly"></span></label>
-    </div></details>
-  <details class="pop" id="popDi"><summary><span data-t="distS"></span><span id="nDi" class="pill"></span></summary>
-    <div class="panel glass"><div class="fh" data-t="distF"></div>
-      <div class="dist"><select id="ref"></select> <input type="range" id="km" min="50" max="800" step="25" value="800"> <span id="kmL" class="small"></span></div>
     </div></details>
   <button id="reset" class="linkbtn" data-t="reset" hidden></button>
 </nav>
@@ -391,27 +393,27 @@ for(const l of Object.keys(T2)) Object.assign(T[l], T2[l]);
 const T3 = {
  de:{mAll:"Alle",pathL:{renovation:"Sanierung",new:"Wiederaufbau",either:"Sanierung oder Wiederaufbau"},
   gradeQ:"noch keine Note: nur das Dorf ist bekannt",
-  gradesText:"Die Note zeigt, wie gut sich ein Ort als Ausgangspunkt für ein eigenes Zuhause am Gutshaus eignet: Steht das Haus noch, gibt es einen Park, stimmt die Lage, und steht nichts im Weg?<br><b>A</b> Haus steht, Park, gute Lage, nichts im Weg · <b>B</b> gut, mit einer Schwäche · <b>C</b> möglich, aber mit mehreren Schwächen oder Ruine · <b>D</b> schwierig: kein Haus mehr oder ein Hindernis · <b>?</b> nur das Dorf ist bekannt.<br>Die fünf Ampeln auf jeder Karte zeigen, woher die Note kommt: Haus, Park & Grundstück, Erschließung, Schutz & Planung, Lage. Die Note beurteilt nicht den Zustand des Gebäudes, den Preis oder ob der Ort zu verkaufen ist.",gradeL:{A:"Haus steht, Park, gute Lage, nichts im Weg",B:"gut, mit einer Schwäche",C:"möglich, mit mehreren Schwächen",D:"schwierig"},
+  gradesText:"Die Note zeigt, wie gut sich ein Ort als Ausgangspunkt für ein eigenes Zuhause am Gutshaus eignet. Wie im Zeugnis bekommt jeder Teil eine Note: <b>Haus</b> (steht es noch?), <b>Lage</b> (Einkaufen, Schule, Arzt, nächste Stadt), <b>Park & Grundstück</b>, <b>Schutz & Planung</b> und <b>Erschließung</b>. Die Gesamtnote ist ihr gewichteter Durchschnitt: Haus 35 %, Lage 25 %, Park & Grundstück 20 %, Schutz & Planung 10 %, Erschließung 10 %. In einem Nationalpark oder Naturschutzgebiet ist sie immer D.<br><b>A</b> sehr gut · <b>B</b> gut · <b>C</b> befriedigend · <b>D</b> schwach · <b>?</b> nur das Dorf ist bekannt.<br>Die Note beurteilt nicht den Zustand des Gebäudes, den Preis oder ob der Ort zu verkaufen ist.",gradeLbl:{A:"sehr gut",B:"gut",C:"befriedigend",D:"schwach","?":"noch keine Note: nur das Dorf ist bekannt"},svL:{shop:"Einkaufen",school:"Schule",doctor:"Arzt"},
   lights:{house:"Haus",plot:"Park & Grundstück",access:"Erschließung",rules:"Schutz & Planung",location:"Lage"},unknownL:"unbekannt",areaL:"Grundstück {a} ha",
-  why:{use_hotel:"genutzt als Hotel oder Pension",use_school:"genutzt als Schule oder Hochschule",use_office:"genutzt als Amt oder Büro",use_care:"genutzt als Klinik oder Pflegeheim",use_museum:"genutzt als Museum oder Kulturhaus",use_flats:"Wohnungen: oft mehrere Eigentümer",use_church:"kirchlich genutzt",park_apart:"Park auf einem eigenen Flurstück: die Eigentümer können verschieden sein",bldg_on:"Gebäude auf dem Flurstück: Wohnen während der Bauzeit denkbar",bldg_none:"kein Gebäude auf dem Flurstück: während der Bauzeit woanders wohnen",standing:"Herrenhaus steht: den Zustand vor Ort prüfen",lost:"Herrenhaus verschwunden: kein Haus zum Sanieren",nohouse:"kein Haus mehr",ruin:"Ruine: der Denkmalschutz entscheidet über die Mauern",unknown:"Zustand unklar: vor Ort prüfen",unlocated:"Lage im Dorf noch unbekannt",
+  why:{power_village:"Nachbarhäuser haben Strom",use_hotel:"genutzt als Hotel oder Pension",use_school:"genutzt als Schule oder Hochschule",use_office:"genutzt als Amt oder Büro",use_care:"genutzt als Klinik oder Pflegeheim",use_museum:"genutzt als Museum oder Kulturhaus",use_flats:"Wohnungen: oft mehrere Eigentümer",use_church:"kirchlich genutzt",park_apart:"Park auf einem eigenen Flurstück: die Eigentümer können verschieden sein",bldg_on:"Gebäude auf dem Flurstück: Wohnen während der Bauzeit denkbar",bldg_none:"kein Gebäude auf dem Flurstück: während der Bauzeit woanders wohnen",standing:"Herrenhaus steht: den Zustand vor Ort prüfen",lost:"Herrenhaus verschwunden: kein Haus zum Sanieren",nohouse:"kein Haus mehr",ruin:"Ruine: der Denkmalschutz entscheidet über die Mauern",unknown:"Zustand unklar: vor Ort prüfen",unlocated:"Lage im Dorf noch unbekannt",
    park:"historischer Park",nopark:"kein Park verzeichnet",parcel_small:"Flurstück sehr klein",parcel_large:"Flurstück sehr groß (über 15 ha)",
    power_near:"Stromleitung nah",power_far:"Stromleitung weit",road_near:"an einer öffentlichen Straße",road_far:"öffentliche Straße weit",neighbours_near:"Nachbarhäuser nah (Wasser, Abwasser)",neighbours_far:"keine Nachbarhäuser in der Nähe",
    reserve:"Nationalpark oder Naturschutzgebiet: Bauen praktisch ausgeschlossen",protected:"Schutzgebiet: Bauen nur eingeschränkt",forest:"laut Karte Wald: prüfen, ob amtlich Wald",forest_db:"Wald laut Forstdatenbank: Bauen erst nach Umwidmung",register:"im Denkmalregister: der Denkmalpfleger entscheidet mit, Zuschüsse möglich",free:"kein Schutzgebiet",
    town_near:"Stadt unter {a} km",town_mid:"Stadt {a}–{b} km entfernt",town_far:"Stadt über {b} km entfernt",water:"See oder Fluss in der Nähe"}},
  pl:{mAll:"Wszystkie",pathL:{renovation:"Remont",new:"Odbudowa",either:"Remont lub odbudowa"},
   gradeQ:"jeszcze bez oceny: znana tylko wieś",
-  gradesText:"Ocena pokazuje, na ile miejsce nadaje się na własny dom przy dawnym dworze: czy dwór stoi, czy jest park, czy lokalizacja jest dobra i czy nic nie stoi na przeszkodzie?<br><b>A</b> dwór stoi, park, dobra lokalizacja, bez przeszkód · <b>B</b> dobrze, z jedną słabością · <b>C</b> możliwe, ale z kilkoma słabościami lub ruina · <b>D</b> trudne: dworu już nie ma albo jest przeszkoda · <b>?</b> znana tylko wieś.<br>Pięć świateł na każdej karcie pokazuje, skąd ocena: budynek, park i działka, media i dojazd, ochrona i planowanie, położenie. Ocena nie dotyczy stanu budynku, ceny ani tego, czy miejsce jest na sprzedaż.",gradeL:{A:"dwór stoi, park, dobra lokalizacja, bez przeszkód",B:"dobrze, z jedną słabością",C:"możliwe, z kilkoma słabościami",D:"trudne"},
+  gradesText:"Ocena pokazuje, na ile miejsce nadaje się na własny dom przy dawnym dworze. Jak na świadectwie każda część dostaje ocenę: <b>budynek</b> (czy stoi?), <b>położenie</b> (sklep, szkoła, lekarz, najbliższe miasto), <b>park i działka</b>, <b>ochrona i planowanie</b> oraz <b>media i dojazd</b>. Ocena ogólna to ich średnia ważona: budynek 35 %, położenie 25 %, park i działka 20 %, ochrona i planowanie 10 %, media i dojazd 10 %. W parku narodowym lub rezerwacie zawsze D.<br><b>A</b> bardzo dobra · <b>B</b> dobra · <b>C</b> dostateczna · <b>D</b> słaba · <b>?</b> znana tylko wieś.<br>Ocena nie dotyczy stanu budynku, ceny ani tego, czy miejsce jest na sprzedaż.",gradeLbl:{A:"bardzo dobra",B:"dobra",C:"dostateczna",D:"słaba","?":"jeszcze bez oceny: znana tylko wieś"},svL:{shop:"Sklep",school:"Szkoła",doctor:"Lekarz"},
   lights:{house:"Budynek",plot:"Park i działka",access:"Media i dojazd",rules:"Ochrona i planowanie",location:"Położenie"},unknownL:"brak danych",areaL:"działka {a} ha",
-  why:{use_hotel:"użytkowany jako hotel lub pensjonat",use_school:"użytkowany jako szkoła lub uczelnia",use_office:"siedziba urzędu lub biura",use_care:"szpital lub dom opieki",use_museum:"muzeum lub dom kultury",use_flats:"mieszkania: często wielu właścicieli",use_church:"użytkowany przez Kościół lub zakon",park_apart:"park na osobnej działce: właściciele mogą być różni",bldg_on:"budynek na działce: można w nim mieszkać w czasie budowy",bldg_none:"brak budynku na działce: w czasie budowy trzeba mieszkać gdzie indziej",standing:"dwór istnieje: stan sprawdzić na miejscu",lost:"dwór nie istnieje: nie ma czego remontować",nohouse:"dworu już nie ma",ruin:"ruina: o murach decyduje konserwator",unknown:"stan niejasny: sprawdzić na miejscu",unlocated:"lokalizacja we wsi jeszcze nieznana",
+  why:{power_village:"sąsiednie budynki mają prąd",use_hotel:"użytkowany jako hotel lub pensjonat",use_school:"użytkowany jako szkoła lub uczelnia",use_office:"siedziba urzędu lub biura",use_care:"szpital lub dom opieki",use_museum:"muzeum lub dom kultury",use_flats:"mieszkania: często wielu właścicieli",use_church:"użytkowany przez Kościół lub zakon",park_apart:"park na osobnej działce: właściciele mogą być różni",bldg_on:"budynek na działce: można w nim mieszkać w czasie budowy",bldg_none:"brak budynku na działce: w czasie budowy trzeba mieszkać gdzie indziej",standing:"dwór istnieje: stan sprawdzić na miejscu",lost:"dwór nie istnieje: nie ma czego remontować",nohouse:"dworu już nie ma",ruin:"ruina: o murach decyduje konserwator",unknown:"stan niejasny: sprawdzić na miejscu",unlocated:"lokalizacja we wsi jeszcze nieznana",
    park:"zabytkowy park",nopark:"brak parku w danych",parcel_small:"bardzo mała działka",parcel_large:"bardzo duża działka (ponad 15 ha)",
    power_near:"linia energetyczna blisko",power_far:"linia energetyczna daleko",road_near:"przy drodze publicznej",road_far:"droga publiczna daleko",neighbours_near:"sąsiednie budynki blisko (woda, kanalizacja)",neighbours_far:"brak sąsiednich budynków w pobliżu",
    reserve:"park narodowy lub rezerwat: budowa praktycznie wykluczona",protected:"obszar chroniony: budowa z ograniczeniami",forest:"według mapy las: sprawdzić, czy to las w ewidencji",forest_db:"las według Banku Danych o Lasach: budowa dopiero po zmianie przeznaczenia",register:"w rejestrze zabytków: decyduje też konserwator, możliwe dotacje",free:"poza obszarami chronionymi",
    town_near:"miasto w promieniu {a} km",town_mid:"miasto {a}–{b} km",town_far:"miasto dalej niż {b} km",water:"jezioro lub rzeka w pobliżu"}},
  en:{mAll:"All",pathL:{renovation:"Renovation",new:"Rebuilding",either:"Renovation or rebuilding"},
   gradeQ:"no grade yet: only the village is known",
-  gradesText:"The grade shows how good a starting point a place is for your own home at a manor: is the house still standing, is there a park, is the location good, and do any rules stand in the way?<br><b>A</b> house standing, park, good location, nothing in the way · <b>B</b> good, with one weakness · <b>C</b> possible, but with several weaknesses, or a ruin · <b>D</b> difficult: no house left, or a rule stands in the way · <b>?</b> only the village is known.<br>The five traffic lights on each card show where the grade comes from: house, park & plot, utilities & access, protection & planning, location. The grade does not judge the building's condition, the price or whether the place is for sale.",gradeL:{A:"house standing, park, good location, nothing in the way",B:"good, with one weakness",C:"possible, with several weaknesses",D:"difficult"},
+  gradesText:"The grade shows how good a starting point a place is for your own home at a manor. Like a school report, each part gets a grade: <b>house</b> (is it still standing?), <b>location</b> (shopping, school, doctor, nearest city), <b>park & plot</b>, <b>protection & planning</b> and <b>utilities & access</b>. The overall grade is their weighted average: house 35 %, location 25 %, park & plot 20 %, protection & planning 10 %, utilities & access 10 %. In a national park or nature reserve it is always D.<br><b>A</b> excellent · <b>B</b> good · <b>C</b> fair · <b>D</b> poor · <b>?</b> only the village is known.<br>The grade does not judge the condition of the building, the price or whether the place is for sale.",gradeLbl:{A:"excellent",B:"good",C:"fair",D:"poor","?":"no grade yet: only the village is known"},svL:{shop:"Shopping",school:"School",doctor:"Doctor"},
   lights:{house:"House",plot:"Park & plot",access:"Utilities & access",rules:"Protection & planning",location:"Location"},unknownL:"unknown",areaL:"plot {a} ha",
-  why:{use_hotel:"in use as a hotel or guesthouse",use_school:"in use as a school or university",use_office:"in use as offices or a public authority",use_care:"in use as a clinic or care home",use_museum:"in use as a museum or cultural centre",use_flats:"flats: often several owners",use_church:"in church use",park_apart:"park on a separate parcel: the owners may differ",bldg_on:"building on the parcel: somewhere to live during the works",bldg_none:"no building on the parcel: live elsewhere during the works",standing:"manor stands: check its condition on site",lost:"manor gone: nothing to renovate",nohouse:"no house left",ruin:"ruin: the conservator decides about the walls",unknown:"condition unclear: check on site",unlocated:"position in the village not known yet",
+  why:{power_village:"neighbouring houses have power",use_hotel:"in use as a hotel or guesthouse",use_school:"in use as a school or university",use_office:"in use as offices or a public authority",use_care:"in use as a clinic or care home",use_museum:"in use as a museum or cultural centre",use_flats:"flats: often several owners",use_church:"in church use",park_apart:"park on a separate parcel: the owners may differ",bldg_on:"building on the parcel: somewhere to live during the works",bldg_none:"no building on the parcel: live elsewhere during the works",standing:"manor stands: check its condition on site",lost:"manor gone: nothing to renovate",nohouse:"no house left",ruin:"ruin: the conservator decides about the walls",unknown:"condition unclear: check on site",unlocated:"position in the village not known yet",
    park:"historic park",nopark:"no park recorded",parcel_small:"very small parcel",parcel_large:"very large parcel (over 15 ha)",
    power_near:"power line close",power_far:"power line far",road_near:"on a public road",road_far:"public road far",neighbours_near:"neighbouring houses close (water, sewage)",neighbours_far:"no neighbouring houses nearby",
    reserve:"national park or nature reserve: building practically ruled out",protected:"protected area: building restricted",forest:"forest on the map: check whether it is forest by law",forest_db:"forest in the forest database: building only after a change of use",register:"in the monument register: the conservator has a say, grants possible",free:"no protected area",
@@ -457,26 +459,17 @@ const COL = {A:"#1f7a52",B:"#6aa55b",C:"#d39b2a",D:"#9aa19d","?":"#9aa19d"};
 const GRADES = ["A","B","C","D","?"], rank = g => GRADES.indexOf(g);
 const gcls = g => g === "?" ? "gQ" : "g" + g;
 const shown = new Set(["A","B","C"]);
-// the card's one line under the grade: A says what it means, B-D name the weaknesses (the lights' first bad reason)
-const BAD = new Set(["nopark","parcel_small","parcel_large","park_apart","power_far","road_far","neighbours_far",
-  "reserve","protected","forest","forest_db","town_mid","town_far"]);
-function gradeLine(s){
-  if(s.grade === "?") return t("gradeQ");
-  if(s.grade === "A") return t("gradeL").A;
-  const L = s.L || "-----", w = s.w || [], W = t("why"), town = C.town || [7, 15], out = [];
-  const standing = s.status === "standing";       // as grades.counts: connected, renovation allowed in a landscape area
-  LIGHTS.forEach((k, i) => {
-    if(L[i] !== "a" && L[i] !== "r") return;
-    if(standing && (k === "access" || (k === "rules" && L[i] === "a" && !w.some(x => x === "forest" || x === "forest_db")))) return;
-    const c = k === "house" ? (w.find(x => x.startsWith("use_")) || (s.status === "lost" && !w.includes("bldg_on") ? "nohouse" : s.status))
-                            : w.find(x => LIGHT_OF[x] === k && BAD.has(x));
-    if(c) out.push((W[c] || c).split(":")[0].replace("{a}", town[0]).replace("{b}", town[1]));
-  });
-  return out.join(" · ") || t("gradeL")[s.grade];
-}
+// each reason on the card gets an icon: good (check), weakness (!), blocker (x), information (i)
+const GOOD = new Set(["standing","park","power_near","power_village","road_near","neighbours_near","free","shop_near",
+  "school_near","doctor_near","city_near","water","bldg_on","town_near"]);
+const BLOCK = new Set(["reserve","bldg_none"]);
+const INFO = new Set(["register","unknown","unlocated"]);
+const kind = c => GOOD.has(c) ? "g" : BLOCK.has(c) ? "x" : INFO.has(c) ? "i" : "w";
+const ICON = {g:"✓", w:"!", x:"✕", i:"i"};
+const LETTER_COL = {A:"var(--green)", B:"#8fb339", C:"var(--amber)", D:"var(--red)"};
 const sg = s => s.grade;
 const LC = {g:"var(--green)", a:"var(--amber)", r:"var(--red)"};
-const LIGHTS = ["house","plot","access","rules","location"];
+const LIGHTS = ["house","location","plot","rules","access"];   // config.LIGHT_KEYS: by weight
 
 function buyUrl(id){
   if(!C.checkout) return C.email ? `mailto:${C.email}?subject=Dossier%20${id}` : "#";
@@ -678,24 +671,36 @@ async function shareSite(id, btn){
 }
 const LIGHT_OF = {park:"plot",nopark:"plot",parcel_small:"plot",parcel_large:"plot",power_near:"access",power_far:"access",road_near:"access",road_far:"access",
   neighbours_near:"access",neighbours_far:"access",reserve:"rules",protected:"rules",forest:"rules",forest_db:"rules",register:"rules",free:"rules",
-  town_near:"location",town_mid:"location",town_far:"location",water:"location",bldg_on:"house",bldg_none:"house",use_hotel:"house",use_school:"house",use_office:"house",use_care:"house",use_museum:"house",use_flats:"house",use_church:"house",park_apart:"plot"};
+  town_near:"location",town_mid:"location",town_far:"location",water:"location",bldg_on:"house",bldg_none:"house",power_village:"access",shop_near:"location",shop_far:"location",school_near:"location",school_far:"location",doctor_near:"location",doctor_far:"location",city_near:"location",city_mid:"location",city_far:"location",use_hotel:"house",use_school:"house",use_office:"house",use_care:"house",use_museum:"house",use_flats:"house",use_church:"house",park_apart:"plot"};
 const houseFar = s => Math.abs(s.h[0] - s.lat) + Math.abs(s.h[1] - s.lon) > 0.0003;   // about 25 m
 function siteHtml(s){
   const chip = (k, cls="") => `<span class="${cls}">${esc(k)}</span>`;
-  const tags = s.kowr ? chip(t("forSale"), "sale") : "";        // park and register are in the lights
+  const tags = s.kowr ? chip(t("forSale"), "sale") : "";        // park and register are in the parts
   const W = t("why"), town = C.town || [7, 15];
-  const wt = c => esc((W[c] || c).replace("{a}", town[0]).replace("{b}", town[1]));
+  const txt = c => (W[c] || c).replace("{a}", town[0]).replace("{b}", town[1]);
+  const item = (k, text) => `<li><span class="ic ${k}">${ICON[k]}</span><span>${esc(text)}</span></li>`;
+  const km = m => (m / 1000).toLocaleString(lng, {maximumFractionDigits: m < 10000 ? 1 : 0}) + " km";
   const L = s.L || "-----", w = s.w || [];
   const rows = LIGHTS.map((k, i) => {
-    const codes = (k === "house" ? [s.status] : []).concat(w.filter(c => LIGHT_OF[c] === k));
-    const lv = L[i], dot = lv === "-" ? `<span class="dot none"></span>` : `<span class="dot" style="--lc:${LC[lv]}"></span>`;
-    let txt = codes.length ? codes.map(wt).join(" · ") : esc(t("unknownL"));
-    if(k === "plot" && s.ha) txt = esc(t("areaL").replace("{a}", s.ha.toLocaleString(lng, {maximumFractionDigits: s.ha < 10 ? 2 : 1}))) + " · " + txt;
-    if(k === "house" && s.h) txt += " · " + esc(t(houseFar(s) ? "houseMark" : "houseAt").replace("{m}", s.h[2]) + (t("houseHow")[s.h[3]] || ""));
-    return `<li>${dot}<b>${esc(t("lights")[k])}</b><span class="w">${txt}</span></li>`;
+    const g = L[i] && L[i] !== "-" ? L[i] : "";
+    const badge = g ? `<span class="pg" style="--lc:${LETTER_COL[g]}">${g}</span>` : `<span class="pg none">–</span>`;
+    let items = [];
+    if(k === "house"){
+      items.push(item(kind(s.status), t("status")[s.status] || s.status));
+      if(s.h) items.push(item("i", t(houseFar(s) ? "houseMark" : "houseAt").replace("{m}", s.h[2]) + (t("houseHow")[s.h[3]] || "")));
+    }
+    if(k === "plot" && s.ha) items.push(item("i", t("areaL").replace("{a}", s.ha.toLocaleString(lng, {maximumFractionDigits: s.ha < 10 ? 2 : 1}))));
+    for(const c of w.filter(c => LIGHT_OF[c] === k)){
+      const base = c.replace(/_(near|far|mid)$/, "");
+      if(k === "location" && s.sv && base in s.sv){         // everyday life with real distances
+        const v = s.sv[base];
+        items.push(item(kind(c), base === "city" ? `${v[0]} ${km(v[1])}` : `${t("svL")[base]} ${km(v)}`));
+      } else items.push(item(kind(c), txt(c)));
+    }
+    if(!items.length) items.push(item("i", t("unknownL")));
+    return `<li>${badge}<b>${esc(t("lights")[k])}</b><ul class="rs">${items.join("")}</ul></li>`;
   }).join("");
-  let h = `<div class="cs"><div class="st">${icon(s.status, COL[sg(s)], 22)}<span>${esc(t("status")[s.status] || s.status)}</span></div>
-    <div class="gb on" style="--c:${COL[s.grade]}"><b>${esc(s.grade)}</b><span class="pth">${esc(gradeLine(s))}</span></div>
+  let h = `<div class="cs"><div class="gb on" style="--c:${COL[s.grade]}"><b>${esc(s.grade)}</b><span class="pth">${esc(t("gradeLbl")[s.grade] || "")}</span></div>
     <ul class="lights">${rows}</ul>`;
   if(tags) h += `<div class="chips">${tags}</div>`;
   if(s.ku && OFFERS[s.ku]) h += offerHtml(OFFERS[s.ku]);
@@ -723,20 +728,11 @@ const vvSel = $("vv");
 [...new Set(VV.map(v=>v.vv).filter(Boolean))].sort().forEach(v => vvSel.add(new Option(v, v)));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ł/g,"l");
 const STATUSES = ["lost", "ruin", "standing", "unknown", "unlocated"];
-const REFS = C.refs || {};
-const toRad = d => d * Math.PI / 180;
-function km(s, v, F){                                // straight-line distance to the chosen city
-  if(!F.ref) return 0;
-  const [la, lo] = REFS[F.ref], la2 = s.lat ?? v.lat, lo2 = s.lon ?? v.lon;
-  const a = Math.sin(toRad(la2-la)/2)**2 + Math.cos(toRad(la))*Math.cos(toRad(la2))*Math.sin(toRad(lo2-lo)/2)**2;
-  return 12742 * Math.asin(Math.sqrt(a));
-}
 function filters(){
   const status = new Set(STATUSES.filter(k => $("st_"+k).checked));
   const f = {status, kowr: $("kowrOnly").checked, park: $("parkOnly").checked,
-             reg: $("regOnly").checked, ref: $("ref").value, km: +$("km").value};
-  if(f.km >= 800) f.ref = "";                          // slider at the end = any distance
-  f.active = (status.size < STATUSES.length) + f.kowr + f.park + f.reg + !!f.ref;
+             reg: $("regOnly").checked};
+  f.active = (status.size < STATUSES.length) + f.kowr + f.park + f.reg;
   return f;
 }
 let RES = [];                                          // [{v, located, approx}] after filtering
@@ -785,7 +781,7 @@ function render(){
   const F = filters();
   // every filter narrows the result (AND): "for sale" + grade A shows the A-graded sites for sale
   const keep = (s, v) => shown.has(sg(s)) && F.status.has(s.status) && (!F.kowr || s.ku) && (!F.park || s.park)
-                         && (!F.reg || s.registered) && (!F.ref || km(s, v, F) <= F.km);
+                         && (!F.reg || s.registered);
   const list = VV.filter(v => v.sites.some(s => keep(s, v)) && (!vv || v.vv===vv) && (!q || norm(v.v).includes(q) || norm(v.de).includes(q)));
   RES = list.map(v => { const sites = v.sites.filter(s => keep(s, v));
     return {v, located: sites.filter(s => s.lat), approx: sites.filter(s => !s.lat)}; });
@@ -799,13 +795,11 @@ function render(){
   $("countShort").textContent = n.toLocaleString(lng) + " " + t("sites");
   $("nSt").textContent = STATUSES.length - F.status.size || "";
   $("nFt").textContent = F.kowr + F.park + F.reg || "";
-  $("nDi").textContent = F.ref ? "1" : "";
   $("reset").hidden = !F.active;
   const ul = $("list"); ul.innerHTML = "";
-  const vkm = v => Math.min(...v.sites.filter(s => keep(s, v)).map(s => km(s, v, F)));
   const vg = v => v.sites.filter(s => keep(s, v)).map(sg).sort((a, b) => rank(a) - rank(b))[0] || v.g;   // best shown grade
   const byV = new Map(RES.map(r => [r.v, r]));
-  list.sort(F.ref ? (a,b) => vkm(a) - vkm(b) : (a,b) => rank(vg(a)) - rank(vg(b)) || a.v.localeCompare(b.v));
+  list.sort((a,b) => rank(vg(a)) - rank(vg(b)) || a.v.localeCompare(b.v));
   for(const v of list.slice(0, 200)){
     const li = document.createElement("li");
     li.tabIndex = 0;
@@ -842,7 +836,6 @@ function lang(l){
   if(C.shop) document.querySelectorAll('[data-t="what"]').forEach(e => e.innerHTML += t("whatShop"));
   document.querySelectorAll("[data-tp]").forEach(e => { e.placeholder = t(e.dataset.tp); e.setAttribute("aria-label", t(e.dataset.tp)); });
   document.querySelectorAll("[data-st]").forEach(e => e.textContent = t("status")[e.dataset.st]);
-  if(typeof kmLabel === "function") kmLabel();
   document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.l===l));
   $("shop").hidden = !C.shop;
   document.querySelectorAll('[data-t="listH"]').forEach(e => e.textContent = t("listH"));
@@ -861,17 +854,11 @@ for(const k of STATUSES){
   lab.querySelector("input").onchange = render;
   stBox.appendChild(lab);
 }
-const refSel = $("ref");
-for(const r of Object.keys(REFS)) refSel.add(new Option(r, r));
-const kmEl = $("km"), kmL = $("kmL");
-const kmLabel = () => { kmL.textContent = +kmEl.value >= 800 ? t("anyDist") : "≤ " + kmEl.value + " km"; };
-kmEl.oninput = () => { kmLabel(); render(); };
-refSel.onchange = render;
 for(const id of ["parkOnly", "regOnly"]) $(id).onchange = render;
 $("reset").onclick = () => {
   for(const k of STATUSES) $("st_"+k).checked = true;
   for(const id of ["kowrOnly", "parkOnly", "regOnly"]) $(id).checked = false;
-  kmEl.value = 800; kmLabel(); render();
+  render();
 };
 $("kowrOnly").onchange = e => {
   render();

@@ -117,6 +117,25 @@ def mark_houses(args, root: Path, sites: list[dict]) -> None:
     log.info("Buildings marked for %d standing / unknown sites", n)
 
 
+def services(args, root: Path, sites: list[dict]) -> None:
+    """Nearest supermarket, school, doctor, station and city for each located site (local OSM extract)."""
+    gpkg = Path(getattr(args, "osm", None) or root / "_osm" / "osm.gpkg")
+    if not gpkg.exists() or "pois" not in {n for n, _ in __import__("pyogrio").list_layers(gpkg)}:
+        log.info("No POIs in the local OSM extract: location from the nearest town only")
+        return
+    import numpy as np
+    import pandas as pd
+    import pyogrio
+    pois = pd.concat([pyogrio.read_dataframe(gpkg, layer=layer, columns=["kind", "name"])
+                      for layer in ("pois", "poi_areas")], ignore_index=True)
+    places = {k: (np.column_stack([g.geometry.x, g.geometry.y]), g["name"].values)
+              for k, g in pois.groupby("kind") if k in ("shop", "school", "doctor", "station")}
+    city = pyogrio.read_dataframe(gpkg, layer="places", where="place = 'city'")
+    places["city"] = (np.column_stack([city.geometry.x, city.geometry.y]), city["name"].values)
+    n = pipeline.nearest_services(sites, places)
+    log.info("Services measured for %d sites", n)
+
+
 def count_buildings(args, root: Path, sites: list[dict], offers: list[dict]) -> None:
     """Buildings on each parcel from the local OSM extract (skipped without it)."""
     gpkg = Path(getattr(args, "osm", None) or root / "_osm" / "osm.gpkg")
@@ -248,6 +267,7 @@ def cmd_build(args):
     n = pipeline.house_parcels(sites, lambda x, y: uldk.parcel_at(http, x, y))
     log.info("%d standing sites moved to the parcel their house stands on", n)
     count_buildings(args, root, sites, offers)           # buildings on the parcel: somewhere to live while rebuilding
+    services(args, root, sites)                          # supermarket, school, doctor, city: the location light
     if not getattr(args, "no_forest", False):            # forest stands from the forest database (cached)
         from .sources import bdl
         bdl.annotate(http, sites)
