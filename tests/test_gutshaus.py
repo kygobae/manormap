@@ -1522,8 +1522,9 @@ def test_tenders_find_sale_pages_and_notices():
 
 
 @pytest.mark.parametrize("text, how", [
-    ("działka nr 136 położona w obrębie Byszów", "parcel"),
-    ("dz. ewid. nr 1250/1, obręb Bieliny", "parcel"),
+    ("przetarg na sprzedaż: działka nr 136 położona w obrębie Byszów", "parcel"),
+    ("działka nr 136 położona w obrębie Byszów", ""),                # no sale word: a lease, a decision ...
+    ("zbycie nieruchomości: dz. ewid. nr 1250/1, obręb Bieliny", "parcel"),
     ("działka nr 1250/12, obręb Bieliny", ""),                      # another parcel, no manor word
     ("działka nr 1250/12, obręb Bieliny, dawny park dworski", "village"),
     ("Bieliny: zespół dworsko-parkowy na sprzedaż", "village"),
@@ -1549,3 +1550,56 @@ def test_tender_sale_pages(text, kind):
     assert bool(got) == bool(kind)
     if kind == "weak":                                   # only when nothing strong is linked
         assert tenders.sections([("https://x/a", text), ("https://x/b", "gospodarka nieruchomosciami")]) == ["https://x/b"]
+
+
+@pytest.mark.parametrize("text, how", [
+    # real wording (BIPs, 2026): a tender for the palace parcel, a list of parcels for sale, a parcel lent
+    ("Przetarg ustny nieograniczony. Dla działki o numerze ewidencyjnym 206/2 w Dąbroszynie wydana została decyzja "
+     "o warunkach zabudowy dla adaptacji pałacu na hotel.", "parcel"),
+    ("wykaz nieruchomości przeznaczonych do sprzedaży w drodze przetargu ustnego nieograniczonego (działki 431/14, "
+     "412/2, 431/23, 431/8 obręb Renice, gmina Myślibórz)", "parcel"),
+    ("wykaz nieruchomości przeznaczonej do oddania w użyczenie - gmina Małdyty, obręb Szymonowo, działka numer 157/4",
+     ""),
+    ("Ogłoszenia w 2026 roku: przetarg - działka nr 2, obręb Kłos. " + "x " * 300 + "Baldwinowice: zespół dworski",
+     "village"),                                                  # parcel 2 of another village, far away
+])
+def test_tender_match_needs_place_and_sale_nearby(text, how):
+    from gutshaus.sources import tenders
+    no, place = next((n, p) for n, p in (("206/2", "Dąbroszyn"), ("431/23", "Renice"), ("157/4", "Szymonowo"),
+                                         ("2", "Baldwinowice")) if p in text)
+    assert tenders.match_text(text, {"parcel_no": no, "precinct": place, "village": ""}) == how
+
+
+def test_tender_date_skips_old_decisions():
+    import datetime as dt
+    from gutshaus.sources import tenders
+    text = "decyzja z dnia 18.12.1963 r. ... Przetarg odbędzie się w dniu 15 grudnia 2026 r. o godz. 10:00"
+    assert tenders.tender_date(text, dt.date(2026, 11, 26)) == "2026-12-15"
+    assert tenders.tender_date("uchwała z dnia 07.08.2008 r.", dt.date(2026, 11, 26)) == ""
+
+
+def test_tender_notice_with_sale_wording_far_from_the_parcel():
+    """Witnica, 2026: the sale is announced in the heading, the parcel number comes paragraphs later."""
+    import datetime as dt
+    from gutshaus.sources import tenders
+    text = ("Przetarg ustny nieograniczony na sprzedaż nieruchomości zabudowanej kompleksem pałacowo-parkowym "
+            "położonej w Dąbroszynie. ogłoszono dnia: 2026-10-23 data przetargu 2027-01-11 12:00:00 miejsce w siedzibie "
+            "urzędu. cena wywoławcza 2.000.000,00 wadium 200.000,00 " + "opis nieruchomości. " * 40 +
+            "Dla działki o numerze ewidencyjnym 206/2 w Dąbroszynie wydana została decyzja o warunkach zabudowy.")
+    assert tenders.match_text(text, {"parcel_no": "206/2", "precinct": "Dąbroszyn"}) == "parcel"
+    assert tenders.tender_date(text, dt.date(2026, 11, 26)) == "2027-01-11"
+    assert tenders.asking_price(text) == 2000000
+    assert tenders.asking_price("cena wywoławcza nieruchomości: 750 000 zł") == 750000
+
+
+def test_tender_list_and_title():
+    from gutshaus.sources import tenders
+    text = ("2026-10-06 przetarg, który odbył się w dniu 29.09.2026 roku ... Zarząd Powiatu podaje do publicznej "
+            "wiadomości wykaz nieruchomości przeznaczonych do sprzedaży w drodze przetargu ustnego (działki 431/14, "
+            "431/23 obręb Renice)")
+    how, before = tenders.match_detail(text, {"parcel_no": "431/23", "precinct": "Renice"})
+    assert how == "parcel" and "wykaz" in before
+    assert tenders.notice_title("Biuletyn Informacji Publicznej", "", "Ogłoszenie. Przetarg ustny nieograniczony na "
+                                "sprzedaż nieruchomości zabudowanej pałacem. Termin") == \
+        "Przetarg ustny nieograniczony na sprzedaż nieruchomości zabudowanej pałacem"
+    assert tenders.notice_title("Ogłoszenie o przetargu na sprzedaż pałacu", "", "") == "Ogłoszenie o przetargu na sprzedaż pałacu"

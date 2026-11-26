@@ -538,6 +538,7 @@ def main(argv=None):
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S", force=True)
     logging.getLogger("pyogrio").setLevel(logging.WARNING)
+    logging.getLogger("pypdf").setLevel(logging.ERROR)     # font warnings from scanned BIP notices
     used = config.load_overrides(args.config)
     if used:
         log.info("Using overrides from %s", used)

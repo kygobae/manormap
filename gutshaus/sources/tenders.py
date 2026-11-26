@@ -57,10 +57,11 @@ SECTION_BAD = re.compile(r"zamowien|naborze|\bprac[ay]\b|stanowisk|wybor|petycj|
 # a notice about letting, not selling: never a sale
 LEASE = re.compile(r"dzierzaw|najem|najmu|uzyczen")
 SALE = re.compile(r"sprzedaz|zbyci|zbywan|zbyc\b")
+SALE_CONTEXT = re.compile(r"sprzedaz|zbyci|zbywan|zbyc\b|przetarg|licytac|rokowan")
 # a notice on such a page
 NOTICE = re.compile(r"przetarg|zbyci|sprzedaz|wykaz|ogloszen|licytac|rokowan|nieruchomo")
 ATTACHMENT = re.compile(r"\.(pdf|docx)(\?|$)|/(download|attachment|plik|pobierz|zalacznik|file)", re.I)
-RESULT = re.compile(r"informacj\w* o wynik|wynik\w* przetarg|wynikach przetarg")
+RESULT = re.compile(r"informacj\w* o wynik|wynik\w* przetarg|wynikach przetarg|rozstrzygniet|zakonczon\w* przetarg")
 MANOR = re.compile(r"\b(palac\w*|dwor|dworu|dworek|dworku|dworkiem|zespol\w* (palac|dwor|parkow)\w*|"
                    r"park\w* (dworsk|palacow|podworsk)\w*|oficyn\w*|zamek|zamku)\b")
 MONTHS = {"stycznia": 1, "lutego": 2, "marca": 3, "kwietnia": 4, "maja": 5, "czerwca": 6, "lipca": 7, "sierpnia": 8,
@@ -271,8 +272,10 @@ def discover(fetch, http, offices_: dict[str, dict], known: dict | None = None, 
     today = today or dt.date.today()
     web = websites(http)
 
-    def stale(v):
-        return not v.get("pages") and v.get("how") != "manual" and \
+    def stale(v):                                   # an unreachable website is tried again on every run
+        if v.get("pages") or v.get("how") == "manual":
+            return False
+        return v.get("how") == "website unreachable" or \
             (today - dt.date.fromisoformat(v.get("checked") or "2000-01-01")).days >= RETRY_DAYS
     todo = [k for k in offices_ if k not in known or stale(known[k]) or (redo and known[k].get("how") != "manual")]
 
@@ -334,34 +337,89 @@ def _place(v: str) -> str:
     return fold(re.sub(r"^\d+[a-zA-Z]?\s*[-–.]?\s*", "", v or "")).strip()
 
 
+NEAR = 250                # characters: the place is named this close to the parcel number
+SALE_BEFORE = 400         # ... and a sale word this far before it (one item of a list page, not its neighbour)
+
+
+def _place_re(p: str):
+    """A place name in any case ending ("Dąbroszyn" -> "w Dąbroszynie", "Renice" -> "w Renicach")."""
+    stem = re.escape(p[:-1] if len(p) >= 6 and p[-1] in "aeiouy" else p)
+    return re.compile(rf"\b{stem}\w{{0,4}}\b")
+
+
 def match_text(text: str, site: dict) -> str:
-    """'parcel' (the precinct or village named and the parcel number after 'działka'), 'village' (the village and a
-    manor word) or ''."""
-    t = fold(text)
-    places = [p for p in {_place(site.get("precinct")), _place(site.get("village"))} if len(p) >= 3]
-    if not any(re.search(rf"\b{re.escape(p)}\b", t) for p in places):
-        return ""
+    """'parcel': the parcel number after 'działka' with the precinct or village named within NEAR characters and a
+    sale word (sprzedaż, zbycie, przetarg) shortly before it, not a lease or lending; 'village': the village and a
+    manor word; '' otherwise."""
+    return match_detail(text, site)[0]
+
+
+def match_detail(text: str, site: dict) -> tuple[str, str]:
+    """(match_text's answer, the text just before the parcel number: is it a list of properties ("wykaz")?)."""
+    t = re.sub(r"\s+", " ", fold(text))
+    places = [_place_re(p) for p in {_place(site.get("precinct")), _place(site.get("village"))} if len(p) >= 3]
+    if not any(r.search(t) for r in places):
+        return "", ""
     no = fold(site.get("parcel_no") or "")
-    if no and _parcel_pattern(no).search(t):
-        return "parcel"
-    return "village" if MANOR.search(t) else ""
+    hits = [m for m in (_parcel_pattern(no).finditer(t) if no else ())
+            if any(r.search(t[max(0, m.start() - NEAR):m.end() + NEAR]) for r in places)]
+    if hits:
+        # a sale word shortly before the parcel number, or shortly before the place's name ("przetarg ... na sprzedaż
+        # nieruchomości ... położonej w Dąbroszynie"); a lease or lending word nearer than it rules it out
+        spots = [t[max(0, m.start() - SALE_BEFORE):m.end() + 80] for m in hits] + \
+                [t[max(0, m.start() - 200):m.end()] for r in places for m in r.finditer(t)]
+        if any(_sale(s) for s in spots):
+            return "parcel", t[max(0, hits[0].start() - SALE_BEFORE):hits[0].start()]
+    return ("village" if MANOR.search(t) else ""), ""
 
 
-def tender_date(text: str) -> str:
-    """The tender's date ("przetarg odbędzie się w dniu 15 grudnia 2026 r." / "dnia 15.12.2026"), ISO, or ""."""
-    for m in re.finditer(r"(odbedzie sie|w dniu|dnia)\s+(\d{1,2})[.\s/-]+(\d{1,2}|[a-z]+)[.\s/-]+(\d{4})", fold(text)):
-        d, mo, y = m.group(2), m.group(3), m.group(4)
-        mo = int(mo) if mo.isdigit() else MONTHS.get(mo)
+GENERIC_TITLE = re.compile(r"biuletyn informacji|^bip\b|strona glowna|^urzad |^starostwo |^ogloszenia$")
+
+
+def notice_title(title: str, link_text: str, text: str) -> str:
+    """A title that says what is sold: the page's own unless it is the BIP's name, else the notice's first sentence
+    about a tender or sale (with its Polish letters), else the link's text (folded)."""
+    if title and len(title) >= 12 and not GENERIC_TITLE.search(fold(title).strip()):
+        return title.strip()[:200]
+    m = re.search(r"[^.]{0,40}(przetarg|sprzeda|zbyci)[^.]{10,160}", re.sub(r"\s+", " ", text), re.I)
+    return (m.group(0).strip() if m else link_text or title)[:200]
+
+
+def _sale(window: str) -> bool:
+    """The window speaks of a sale: the last sale word comes after the last lease word (or there is none)."""
+    sales = [m.start() for m in SALE_CONTEXT.finditer(window)]
+    leases = [m.start() for m in LEASE.finditer(window)]
+    return bool(sales) and (not leases or max(sales) > max(leases))
+
+
+def tender_date(text: str, today: dt.date | None = None) -> str:
+    """The tender's date, ISO, or "": "przetarg odbędzie się (w dniu) 15 grudnia 2026 r." first, else the first
+    "w dniu / dnia <date>" within a year around today (notices quote old decisions and register entries)."""
+    today = today or dt.date.today()
+    t = fold(text)
+    m = re.search(r"data przetargu:?\s*(\d{4})-(\d{2})-(\d{2})", t)
+    if m:
         try:
-            return dt.date(int(y), int(mo), int(d)).isoformat()
-        except (TypeError, ValueError):
-            continue
+            return dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3))).isoformat()
+        except ValueError:
+            pass
+    for pattern in (r"(odbedzie sie(?: w dniu)?)\s+(\d{1,2})[.\s/-]+(\d{1,2}|[a-z]+)[.\s/-]+(\d{4})",
+                    r"(w dniu|dnia)\s+(\d{1,2})[.\s/-]+(\d{1,2}|[a-z]+)[.\s/-]+(\d{4})"):
+        for m in re.finditer(pattern, t):
+            d, mo, y = m.group(2), m.group(3), m.group(4)
+            mo = int(mo) if mo.isdigit() else MONTHS.get(mo)
+            try:
+                day = dt.date(int(y), int(mo), int(d))
+            except (TypeError, ValueError):
+                continue
+            if abs((day - today).days) <= 365:
+                return day.isoformat()
     return ""
 
 
 def asking_price(text: str) -> int | None:
     """The opening price ("cena wywoławcza ... 750 000,00 zł") in złoty, or None."""
-    m = re.search(r"cen\w* wywolawcz\w*[^0-9]{0,60}?(\d[\d\s. ]*(?:,\d{2})?)\s*zl", fold(text))
+    m = re.search(r"cen\w* wywolawcz\w*[^0-9]{0,60}?(\d[\d\s.\u00a0]*,\d{2}|\d[\d\s.\u00a0]*(?=\s*zl))", fold(text))
     if not m:
         return None
     v = re.sub(r"[\s. ]", "", m.group(1)).split(",")[0]
@@ -401,14 +459,17 @@ def check(fetch, known: dict[str, dict], offices_: dict[str, dict], sites: list[
             if LEASE.search(head) and not SALE.search(head):     # a lease, not a sale
                 continue
             for s in mine:
-                how = match_text(text, s)
+                how, before = match_detail(text, s)
                 if how:
+                    # a list of properties to be sold (wykaz) comes weeks before the tender: no date yet, and the
+                    # dates on such a page belong to other items
+                    listed = how == "parcel" and re.search(r"wykaz", before)
                     out.append({"id": "tender-" + hashlib.sha1(f"{url}|{s['uid']}".encode()).hexdigest()[:10],
                                 "office": k, "site": dossier_id(s["uid"]), "uid": s["uid"], "url": url,
-                                "title": (title or link_text)[:200], "match": how,
+                                "title": notice_title(title, link_text, text), "match": how,
                                 "result": bool(RESULT.search(fold(f"{title} {link_text} {text[:600]}"))),
-                                "date": tender_date(text), "price_pln": asking_price(text),
-                                "seen": today.isoformat()})
+                                "date": "" if listed else tender_date(text, today),
+                                "price_pln": None if listed else asking_price(text), "seen": today.isoformat()})
         return out, read
     found, read = [], 0
     with ThreadPoolExecutor(WORKERS) as pool:
@@ -437,7 +498,8 @@ def as_sales(found: list[dict]) -> list[dict]:
     """Parcel matches that announce a sale (not a result) as gutshaus.sales entries, one per site: shown until the
     tender date + SALE_SHOW_DAYS, or TENDER_SHOW_DAYS after first seen when the notice gives no date."""
     out, seen = [], set()
-    for f in sorted(found, key=lambda f: f.get("date") or "", reverse=True):
+    for f in sorted(found, key=lambda f: (bool(f.get("date")), bool(f.get("price_pln")), f.get("date") or ""),
+                    reverse=True):
         if f["match"] != "parcel" or f.get("result") or f["uid"] in seen:
             continue
         seen.add(f["uid"])
