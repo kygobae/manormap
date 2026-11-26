@@ -21,7 +21,7 @@ from pathlib import Path
 from . import config, criteria, outputs, pipeline
 from .geo import geom_to_ll
 from .http import Http
-from .sources import gdos, kowr, nid, osm, osm_local, uldk
+from .sources import gdos, kowr, nid, nid_map, osm, osm_local, uldk
 
 log = logging.getLogger("gutshaus")
 
@@ -49,6 +49,8 @@ def run_area(args, out: Path, http: Http, src, teryt: str | None = None,
             try:
                 recs = nid.api_estate_records(nid.fetch_api(http, powiat_name))
                 cands += src.locate_records(recs, area)
+                if not getattr(args, "no_nid_map", False):   # where NID's map draws the village-only entries
+                    nid_map.pin_village_entries(http, cands)
             except Exception as e:
                 log.warning("NID API failed (%s); continuing with OSM only", e)
         else:
@@ -453,6 +455,8 @@ def main(argv=None):
     r.add_argument("--skip-uldk", action="store_true", help="no parcel lookup (faster)")
     r.add_argument("--skip-infra", action="store_true", help="no utility/road/protection measurements (faster)")
     r.add_argument("--skip-kowr", action="store_true", help="don't load KOWR heritage offers")
+    r.add_argument("--no-nid-map", action="store_true",
+                   help="don't look up where NID's map draws register entries known only by their village")
     r.add_argument("--limit", type=int, help="only the first N sites per area (testing)")
     r.add_argument("--out", help="output folder for a single area (default: <out-root>/powiats/<powiat>)")
     r.add_argument("--verdicts", help="earlier verdicts CSV to carry over")

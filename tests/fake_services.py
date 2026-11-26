@@ -251,6 +251,14 @@ class FakeHttp:
         params = params or {}
         if "bdl.lasy.gov.pl" in url:                 # forest database: no forest anywhere (tests patch it per case)
             return json.dumps({"results": []}).encode()
+        if "usluga.zabytek.gov.pl" in url:          # NID's map: nothing drawn (tests that need shapes fake it)
+            if params.get("request") == "GetMap":
+                import io
+                from PIL import Image
+                buf = io.BytesIO()
+                Image.new("RGBA", (int(params["width"]), int(params["height"])), (0, 0, 0, 0)).save(buf, "PNG")
+                return buf.getvalue()
+            return b"<BODY></BODY>"
         if "integracja.gugik.gov.pl" in url:         # land register: every parcel owned by private persons
             return egib_page(7).encode()
         if "uldk" in url:

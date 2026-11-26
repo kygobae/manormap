@@ -17,6 +17,7 @@ NID_API_URL = "https://api.zabytek.gov.pl/nidrestapi/api/data/geoportal/otwarteD
 NID_PAGE_SIZE = 500
 NID_PLACE_RADIUS_M = 1500     # search radius around the village for a park to snap to
 NID_WMS = "https://usluga.zabytek.gov.pl/INSPIRE_IMD/service.svc/get"   # register outlines (map service)
+NID_PAUSE_S = 0.2           # after each uncached request to NID's map service
 NID_ATTACH_RADIUS_M = 1000   # attach a village-located register entry to an OSM site this close
 
 # WMS layers shown in review.html (name, url, layers, attribution).
