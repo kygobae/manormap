@@ -499,6 +499,44 @@ def test_register_entries_from_nid_map():
     assert http.calls == ["GetMap", "GetFeatureInfo"]                  # one shape, one question
 
 
+def test_village_entries_move_to_where_nid_draws_them(monkeypatch):
+    """A register entry known only by its village moves to its drawn shape; one map per village; entries NID does
+    not draw stay; a failing service leaves everything as it was."""
+    import io
+    from PIL import Image, ImageDraw
+    from gutshaus.sources import nid_map
+    monkeypatch.setattr("gutshaus.config.NID_PAUSE_S", 0)
+
+    class Http:
+        calls = []
+        def get(self, url, params=None, **kw):
+            self.calls.append(params["request"])
+            if params["request"] == "GetMap":
+                im = Image.new("RGBA", (params["width"], params["height"]), (0, 0, 0, 0))
+                ImageDraw.Draw(im).rectangle([100, 100, 140, 140], fill=(128, 128, 128, 255), outline=(0, 0, 0, 255))
+                buf = io.BytesIO()
+                im.save(buf, "PNG")
+                return buf.getvalue()
+            return NID_INFO.encode()                                     # the shape is ZZ.1 and BK.2
+    v = (400000.0, 400000.0)
+    entry = lambda i: {"uid": "nid:PL.1.9.ZIPOZ.NID_N_02_" + i, "source": "nid", "x": v[0], "y": v[1],
+                       "location": "village centre", "village_xy": v, "rivals_xy": []}
+    park, house, undrawn = entry("ZZ.1"), entry("BK.2"), entry("BK.9")
+    exact = {**entry("BK.3"), "location": "exact"}
+    http = Http()
+    assert nid_map.pin_village_entries(http, [park, house, undrawn, exact]) == 2
+    assert http.calls == ["GetMap"] + ["GetFeatureInfo"]                 # one village, one shape
+    assert park["location"] == house["location"] == "exact" and "village_xy" not in park
+    assert park["x"] < v[0] and park["y"] > v[1]                         # the shape is up and left of the centre
+    assert (undrawn["x"], undrawn["location"]) == (v[0], "village centre")
+
+    class Down:
+        def get(self, *a, **kw):
+            raise ConnectionError("down")
+    again = entry("ZZ.1")
+    assert nid_map.pin_village_entries(Down(), [again]) == 0 and again["location"] == "village centre"
+
+
 def test_kowr_register_entries_and_parcels():
     """Entries NID draws at an offer move there; sites match only on the offered parcels; a member on the offer
     gives the site its position."""
@@ -684,7 +722,7 @@ def test_publish_site(built, monkeypatch):
     from gutshaus import grades
     monkeypatch.setattr("gutshaus.config.SHOP_ENABLED", True)
     monkeypatch.setattr("gutshaus.config.CHECKOUT_URL", "https://shop.lemonsqueezy.com/checkout/buy/abc")
-    sites = grades.all_sites(built)
+    sites = [s for s in grades.all_sites(built) if grades.listed(s)]        # village-only sites are never shown
     keep = grades.dossier_id(sites[1]["uid"])
     (built / "reserved.txt").write_text(f"{sites[0]['uid']}  # mine\n", encoding="utf-8")
     cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "reserved.txt")])
@@ -813,8 +851,7 @@ def test_public_map_has_exact_sites_and_outlines_but_no_parcel_numbers(built, mo
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
     status = {grades.dossier_id(s["uid"]): s["status"] for s in grades.all_sites(built)}
     items = [x for v in data["villages"] for x in v["sites"]]
-    assert items and all(("lat" in x) == (status[x["id"]] != "unlocated") for x in items)
-    assert any("lat" in x for x in items) and any("lat" not in x for x in items)
+    assert items and all("lat" in x and status[x["id"]] != "unlocated" for x in items)   # only located sites
     outlines = json.loads((pub / "parcels.json").read_text(encoding="utf-8"))
     located = {x["id"] for x in items if "lat" in x}
     assert outlines and set(outlines) <= located
@@ -1316,6 +1353,7 @@ def test_only_private_owners_are_listed():
     assert unlisted_reason(school) == "use:school" and unlisted_reason({**school, "owner_group": 5}) == "use:school"
     assert listed({**school, "owner_group": 7})                                # a private owner decides
     assert listed({**s, "owner_group": 1, "kowr_offer": "x"})                  # KOWR sells State Treasury land
+    assert unlisted_reason({"status": "unlocated", "text": "dwór | dwór"}) == "unlocated"   # only the village known
 
 
 def test_owner_group_from_the_land_register():
@@ -1362,7 +1400,7 @@ def test_publish_leaves_out_sites_not_in_private_hands(built):
     from gutshaus import grades, publish
     sites = grades.all_sites(built)
     assert all("owner_group" in s and "unlisted" in s for s in sites)       # build looked them up
-    ids = {grades.dossier_id(s["uid"]) for s in sites}
+    ids = {grades.dossier_id(s["uid"]) for s in sites if s["status"] != "unlocated" or s.get("kowr_offer")}
     gmina = next(s for s in sites if s["status"] != "unlocated" and not s.get("kowr_offer"))
     gmina["owner_group"] = 4
     shown = {i["id"] for v in publish.villages(sites) for i in v["sites"]}

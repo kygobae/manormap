@@ -173,10 +173,13 @@ def grade_rank(g: str) -> int:
 # ---------------------------------------------------------------- who can sell it
 def unlisted_reason(site: dict) -> str:
     """Why a site is left off the public map and the dossier batch, "" when it is shown (config "Who owns it"):
-    "owner:<group>" for a parcel owned by anyone but private persons, "use:<use>" for a school, offices,
+    "unlocated" when only the village is known, "owner:<group>" for a parcel owned by anyone but private persons,
+    "use:<use>" for a school, offices,
     a foundation ... when the owner is unknown. A KOWR offer is always shown."""
     if site.get("kowr_offer"):
         return ""
+    if site.get("status") == "unlocated":       # only the village is known: no parcel, no owner, nothing to visit
+        return "unlocated"
     g = site.get("owner_group")
     if g in config.OWNER_PRIVATE:
         return ""
