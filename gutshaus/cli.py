@@ -281,6 +281,10 @@ def cmd_build(args):
             s.pop(k, None)
     if offers:
         kowr.match(sites, offers)
+    from . import sales as sales_mod                     # auctions, tenders, owners' listings (config.SALES_FILE)
+    sales = sales_mod.load()
+    if sales:
+        log.info("Sales: %d current, %d on a site", len(sales), sales_mod.match(sites, sales))
     gone = kowr.recently_gone(kowr.history_path(root / "_kowr.json"), offers) if not getattr(args, "skip_kowr", False) else []
     if gone:                                             # dropped off KOWR's lists lately: probably sold
         log.info("KOWR: %d offers gone in the last %d days, %d sites marked", len(gone), config.KOWR_GONE_DAYS,
@@ -299,7 +303,7 @@ def cmd_build(args):
     if not getattr(args, "no_forest", False):            # forest stands from the forest database (cached)
         from .sources import bdl
         bdl.annotate(http, sites)
-    if offers or n_fixed:
+    if offers or n_fixed or sales:
         for s in sites:
             s.update(criteria.compute(s))
             s["score"], s["why"] = criteria.score(s), criteria.explain(s)
@@ -423,7 +427,12 @@ def cmd_publish(args):
         raise SystemExit("No results yet: run `gutshaus run` (and `gutshaus build`) first.")
     reserved = publish.load_reserved(Path(args.reserved or config.RESERVED_FILE))
     out = Path(args.out or root / "site")
-    n = publish.publish(sites, out, reserved, root / "_kowr.json", Path(args.sample) if args.sample else None)
+    from . import sales
+    current = sales.load()                               # matched again: a sale added after the build shows at once
+    if current:
+        log.info("Sales: %d current, %d on a site", len(current), sales.match(sites, current))
+    n = publish.publish(sites, out, reserved, root / "_kowr.json", Path(args.sample) if args.sample else None,
+                        sales=current)
     print(f"{n['villages']} villages, {n['sites']} sites ({len(reserved)} reserved) -> {out / 'public' / 'index.html'}")
     if config.SHOP_ENABLED and not config.CHECKOUT_URL:
         print("Note: SHOP_ENABLED is on but CHECKOUT_URL is not set, so buy buttons fall back to e-mail.")

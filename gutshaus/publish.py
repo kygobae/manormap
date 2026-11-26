@@ -89,7 +89,7 @@ def site_item(did: str, s: dict) -> dict:
             "L": "".join(x["grade"] or "-" for x in L.values()),
             "sc": round(score_of(L), 2) if score_of(L) is not None else None,   # the average behind the grade (list order)
             "w": [w for k, x in L.items() for w in x["why"] if not (k == "house" and w == s.get("status"))],
-            "park": bool(s.get("park")), "registered": bool(s.get("registered")), "kowr": bool(s.get("kowr_offer"))}
+            "park": bool(s.get("park")), "registered": bool(s.get("registered")), "kowr": bool(s.get("kowr_offer") or s.get("sale"))}
     if s.get("status") != "unlocated" and s.get("lat") is not None:
         item["lat"], item["lon"] = round(s["lat"], 5), round(s["lon"], 5)
         if s.get("services"):                            # everyday life: nearest shop, school, doctor, city (OSM)
@@ -105,6 +105,8 @@ def site_item(did: str, s: dict) -> dict:
         item["kg"] = s["kowr_gone"]["uid"]               # a KOWR offer here dropped off the lists lately
     if s.get("kowr_url"):
         item["ku"] = s.get("kowr_uid") or s["kowr_url"]  # the matched KOWR offer (D.kowr[].url): shown in this site's popup, not separately
+    elif s.get("sale"):
+        item["ku"] = s["sale"]["uid"]                    # an auction, tender or owner's listing (gutshaus.sales), same list
     return item
 
 
@@ -208,7 +210,7 @@ def offers(sites: list[dict], kowr_json: Path | None) -> list[dict]:
 
 
 def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr_json: Path | None = None,
-            sample_pdf: Path | None = None) -> dict:
+            sample_pdf: Path | None = None, sales: list[dict] | None = None) -> dict:
     """Write <out>/public (static site) and copy the Cloudflare Pages Functions next to it."""
     out = Path(out)
     pub = out / "public"
@@ -219,7 +221,10 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
     why = Counter(r for s in sites if (r := unlisted_reason(s)))
     log.info("Left out, not in private hands: %d sites (%s)", sum(why.values()),
              ", ".join(f"{k} {v}" for k, v in why.most_common()))
-    data = {"villages": vs, "kowr": offers(sites, kowr_json),
+    from .sales import offers as sale_offers
+    shown = {i["id"] for v in vs for i in v["sites"]}  # a sale on a reserved site stays private
+    sales = [e for e in sales or [] if not e.get("_site") or dossier_id(e["_site"]) in shown]
+    data = {"villages": vs, "kowr": offers(sites, kowr_json) + sale_offers(sales, sites),
             "cfg": {"name": config.SITE_NAME, "url": config.SITE_URL, "price": config.DOSSIER_PRICE,
                     "checkout": config.CHECKOUT_URL, "email": config.CONTACT_EMAIL,
                     "status_de": STATUS_DE, "sample": bool(sample_pdf) and config.SHOP_ENABLED,

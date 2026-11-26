@@ -56,7 +56,7 @@ def compute(site: dict) -> dict:
         "parcel": parcel_value(site.get("parcel_ha")) if located else None,
         "town": dist("town", "dist_town_m"),
         "water": dist("water", "dist_water_m"),
-        "forsale": 1.0 if site.get("kowr_offer") else 0.0,
+        "forsale": 1.0 if site.get("kowr_offer") or site.get("sale") else 0.0,
         "register": 1.0 if site.get("registered") else 0.0,
     }
     return {f"c_{k}": v for k, v in c.items()}

@@ -58,6 +58,25 @@ KOWR, the state agricultural property agency, sells manors and palace/park compl
 
 Registered monuments can be sold at up to 50 % off if the buyer commits to renovating them. The separate KOWR offers portal (nieruchomoscikowr.gov.pl) blocks automated access and is not used. `--skip-kowr` turns this source off.
 
+## Other properties for sale
+
+Bailiff auctions, gmina or starostwo tenders, owners' own listings and anything found by hand go into one JSON list,
+`SALES_FILE` (default `sales.json`, next to your `gutshaus.json`; keep it out of this repo). `gutshaus build` and
+`gutshaus publish` match each entry to its site; a site for sale is shown on the public map whoever owns it, under the
+same "for sale" layer, tag and filter as KOWR offers. An entry:
+
+```json
+{"id": "bailiff-2026-001", "source": "bailiff", "site": "GF-1A2B3C4D",
+ "title": "Pałac w X – licytacja", "url": "https://…", "price_pln": 1200000, "date": "2026-12-15",
+ "until": "2026-12-31", "contact": "", "note": "private, never published"}
+```
+
+`source` is `bailiff`, `tender`, `owner` or `manual`. Give the site's dossier ID (`site`) or a position (`lat`, `lon`:
+the located site within 300 m takes it, else the sale is shown on its own). An entry with a `date` (auction, tender)
+leaves the map 14 days after it unless `until` says otherwise; one without a date stays until removed. `contact` is
+published only for owners' listings. The bailiffs' portal (licytacje.komornik.pl) blocks automated access: enter its
+auctions by hand.
+
 ## How sites are found
 
 1. **Candidates:** OSM features tagged manor/palace/estate/ruins or with estate names (dwór, pałac, park dworski, folwark…), plus estate entries from the NID monument register. The register API has no coordinates, so each entry is placed at the nearest OSM park within 1.5 km of its village, or else at the village centre (status *unlocated*).
@@ -175,6 +194,9 @@ D1 database; everything else stays static files. Bots are kept out by a hidden h
 Cloudflare Turnstile and at most 5 messages per visitor and day (counted by a daily-salted hash of the IP address; the
 address itself is not stored). Messages older than 12 months are deleted. Owners' requests to remove a site are never
 automatic: ask for proof that matches the parcel, then add its GF-ID to `reserved.txt`.
+Owners can also list their manor for sale ("I am the owner and want to sell", on a site's card or in the About dialog):
+the message carries the price, the contact they agree to publish and their consent. Ask for the same proof, then add an
+entry with `"source": "owner"` to the sales list.
 
 1. Inside `output/site`: `npx wrangler d1 create manormap-feedback`, then create the table:
    ```

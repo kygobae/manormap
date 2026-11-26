@@ -175,8 +175,8 @@ def unlisted_reason(site: dict) -> str:
     """Why a site is left off the public map and the dossier batch, "" when it is shown (config "Who owns it"):
     "unlocated" when only the village is known, "owner:<group>" for a parcel owned by anyone but private persons,
     "use:<use>" for a school, offices,
-    a foundation ... when the owner is unknown. A KOWR offer is always shown."""
-    if site.get("kowr_offer"):
+    a foundation ... when the owner is unknown. A site for sale (KOWR, gutshaus.sales) is always shown."""
+    if site.get("kowr_offer") or site.get("sale"):     # for sale (KOWR, an auction, a tender, the owner): shown
         return ""
     if site.get("status") == "unlocated":       # only the village is known: no parcel, no owner, nothing to visit
         return "unlocated"
