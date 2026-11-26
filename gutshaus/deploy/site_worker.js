@@ -8,7 +8,7 @@
 // day. Visitors are counted by a salted hash of their IP address that changes every day; the address itself is
 // never stored.
 
-const KINDS = ["error", "idea", "owner", "other"];
+const KINDS = ["error", "idea", "owner", "sell", "other"];
 const PER_DAY = 5;
 const MIN_MS = 3000;
 const ACTION = "feedback";                    // the widget's action: a token from another form or site does not count
@@ -41,13 +41,20 @@ async function feedback(request, env) {
   }
   if (b.website) return json({ ok: true });                       // the hidden field: a bot; pretend all went well
   const kind = KINDS.includes(b.kind) ? b.kind : null;
-  const text = String(b.text || "").trim().slice(0, 3000);
+  let text = String(b.text || "").trim().slice(0, 3000);
   const site = /^GF-[0-9A-F]{8}$/.test(b.site || "") ? b.site : "";
   const email = String(b.email || "").trim().slice(0, 200);
   const lang = ["de", "pl", "en"].includes(b.lang) ? b.lang : "";
   if (!kind || text.length < 5) return json({ ok: false, error: "text" }, 400);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ ok: false, error: "email" }, 400);
-  if (kind === "owner" && !email) return json({ ok: false, error: "email" }, 400);   // we must be able to ask for proof
+  if ((kind === "owner" || kind === "sell") && !email) return json({ ok: false, error: "email" }, 400);   // we must be able to ask for proof
+  if (kind === "sell") {
+    // an owner's listing: published only after we have checked ownership, and only with this consent
+    if (b.consent !== true) return json({ ok: false, error: "consent" }, 400);
+    const price = String(b.price || "").trim().slice(0, 80);
+    const contact = String(b.contact || "").trim().slice(0, 200);
+    text += `\n\n[listing] price: ${price || "-"} | public contact: ${contact || "-"} | consent to publish: yes`;
+  }
   if (!(Date.now() - Number(b.t || 0) >= MIN_MS)) return json({ ok: false, error: "fast" }, 400);
 
   const ip = request.headers.get("CF-Connecting-IP") || "";

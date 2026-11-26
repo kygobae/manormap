@@ -292,7 +292,7 @@ def load_overrides(path=None) -> str | None:
     {"weights": {"power": 3, "water": 0}, "USER_AGENT": "my-tool (me@example.org)"}.
     Uses the given path, else $GUTSHAUS_CONFIG, else ./gutshaus.json. Keeping the
     file outside the code folder (e.g. in a private repo) keeps personal settings out
-    of the public one. Relative RESERVED_FILE paths are read from the file's folder.
+    of the public one. Relative RESERVED_FILE and SALES_FILE paths are read from the file's folder.
     Returns the file used."""
     import json
     import os
@@ -312,8 +312,9 @@ def load_overrides(path=None) -> str | None:
     for k, v in data.items():
         if k.isupper() and k in g:
             g[k] = v
-    if "RESERVED_FILE" in data and not Path(data["RESERVED_FILE"]).is_absolute():
-        g["RESERVED_FILE"] = str(p.resolve().parent / data["RESERVED_FILE"])
+    for key in ("RESERVED_FILE", "SALES_FILE"):
+        if key in data and not Path(data[key]).is_absolute():
+            g[key] = str(p.resolve().parent / data[key])
     return str(p)
 
 
@@ -388,6 +389,11 @@ FEEDBACK_D1_NAME = "manormap-feedback"
 TURNSTILE_SITE_KEY = ""
 # Sites kept off the public site (and out of bulk dossier runs) (one GF-ID or uid per line)
 RESERVED_FILE = "reserved.txt"
+# Manors for sale besides KOWR (bailiff auctions, gmina / starostwo tenders, owners' own listings, anything found
+# by hand): a JSON list, see gutshaus/sales.py. A sale keeps its site on the public map whoever owns it.
+SALES_FILE = "sales.json"
+SALE_MATCH_M = 300           # a sale given by its position takes the located site this close
+SALE_SHOW_DAYS = 14          # an auction or tender stays on the map this long after its date (the result)
 # Corrections from knowledge on the ground, applied by `gutshaus build`: dossier ID or uid ->
 # {"status": "lost" | "ruin" | "standing" | "unknown", "note": "what is there"}. The data can be wrong (an OSM
 # object called "Ruiny …" where only foundations remain). Set them in your private gutshaus.json.

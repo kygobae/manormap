@@ -1405,3 +1405,54 @@ def test_publish_leaves_out_sites_not_in_private_hands(built):
     gmina["owner_group"] = 4
     shown = {i["id"] for v in publish.villages(sites) for i in v["sites"]}
     assert grades.dossier_id(gmina["uid"]) not in shown and shown == ids - {grades.dossier_id(gmina["uid"])}
+
+
+def test_sales_list(tmp_path):
+    """config.SALES_FILE: auctions, tenders and owners' listings; expired or incomplete entries are skipped."""
+    import datetime as dt
+    from gutshaus import sales
+    today = dt.date(2026, 11, 26)
+    p = tmp_path / "sales.json"
+    p.write_text(json.dumps([
+        {"id": "b1", "source": "bailiff", "site": "GF-00000001", "date": "2026-12-10"},
+        {"id": "b2", "source": "bailiff", "site": "GF-00000002", "date": "2026-11-01"},        # + 14 days: over
+        {"id": "t1", "source": "tender", "lat": 54.0, "lon": 16.0, "date": "2026-11-20"},     # still shown
+        {"id": "o1", "source": "owner", "site": "GF-00000003", "contact": "+48 600"},          # no end
+        {"id": "x1", "source": "rumour", "site": "GF-00000004"},                                # unknown source
+        {"id": "n1", "source": "manual"},                                                        # no site, no position
+        {"id": "b1", "source": "bailiff", "site": "GF-00000005"},                               # id taken
+        {"id": "u1", "source": "manual", "site": "GF-00000006", "until": "2026-11-25"},
+    ]), encoding="utf-8")
+    assert [e["id"] for e in sales.load(p, today)] == ["b1", "t1", "o1"]
+    assert sales.load(tmp_path / "none.json", today) == []
+
+
+def test_sales_match_and_publish():
+    import datetime as dt
+    from gutshaus import grades, publish, sales
+    from gutshaus.geo import ll_to_pl, pl_to_ll
+    x, y = ll_to_pl(16.0, 54.0)
+    near = pl_to_ll(x + 200, y)                                       # 200 m east: within SALE_MATCH_M
+    base = {"status": "standing", "text": "name=Dwór | historic=manor | building=yes", "precinct": "Wzorowo",
+            "commune": "Gmina", "powiat": "p", "members": []}
+    gmina = {**base, "uid": "nid:1", "name": "dwór, Wzorowo", "lat": 54.0, "lon": 16.0, "owner_group": 4}
+    kowr = {**base, "uid": "nid:2", "name": "pałac", "lat": 54.2, "lon": 16.2, "kowr_offer": "x", "kowr_url": "k"}
+    other = {**base, "uid": "nid:3", "name": "dwór", "lat": 54.4, "lon": 16.4, "owner_group": 15}
+    sites = [gmina, kowr, other]
+    current = [{"id": "t1", "source": "tender", "lat": near[1], "lon": near[0], "title": "Przetarg: dwór", "url": "u",
+                "date": "2026-12-01", "price_pln": 500000, "note": "private"},
+               {"id": "b1", "source": "bailiff", "site": grades.dossier_id("nid:2")},        # KOWR already sells it
+               {"id": "o1", "source": "owner", "lat": 50.0, "lon": 20.0, "title": "Dworek", "contact": "+48 600"}]
+    assert not grades.listed(gmina)                                   # a gmina's manor ...
+    assert sales.match(sites, current) == 1
+    assert gmina["sale"] == {"uid": "t1", "src": "tender", "title": "Przetarg: dwór", "url": "u"}
+    assert grades.listed(gmina) and "sale" not in kowr and "sale" not in other   # ... is shown once a tender is out
+    items = {i["id"]: i for v in publish.villages(sites) for i in v["sites"]}
+    assert items[grades.dossier_id("nid:1")]["ku"] == "t1" and items[grades.dossier_id("nid:1")]["kowr"]
+    assert grades.dossier_id("nid:3") not in items
+    offers = sales.offers(current, sites, today=dt.date(2026, 12, 2))
+    t1 = next(o for o in offers if o["id"] == "t1")
+    assert (t1["src"], t1["price"], t1["past"], t1["contact"]) == ("tender", 500000, True, "")
+    assert "note" not in t1 and "private" not in json.dumps(offers)  # the private note never leaves this machine
+    o1 = next(o for o in offers if o["id"] == "o1")
+    assert (o1["lat"], o1["contact"]) == (50.0, "+48 600")            # no site there: shown on its own

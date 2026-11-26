@@ -103,6 +103,8 @@ input[type=search],select{width:100%;min-width:0;padding:7px 11px;border:1px sol
 .fbnote{font-size:.82rem;background:var(--sale-bg);border-left:3px solid var(--sale);border-radius:8px;padding:8px 10px;margin:0 0 10px}
 .fbl{display:grid;gap:4px;margin:0 0 10px;font-size:.84rem;font-weight:600}
 .fbl textarea,.fbl input{font:inherit;font-weight:400;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;width:100%}
+.fbconsent{display:flex;gap:8px;align-items:flex-start;margin:0 0 10px;font-size:.82rem}
+.fbconsent input{margin-top:3px;flex:none}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 .fbts{min-height:65px;margin:4px 0 6px}
 .fbmsg{font-size:.88rem;font-weight:600;margin:8px 0 0}.fbmsg.ok{color:var(--accent)}.fbmsg.err{color:var(--red)}
@@ -298,7 +300,8 @@ body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(36
       <ul class="inc" data-t="includes"></ul><p class="small" data-t="notIncluded"></p><p id="sample"></p></section>
   </div>
   <div class="actions"><button class="btn primary" id="infoGo" type="button" data-t="infoGo"></button>
-    <button class="btn plain" id="fbOpen" type="button" data-t="fbAbout" hidden></button></div>
+    <button class="btn plain" id="fbOpen" type="button" data-t="fbAbout" hidden></button>
+    <button class="btn plain" id="fbSell" type="button" data-t="sellAbout" hidden></button></div>
   <footer><span data-t="sources"></span><br>
     <span id="optout"></span> <a id="mail"></a> · <a href="legal.html" data-t="legal"></a></footer>
 </dialog>
@@ -311,8 +314,14 @@ body:has(#card:not([hidden])) .leaflet-bottom.leaflet-right{margin-right:calc(36
     <p class="fbsite" id="fbSite" hidden></p>
     <div class="fbkinds" id="fbKinds" role="radiogroup"></div>
     <p class="fbnote" id="fbOwnerNote" data-t="fbOwnerNote" hidden></p>
+    <p class="fbnote" id="fbSellNote" data-t="fbSellNote" hidden></p>
     <label class="fbl"><span data-t="fbText"></span><textarea id="fbText" maxlength="3000" rows="5" required></textarea></label>
+    <div id="fbSellF" hidden>
+      <label class="fbl"><span data-t="fbPrice"></span><input type="text" id="fbPrice" maxlength="80"></label>
+      <label class="fbl"><span data-t="fbContact"></span><input type="text" id="fbContact" maxlength="200"></label>
+    </div>
     <label class="fbl"><span id="fbEmailL"></span><input type="email" id="fbEmail" maxlength="200" autocomplete="email"></label>
+    <label class="fbconsent" id="fbConsentL" hidden><input type="checkbox" id="fbConsent"> <span data-t="fbConsent"></span></label>
     <input type="text" name="website" id="fbHp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
     <div id="fbTs" class="fbts"></div>
     <p class="small" data-t="fbPrivacy"></p>
@@ -342,7 +351,7 @@ const T = {
   park:"Park",reg:"Denkmal",hist:"Historische Karte (Messtischblatt)",lidar:"Geländerelief (LiDAR)",forSale:"zum Verkauf",
   status:{lost:"Herrenhaus verschwunden",ruin:"Ruine",standing:"Gebäude steht",unlocated:"Lage im Dorf unklar",unknown:"unklar"},
   sources:"Daten: © OpenStreetMap-Mitwirkende (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Historische Karten: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",optoutFb:"Eigentümer, die nicht genannt werden möchten: Standort auf der Karte öffnen, „Fehler melden“ wählen und „Ich bin Eigentümer“ ankreuzen.",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur mit staatlichem Verkaufsangebot (KOWR)",
+  optout:"Eigentümer, die nicht genannt werden möchten, schreiben an",optoutFb:"Eigentümer, die nicht genannt werden möchten: Standort auf der Karte öffnen, „Fehler melden“ wählen und „Ich bin Eigentümer“ ankreuzen.",legal:"Impressum & Datenschutz",ask:"Anfragen",moreF:"Weitere Filter",statusF:"Zustand",featF:"Merkmale",parkOnly:"nur mit historischem Park",regOnly:"nur im Denkmalregister",distF:"Entfernung (Luftlinie) von",anyDist:"beliebig",reset:"Filter zurücksetzen",priceL:"Ausrufpreis",discL:"Preisnachlass",regL:"Denkmalregister",openSchedule:"Ausschreibungsplan öffnen (PDF)",kowrOnly:"Nur was zum Verkauf steht",
   approx:"Lage nur auf Dorfebene bekannt – suchen Sie den Gutshof auf dem Messtischblatt.",
   private:"Das Gebäude steht und ist meist bewohnt: Privatbesitz, bitte nur mit Erlaubnis betreten.",
   houseMark:"Gebäude von ca. {m} m² (auf der Karte eingekreist, ⌂)",houseAt:"Gebäude von ca. {m} m² (auf der Karte eingekreist)",houseHow:{next:" direkt neben dem Flurstück",wide:", 100–200 m entfernt: könnte das Gutshaus sein"},
@@ -359,7 +368,7 @@ const T = {
   park:"park",reg:"zabytek",hist:"Mapa historyczna (Messtischblatt)",lidar:"Rzeźba terenu (LiDAR)",forSale:"na sprzedaż",
   status:{lost:"dwór nie istnieje",ruin:"ruina",standing:"budynek istnieje",unlocated:"lokalizacja we wsi niepewna",unknown:"nieustalony"},
   sources:"Dane: © współtwórcy OpenStreetMap (ODbL), Narodowy Instytut Dziedzictwa, GUGiK/Geoportal, GDOŚ, KOWR. Mapy historyczne: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",optoutFb:"Właściciele, którzy nie chcą być wymienieni: proszę otworzyć miejsce na mapie, wybrać „Zgłoś błąd” i zaznaczyć „Jestem właścicielem”.",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko z ofertą sprzedaży KOWR",
+  optout:"Właściciele, którzy nie chcą być wymienieni, mogą napisać na",optoutFb:"Właściciele, którzy nie chcą być wymienieni: proszę otworzyć miejsce na mapie, wybrać „Zgłoś błąd” i zaznaczyć „Jestem właścicielem”.",legal:"Nota prawna i prywatność",ask:"Zapytaj",moreF:"Więcej filtrów",statusF:"Stan",featF:"Cechy",parkOnly:"tylko z zabytkowym parkiem",regOnly:"tylko w rejestrze zabytków",distF:"Odległość (w linii prostej) od",anyDist:"dowolna",reset:"Wyczyść filtry",priceL:"Cena wywoławcza",discL:"Obniżka",regL:"Rejestr zabytków",openSchedule:"Otwórz harmonogram przetargów (PDF)",kowrOnly:"Tylko na sprzedaż",
   approx:"Lokalizacja znana tylko na poziomie wsi – szukaj folwarku na mapie Messtischblatt.",
   private:"Budynek istnieje i zwykle jest zamieszkany: własność prywatna, wejście tylko za zgodą właściciela.",
   houseMark:"budynek o pow. ok. {m} m² (na mapie w kółku, ⌂)",houseAt:"budynek o pow. ok. {m} m² (na mapie w kółku)",houseHow:{next:" tuż obok działki",wide:", 100–200 m dalej: może to być dwór"},
@@ -376,7 +385,7 @@ const T = {
   park:"park",reg:"listed",hist:"Historical map (Messtischblatt)",lidar:"Terrain relief (LiDAR)",forSale:"for sale",
   status:{lost:"manor gone",ruin:"ruin",standing:"building stands",unlocated:"position in village unclear",unknown:"unclear"},
   sources:"Data: © OpenStreetMap contributors (ODbL), National Heritage Institute (NID), GUGiK/Geoportal, GDOŚ, KOWR. Historical maps: IH PAN / pastmaps (CC BY-NC).",
-  optout:"Owners who do not want to be listed, write to",optoutFb:"Owners who do not want to be listed: open the site on the map, choose “Report an error” and tick “I am the owner”.",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only with a state sale offer (KOWR)",
+  optout:"Owners who do not want to be listed, write to",optoutFb:"Owners who do not want to be listed: open the site on the map, choose “Report an error” and tick “I am the owner”.",legal:"Legal notice & privacy",ask:"Ask",moreF:"More filters",statusF:"Condition",featF:"Features",parkOnly:"only with a historic park",regOnly:"only in the monument register",distF:"Distance (straight line) from",anyDist:"any",reset:"Reset filters",priceL:"Starting price",discL:"Discount",regL:"Monument register",openSchedule:"Open tender schedule (PDF)",kowrOnly:"Only what is for sale",
   approx:"Location known only at village level – look for the estate on the Messtischblatt.",
   private:"The building stands and is usually lived in: private property, please visit only with permission.",
   houseMark:"building of about {m} m² (circled on the map, ⌂)",houseAt:"building of about {m} m² (circled on the map)",houseHow:{next:" just outside the parcel",wide:", 100–200 m away: could be the manor"},
@@ -427,27 +436,27 @@ const T4 = {
  en:{infoBtn:"About",infoGo:"To the map",pathF:"Plan",distS:"Distance",listH:"Places"}};
 for(const l of Object.keys(T4)) Object.assign(T[l], T4[l]);
 const T5 = {
- de:{fbH:"Rückmeldung",fbAbout:"Rückmeldung geben",fbCard:"Fehler melden",fbSite:"Betrifft {id} ({place})",
-  fbKinds:{error:"Fehler in den Daten (Zustand, Lage, Park …)",idea:"Idee oder Wunsch für ManorMap",owner:"Ich bin Eigentümer: Eintrag entfernen oder ändern",other:"Sonstiges"},
+ de:{salesL:"Zum Verkauf",auction:"Versteigerung",openNotice:"Bekanntmachung öffnen",contactL:"Kontakt",ownerChecked:"Eigentum von uns geprüft; alle Angaben stammen vom Eigentümer.",fbSellNote:"Das Inserat ist kostenlos. Bevor wir es zeigen, schreiben wir Ihnen und bitten um einen Nachweis, der zum Flurstück passt (z. B. Grundbuchauszug). Ist kein Standort ausgewählt, nennen Sie bitte Ort, Gemeinde und Flurstücksnummer.",fbPrice:"Preis (optional)",fbContact:"Kontakt, den wir veröffentlichen dürfen (Telefon, E-Mail oder Website)",fbConsent:"Ich bin Eigentümer (oder bevollmächtigt) und einverstanden, dass ManorMap Preis, Beschreibung und diesen Kontakt veröffentlicht, bis ich das Angebot zurückziehe.",sellCard:"Ihr Herrenhaus? Zum Verkauf anbieten",sellAbout:"Herrenhaus zum Verkauf anbieten",srcL:{kowr:"Staatliches Verkaufsangebot (KOWR)",bailiff:"Zwangsversteigerung (Gerichtsvollzieher)",tender:"Öffentliche Ausschreibung (Gemeinde, Kreis)",owner:"Verkauf durch den Eigentümer",manual:"Zum Verkauf"},fbH:"Rückmeldung",fbAbout:"Rückmeldung geben",fbCard:"Fehler melden",fbSite:"Betrifft {id} ({place})",
+  fbKinds:{error:"Fehler in den Daten (Zustand, Lage, Park …)",idea:"Idee oder Wunsch für ManorMap",owner:"Ich bin Eigentümer: Eintrag entfernen oder ändern",sell:"Ich bin Eigentümer und möchte verkaufen",other:"Sonstiges"},
   fbOwnerNote:"Wir entfernen Einträge nur nach Prüfung, damit niemand fremde Standorte verschwinden lässt: Wir schreiben Ihnen und bitten um einen Nachweis, der zum Flurstück passt (z. B. Auszug aus Grundbuch oder Kataster). Bis dahin bleibt der Eintrag sichtbar. Statt ihn ganz zu entfernen, können wir auch nur noch das Dorf zeigen.",
   fbText:"Ihre Nachricht",fbEmail:"E-Mail (freiwillig, für Rückfragen)",fbEmailReq:"E-Mail (nötig für den Nachweis)",fbSend:"Senden",
   fbPrivacy:"Wir speichern Ihre Nachricht und – falls angegeben – Ihre E-Mail-Adresse, aber nicht Ihre IP-Adresse. Mehr unter „Impressum & Datenschutz“.",
   fbThanks:"Danke! Ihre Rückmeldung ist angekommen.",
-  fbErr:{wait:"Bitte warten Sie, bis die Prüfung gegen Bots fertig ist (Häkchen), und senden Sie dann erneut.",captcha:"Die Prüfung gegen Bots wurde vom Server nicht bestätigt. Bitte noch einmal senden; klappt es weiter nicht, schreiben Sie an {mail}.",limit:"Heute sind schon mehrere Rückmeldungen von Ihnen eingegangen – bitte morgen wieder.",text:"Bitte schreiben Sie ein paar Worte.",email:"Bitte geben Sie eine gültige E-Mail-Adresse an.",fast:"Bitte einen Moment warten und erneut senden.",other:"Senden hat nicht geklappt – bitte später erneut oder per E-Mail an {mail}."}},
- pl:{fbH:"Uwagi",fbAbout:"Prześlij uwagi",fbCard:"Zgłoś błąd",fbSite:"Dotyczy {id} ({place})",
-  fbKinds:{error:"Błąd w danych (stan, położenie, park …)",idea:"Pomysł lub życzenie dla ManorMap",owner:"Jestem właścicielem: usuń lub zmień wpis",other:"Inne"},
+  fbErr:{consent:"Bitte bestätigen Sie, dass Sie Eigentümer sind und der Veröffentlichung zustimmen.",wait:"Bitte warten Sie, bis die Prüfung gegen Bots fertig ist (Häkchen), und senden Sie dann erneut.",captcha:"Die Prüfung gegen Bots wurde vom Server nicht bestätigt. Bitte noch einmal senden; klappt es weiter nicht, schreiben Sie an {mail}.",limit:"Heute sind schon mehrere Rückmeldungen von Ihnen eingegangen – bitte morgen wieder.",text:"Bitte schreiben Sie ein paar Worte.",email:"Bitte geben Sie eine gültige E-Mail-Adresse an.",fast:"Bitte einen Moment warten und erneut senden.",other:"Senden hat nicht geklappt – bitte später erneut oder per E-Mail an {mail}."}},
+ pl:{salesL:"Na sprzedaż",auction:"Licytacja",openNotice:"Otwórz ogłoszenie",contactL:"Kontakt",ownerChecked:"Własność sprawdzona przez nas; wszystkie dane pochodzą od właściciela.",fbSellNote:"Ogłoszenie jest bezpłatne. Zanim je pokażemy, napiszemy do Pana/Pani z prośbą o dokument pasujący do działki (np. odpis z księgi wieczystej). Jeśli nie wybrano miejsca na mapie, prosimy podać miejscowość, gminę i numer działki.",fbPrice:"Cena (opcjonalnie)",fbContact:"Kontakt, który możemy opublikować (telefon, e-mail lub strona)",fbConsent:"Jestem właścicielem (lub pełnomocnikiem) i zgadzam się, aby ManorMap opublikował cenę, opis i ten kontakt do czasu wycofania oferty.",sellCard:"Twój dwór? Wystaw go na sprzedaż",sellAbout:"Wystaw dwór na sprzedaż",srcL:{kowr:"Oferta sprzedaży KOWR",bailiff:"Licytacja komornicza",tender:"Przetarg (gmina, starostwo)",owner:"Sprzedaż przez właściciela",manual:"Na sprzedaż"},fbH:"Uwagi",fbAbout:"Prześlij uwagi",fbCard:"Zgłoś błąd",fbSite:"Dotyczy {id} ({place})",
+  fbKinds:{error:"Błąd w danych (stan, położenie, park …)",idea:"Pomysł lub życzenie dla ManorMap",owner:"Jestem właścicielem: usuń lub zmień wpis",sell:"Jestem właścicielem i chcę sprzedać",other:"Inne"},
   fbOwnerNote:"Wpisy usuwamy dopiero po weryfikacji, aby nikt nie mógł ukryć cudzego miejsca: napiszemy do Pana/Pani z prośbą o dokument pasujący do działki (np. odpis z księgi wieczystej lub wypis z ewidencji). Do tego czasu wpis pozostaje widoczny. Zamiast usuwać, możemy też pokazywać tylko wieś.",
   fbText:"Wiadomość",fbEmail:"E-mail (dobrowolnie, do kontaktu)",fbEmailReq:"E-mail (potrzebny do weryfikacji)",fbSend:"Wyślij",
   fbPrivacy:"Zapisujemy wiadomość i – jeśli podano – adres e-mail, ale nie adres IP. Więcej w „Nota prawna i prywatność”.",
   fbThanks:"Dziękujemy! Wiadomość dotarła.",
-  fbErr:{wait:"Proszę poczekać na zakończenie weryfikacji antybotowej (znaczek) i wysłać ponownie.",captcha:"Serwer nie potwierdził weryfikacji antybotowej. Proszę wysłać jeszcze raz; jeśli nadal się nie uda, prosimy napisać na {mail}.",limit:"Dziś otrzymaliśmy już kilka wiadomości od Pana/Pani – prosimy jutro.",text:"Proszę napisać kilka słów.",email:"Proszę podać poprawny adres e-mail.",fast:"Proszę chwilę poczekać i wysłać ponownie.",other:"Nie udało się wysłać – prosimy spróbować później lub napisać na {mail}."}},
- en:{fbH:"Feedback",fbAbout:"Give feedback",fbCard:"Report an error",fbSite:"About {id} ({place})",
-  fbKinds:{error:"Error in the data (state, position, park …)",idea:"Idea or wish for ManorMap",owner:"I am the owner: remove or change this entry",other:"Other"},
+  fbErr:{consent:"Prosimy potwierdzić, że jest Pan/Pani właścicielem i zgadza się na publikację.",wait:"Proszę poczekać na zakończenie weryfikacji antybotowej (znaczek) i wysłać ponownie.",captcha:"Serwer nie potwierdził weryfikacji antybotowej. Proszę wysłać jeszcze raz; jeśli nadal się nie uda, prosimy napisać na {mail}.",limit:"Dziś otrzymaliśmy już kilka wiadomości od Pana/Pani – prosimy jutro.",text:"Proszę napisać kilka słów.",email:"Proszę podać poprawny adres e-mail.",fast:"Proszę chwilę poczekać i wysłać ponownie.",other:"Nie udało się wysłać – prosimy spróbować później lub napisać na {mail}."}},
+ en:{salesL:"For sale",auction:"Auction",openNotice:"Open the notice",contactL:"Contact",ownerChecked:"Ownership checked by us; all details come from the owner.",fbSellNote:"Listing is free. Before we show it, we will write to you and ask for proof that matches the parcel (e.g. a land register extract). If no site is selected, please give the village, gmina and parcel number.",fbPrice:"Price (optional)",fbContact:"Contact we may publish (phone, email or website)",fbConsent:"I am the owner (or authorised) and agree that ManorMap publishes the price, description and this contact until I withdraw the offer.",sellCard:"Your manor? List it for sale",sellAbout:"List your manor for sale",srcL:{kowr:"State sale offer (KOWR)",bailiff:"Bailiff auction",tender:"Public tender (gmina, county)",owner:"For sale by the owner",manual:"For sale"},fbH:"Feedback",fbAbout:"Give feedback",fbCard:"Report an error",fbSite:"About {id} ({place})",
+  fbKinds:{error:"Error in the data (state, position, park …)",idea:"Idea or wish for ManorMap",owner:"I am the owner: remove or change this entry",sell:"I am the owner and want to sell",other:"Other"},
   fbOwnerNote:"We remove entries only after a check, so that nobody can make someone else's site disappear: we will write to you and ask for proof that matches the parcel (e.g. an extract from the land register or cadastre). Until then the entry stays visible. Instead of removing it, we can also show only the village.",
   fbText:"Your message",fbEmail:"Email (optional, for questions)",fbEmailReq:"Email (needed for the proof)",fbSend:"Send",
   fbPrivacy:"We store your message and – if given – your email address, but not your IP address. More under “Legal notice & privacy”.",
   fbThanks:"Thank you! Your feedback has arrived.",
-  fbErr:{wait:"Please wait until the bot check has finished (tick), then send again.",captcha:"The server could not confirm the bot check. Please send once more; if it keeps failing, write to {mail}.",limit:"We have already received several messages from you today – please try again tomorrow.",text:"Please write a few words.",email:"Please enter a valid email address.",fast:"Please wait a moment and send again.",other:"Sending failed – please try later or write to {mail}."}}};
+  fbErr:{consent:"Please confirm that you are the owner and agree to publication.",wait:"Please wait until the bot check has finished (tick), then send again.",captcha:"The server could not confirm the bot check. Please send once more; if it keeps failing, write to {mail}.",limit:"We have already received several messages from you today – please try again tomorrow.",text:"Please write a few words.",email:"Please enter a valid email address.",fast:"Please wait a moment and send again.",other:"Sending failed – please try later or write to {mail}."}}};
 for(const l of Object.keys(T5)) Object.assign(T[l], T5[l]);
 
 let lng = (()=>{try{return localStorage.getItem("lang")}catch(e){return null}})()
@@ -457,6 +466,8 @@ const esc = s => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",
 const t = k => T[lng][k];
 const $ = id => document.getElementById(id);
 const VV = D.villages;
+// village-only sites ("?") are published only when for sale: their chip and legend entry only when there are any
+const HAS_Q = VV.some(v => v.sites.some(s => s.grade === "?" || s.status === "unlocated"));
 const COL = {A:"#1f7a52",B:"#6aa55b",C:"#d39b2a",D:"#9aa19d","?":"#9aa19d"};
 const GRADES = ["A","B","C","D","?"], rank = g => GRADES.indexOf(g);
 const gcls = g => g === "?" ? "gQ" : "g" + g;
@@ -507,7 +518,7 @@ const kowrLayer = window.L.layerGroup().addTo(map);
 function ctl(){
   if(map._ctl) map.removeControl(map._ctl);
   map._ctl = window.L.control.layers({"OpenStreetMap":osm, "Orthophoto (Geoportal)":ortho, [t("lidar")]:lidar, [t("hist")]:mtb},
-                                     {[t("kowr")]:kowrLayer}, {position:"bottomright"}).addTo(map);
+                                     {[t("salesL")]:kowrLayer}, {position:"bottomright"}).addTo(map);
 }
 
 // parcel outlines of the shown sites, from zoom 14 (parcels.json is loaded on first use)
@@ -603,11 +614,17 @@ const areaTxt = o => o.pl && o.pl.length
 const fmtDay = d => { try { return new Date(d + "T12:00:00").toLocaleDateString(lng, {day:"numeric", month:"long", year:"numeric"}); } catch(e) { return d; } };
 const goneHtml = o => `<div class="offer gone"><b>${TAG("#8a928d", "#f1f2f1", 12)}${esc(t("goneL"))}</b><br>${esc(o.t)}<br>`
   + `<i>${esc(t("goneSince").replace("{d}", fmtDay(o.gone)))}</i></div>`;
-const offerHtml = o => o.gone ? goneHtml(o) : `<div class="offer"><b>${TAG("#245b8f", "#eaf1f8", 12)}${esc(t("kowr"))}</b><br>${esc(o.t)}<br>`
+// where a sale comes from: KOWR (its cards and schedules) or gutshaus.sales (bailiff, tender, owner, manual)
+const isKowr = o => !o.src || o.src === "card" || o.src === "schedule";
+const offerLink = o => !o.url ? "" : `<br><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(t(isKowr(o)
+  ? (o.src === "schedule" ? "openSchedule" : "openCard") : "openNotice"))}</a>`;
+const offerHtml = o => o.gone ? goneHtml(o) : `<div class="offer"><b>${TAG("#245b8f", "#eaf1f8", 12)}${esc(t("srcL")[isKowr(o) ? "kowr" : o.src] || t("forSale"))}</b><br>${esc(o.t)}<br>`
   + [esc(areaTxt(o)), o.reg ? esc(t("regL")) + " " + esc(o.reg) : ""].filter(Boolean).join(" · ")
   + (o.price ? `<br><b>${esc(t("priceL"))}: ${esc(zl(o.price))}</b>${o.disc ? ` · ${esc(t("discL"))} ${o.disc} %` : ""}` : "")
-  + (o.tender ? `<br>${o.past ? `<i>${esc(t("tenderPast").replace("{d}", o.tender))}</i>` : `${esc(t("tender"))}: ${esc(o.tender)}`}` : "")
-  + `<br><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(t(o.src === "schedule" ? "openSchedule" : "openCard"))}</a></div>`;
+  + (o.tender ? `<br>${o.past ? `<i>${esc(t("tenderPast").replace("{d}", o.tender))}</i>` : `${esc(t(o.src === "bailiff" ? "auction" : "tender"))}: ${esc(o.tender)}`}` : "")
+  + (o.contact ? `<br>${esc(t("contactL"))}: ${esc(o.contact)}` : "")
+  + (o.src === "owner" ? `<br><span class="small">${esc(t("ownerChecked"))}</span>` : "")
+  + offerLink(o) + `</div>`;
 // the tender area of every offer (all its parcels), dashed blue, from zoom 13; part of the KOWR overlay
 const offerAreas = window.L.layerGroup().addTo(kowrLayer);
 map.on("overlayadd overlayremove", e => { if(e.layer === kowrLayer) drawMarkers(); });
@@ -641,6 +658,7 @@ function showCard(html){
   c.querySelector(".x").onclick = closeCard;
   c.querySelectorAll("[data-share]").forEach(b => b.onclick = () => shareSite(b.dataset.share, b));
   c.querySelectorAll("[data-fb]").forEach(b => b.onclick = () => openFeedback(b.dataset.fb));
+  c.querySelectorAll("[data-sell]").forEach(b => b.onclick = () => openFeedback(b.dataset.sell, "sell"));
 }
 function closeCard(){ $("card").hidden = true; cardFor = null; selected = null; setLink(""); drawMarkers(); }
 
@@ -710,7 +728,8 @@ function siteHtml(s){
   else if(s.kg && OFFERS[s.kg]) h += offerHtml(OFFERS[s.kg]);        // dropped off KOWR's lists lately
   if(s.status === "standing" && !s.ku) h += `<div class="small">${esc(t("private"))}</div>`;  // KOWR sites are state property
   h += `<div class="actions"><button class="btn plain" type="button" data-share="${esc(s.id)}">${SHARE_ICON} ${esc(t("share"))}</button>`
-    + (C.feedback ? `<button class="btn plain" type="button" data-fb="${esc(s.id)}">${esc(t("fbCard"))}</button>` : "") + `</div>`;
+    + (C.feedback ? `<button class="btn plain" type="button" data-fb="${esc(s.id)}">${esc(t("fbCard"))}</button>` : "")
+    + (C.feedback && !s.ku ? `<button class="btn plain" type="button" data-sell="${esc(s.id)}">${esc(t("sellCard"))}</button>` : "") + `</div>`;
   if(C.shop) h += `<a class="btn primary" href="${esc(buyUrl(s.id))}" target="_blank" rel="noopener">${t("buy")} ${esc(C.price)}</a><div class="small">${esc(s.id)}</div>`;
   return h + `</div>`;
 }
@@ -842,7 +861,7 @@ function renderList(){
 }
 map.on("moveend", () => { if(RES) renderList(); });
 const gradesEl = $("grades");
-for(const g of GRADES){
+for(const g of GRADES.filter(g => g !== "?" || HAS_Q)){
   const b = document.createElement("button");
   b.type = "button"; b.className = "gchip"; b.dataset.g = g; b.setAttribute("aria-pressed", shown.has(g));
   b.innerHTML = `<span class="g" style="background:${COL[g]}">${g}</span><span class="n"></span>`;
@@ -851,7 +870,7 @@ for(const g of GRADES){
 }
 function legend(){
   const it = (st, k) => `<span>${icon(st, "#5d6963", 15)}${esc(t(k))}</span>`;
-  $("legend").innerHTML = it("standing","lgStanding") + it("ruin","lgRuin") + it("lost","lgLost") + it("unknown","lgUnknown") + it("unlocated","lgVillage")
+  $("legend").innerHTML = it("standing","lgStanding") + it("ruin","lgRuin") + it("lost","lgLost") + it("unknown","lgUnknown") + (HAS_Q ? it("unlocated","lgVillage") : "")
     + `<span>${TAG("#245b8f", "#fff", 13)}${esc(t("forSale"))}</span><span>${TAG("#8a928d", "#fff", 13)}${esc(t("goneChip"))}</span>`;
 }
 
@@ -919,8 +938,8 @@ const closeInfo = () => { if(typeof info.close === "function") info.close(); els
 $("infoBtn").onclick = openInfo; $("infoX").onclick = closeInfo; $("infoGo").onclick = closeInfo;
 info.addEventListener("click", e => { if(e.target === info) closeInfo(); });   // a click on the backdrop
 // ---------------------------------------------------------------- feedback
-const FB_KINDS = ["error", "idea", "owner", "other"];
-let fbToken = "", fbOpened = 0, fbWidget = null, fbSiteId = "";
+const FB_KINDS = ["error", "idea", "owner", "sell", "other"];
+let fbToken = "", fbOpened = 0, fbWidget = null, fbSiteId = "", fbStart = "";
 function fbTurnstile(){                                 // Cloudflare Turnstile, loaded only when the form opens
   const render = () => { if(fbWidget === null) fbWidget = window.turnstile.render("#fbTs", {sitekey: C.feedback, action: "feedback", language: lng,
     callback: tok => { fbToken = tok; }, "expired-callback": () => { fbToken = ""; }}); };
@@ -932,18 +951,21 @@ function fbTurnstile(){                                 // Cloudflare Turnstile,
 function fbKind(){ return (document.querySelector('input[name="fbkind"]:checked') || {}).value || "error"; }
 function fbLabels(){
   $("fbKinds").innerHTML = FB_KINDS.filter(k => k !== "owner" || fbSiteId).map(k =>
-    `<label><input type="radio" name="fbkind" value="${k}"${k === (fbSiteId ? "error" : "idea") ? " checked" : ""}> <span>${esc(t("fbKinds")[k])}</span></label>`).join("");
+    `<label><input type="radio" name="fbkind" value="${k}"${k === (fbStart || (fbSiteId ? "error" : "idea")) ? " checked" : ""}> <span>${esc(t("fbKinds")[k])}</span></label>`).join("");
   document.querySelectorAll('input[name="fbkind"]').forEach(r => r.onchange = fbKindChanged);
   fbKindChanged();
 }
 function fbKindChanged(){
-  const owner = fbKind() === "owner";
-  $("fbOwnerNote").hidden = !owner;
+  const sell = fbKind() === "sell", owner = fbKind() === "owner" || sell;   // both need proof of ownership
+  $("fbOwnerNote").hidden = fbKind() !== "owner";
+  $("fbSellNote").hidden = $("fbSellF").hidden = $("fbConsentL").hidden = !sell;
   $("fbEmailL").textContent = t(owner ? "fbEmailReq" : "fbEmail");
   $("fbEmail").required = owner;
 }
-function openFeedback(id){
+function openFeedback(id, kind){
   fbSiteId = id || "";
+  fbStart = kind || "";
+  $("fbPrice").value = $("fbContact").value = ""; $("fbConsent").checked = false;
   const v = id && VV.find(v => v.sites.some(s => s.id === id));
   $("fbSite").hidden = !id;
   $("fbSite").textContent = id ? t("fbSite").replace("{id}", id).replace("{place}", v ? v.v : "") : "";
@@ -958,13 +980,17 @@ const closeFeedback = () => { if(typeof $("fb").close === "function") $("fb").cl
 $("fbX").onclick = closeFeedback;
 $("fb").addEventListener("click", e => { if(e.target === $("fb")) closeFeedback(); });
 $("fbOpen").onclick = () => openFeedback("");
+$("fbSell").onclick = () => openFeedback("", "sell");
 $("fbForm").onsubmit = async e => {
   e.preventDefault();
   const msg = $("fbMsg"), err = k => { msg.className = "fbmsg err"; msg.textContent = (t("fbErr")[k] || t("fbErr").other).replace("{mail}", C.email || ""); };
   const body = {kind: fbKind(), site: fbSiteId, text: $("fbText").value, email: $("fbEmail").value.trim(), lang: lng,
                 website: $("fbHp").value, t: fbOpened, token: fbToken};
+  if(body.kind === "sell") Object.assign(body, {price: $("fbPrice").value.trim(), contact: $("fbContact").value.trim(),
+                                                consent: $("fbConsent").checked});
   if(body.text.trim().length < 5) return err("text");
-  if(body.kind === "owner" && !body.email) return err("email");
+  if((body.kind === "owner" || body.kind === "sell") && !body.email) return err("email");
+  if(body.kind === "sell" && !body.consent) return err("consent");
   if(!fbToken) return err("wait");
   $("fbSend").disabled = true;
   try{
@@ -975,7 +1001,7 @@ $("fbForm").onsubmit = async e => {
   }catch(x){ err("other"); $("fbSend").disabled = false; }
   fbToken = ""; if(window.turnstile && fbWidget !== null) window.turnstile.reset(fbWidget);
 };
-$("fbOpen").hidden = !C.feedback;
+$("fbOpen").hidden = $("fbSell").hidden = !C.feedback;
 try{ if(!localStorage.getItem("seenInfo") && !location.hash){ localStorage.setItem("seenInfo", "1"); setTimeout(openInfo, 300); } }catch(e){}
 $("title").textContent = C.name;
 // #GF-1A2B3C4D (shared site) or #lat,lon,zoom[,messtischblatt|ortho] (links from dossiers)
