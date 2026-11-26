@@ -230,6 +230,16 @@ działka nr: 1/2
 }
 
 
+# GetFeatureInfo of GUGiK's land-use WMS (text/html), as the service answers it
+def egib_page(group: int = 7, pid: str = "") -> str:
+    row = f"<tr><td>Identyfikator działki</td><td>{pid}</td></tr>" if pid else ""
+    return (f"<html><head><style>td {{ padding: 2px }}</style></head><body><table>{row}"
+            f"<tr><td>Grupa rejestrowa</td><td>{group}</td></tr>"
+            "<tr><td>Pole pow. w ewidencji gruntów (ha)</td><td>2,1500</td></tr>"
+            "<tr><td>Oznaczenie konturu</td><td>Ls, Bz, RIVa</td></tr>"
+            "<tr><td>Data publikacji</td><td>2026-01-01</td></tr></table></body></html>")
+
+
 class FakeHttp:
     calls: list = []
 
@@ -241,6 +251,8 @@ class FakeHttp:
         params = params or {}
         if "bdl.lasy.gov.pl" in url:                 # forest database: no forest anywhere (tests patch it per case)
             return json.dumps({"results": []}).encode()
+        if "integracja.gugik.gov.pl" in url:         # land register: every parcel owned by private persons
+            return egib_page(7).encode()
         if "uldk" in url:
             if params.get("request") == "GetParcelByIdOrNr":
                 if params["id"].startswith("Przykładowo"):
