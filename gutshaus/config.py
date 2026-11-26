@@ -221,6 +221,7 @@ USE_POI_KINDS = {"school": "school", "doctor": "care"}
 #   associations): left out. Unknown (no group published, no parcel): left out only for a current use in
 #   UNLISTED_USES. A KOWR offer is always shown.
 EGIB_WMS = "https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaUzytkowGruntowych"
+EGIB_PAUSE_S = 0.5           # after each uncached lookup: about 6,000 parcels for Poland, ~1 hour the first time
 OWNER_PRIVATE = {7}
 OWNER_UNCLEAR = {2, 5, 12, 14}
 UNLISTED_USES = {"hotel", "school", "foundation", "business", "office", "care", "museum", "flats", "church", "public"}

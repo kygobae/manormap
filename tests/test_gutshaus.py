@@ -1335,6 +1335,15 @@ def test_owner_group_from_the_land_register():
     assert egib.annotate(Http(), sites) == 1
     assert [s["owner_group"] for s in sites] == [9, None, None]
 
+    class Down:
+        calls = 0
+
+        def get(self, url, params=None, **kw):
+            Down.calls += 1
+            raise ConnectionError("reset")
+    many = [{"status": "standing", "parcel_ll": ring, "parcel_id": f"p/{i}"} for i in range(50)]
+    assert egib.annotate(Down(), many) == 0 and Down.calls == egib.MAX_FAILURES   # gives up, no hour of retries
+
 
 def test_school_at_the_house():
     import numpy as np
