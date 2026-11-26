@@ -3,7 +3,9 @@
 No parcel numbers, owners or scores leave this machine. Located sites are shown at their exact position with
 their parcel outline (parcels.json, loaded when zoomed in): both are public anyway (OSM, the monument register,
 Geoportal). Sites known only by their village are shown at the village. KOWR offers are shown exactly.
-Sites listed in reserved.txt are left out entirely.
+Sites listed in reserved.txt are left out entirely, and so is every site not in private hands as far as we know
+(grades.listed: owned by the state, a gmina, a company, a church ..., or used as a school, offices ...), unless KOWR
+offers it.
 """
 from __future__ import annotations
 
@@ -12,11 +14,11 @@ import json
 import logging
 import re
 import shutil
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from . import config
-from .grades import STATUS_DE, dossier_id, grade_of, grade_rank, lights, score_of
+from .grades import STATUS_DE, dossier_id, grade_of, grade_rank, lights, listed, score_of, unlisted_reason
 from .sources import kowr
 
 log = logging.getLogger(__name__)
@@ -61,7 +63,7 @@ def villages(sites: list[dict], reserved: set[str] = frozenset(), round_to: int 
     groups = defaultdict(list)
     for s in sites:
         did = dossier_id(s["uid"])
-        if did in reserved or s["uid"] in reserved or set(s.get("members", [])) & reserved:
+        if did in reserved or s["uid"] in reserved or set(s.get("members", [])) & reserved or not listed(s):
             continue
         groups[(village_of(s), s.get("commune") or "", s.get("powiat") or "")].append((did, s))
     out = []
@@ -214,6 +216,9 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
         shutil.rmtree(pub)
     pub.mkdir(parents=True)
     vs = villages(sites, reserved)
+    why = Counter(r for s in sites if (r := unlisted_reason(s)))
+    log.info("Left out, not in private hands: %d sites (%s)", sum(why.values()),
+             ", ".join(f"{k} {v}" for k, v in why.most_common()))
     data = {"villages": vs, "kowr": offers(sites, kowr_json),
             "cfg": {"name": config.SITE_NAME, "url": config.SITE_URL, "price": config.DOSSIER_PRICE,
                     "checkout": config.CHECKOUT_URL, "email": config.CONTACT_EMAIL,

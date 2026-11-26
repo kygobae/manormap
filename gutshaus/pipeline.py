@@ -246,6 +246,34 @@ def mark_houses(sites: list[dict], bxy, barea) -> int:
     return n
 
 
+def current_uses(sites: list[dict], pois: dict[str, tuple] | None = None) -> dict[str, int]:
+    """site["use"] (config.HOUSE_USE keys, "" unknown) and site["use_src"] for every site: the OSM tags or name of
+    the house, else the register's current use ("pałac, ob. szkoła"), else a school or clinic mapped within
+    config.USE_POI_M of the house marked by mark_houses. pois: kind -> (EPSG:2180 points, names), the kinds of
+    config.USE_POI_KINDS. Returns {source: count}."""
+    import shapely
+    from .classify import register_use
+    from .geo import ll_to_pl
+    trees = {k: (shapely.STRtree(shapely.points(xy)), names) for k, (xy, names) in (pois or {}).items() if len(xy)}
+    n = {"osm": 0, "register": 0, "poi": 0}
+    for s in sites:
+        text = s.get("text") or ""
+        use, src = house_use(text), "osm"
+        if not use:
+            use, src = register_use(text), "register"
+        if not use and s.get("house"):
+            x, y = ll_to_pl(s["house"][1], s["house"][0])
+            for kind, (tree, names) in trees.items():
+                idx = tree.query(Point(x, y), predicate="dwithin", distance=config.USE_POI_M)
+                if len(idx):
+                    use, src = config.USE_POI_KINDS[kind], "poi:" + str(names[int(idx[0])] or kind)
+                    break
+        s["use"], s["use_src"] = use, (src if use else "")
+        if use:
+            n[src.split(":")[0]] += 1
+    return n
+
+
 def nearest_services(sites: list[dict], places: dict[str, tuple]) -> int:
     """site["services"] = {"shop": m, "school": m, "doctor": m, "station": m, "city": [name, m]} for located sites.
     places: kind -> (xy array (n, 2) in EPSG:2180, names). Straight-line distances, rounded to 100 m."""

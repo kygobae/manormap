@@ -163,8 +163,12 @@ HARD_EXCLUDE_PATTERN = re.compile(r"przyklasztor|kamienic|ko[sś]ci[oó][lł]|ka
 HOUSE_USE = {
     "hotel": {"building": {"hotel"}, "tourism": {"hotel", "guest_house", "motel", "hostel", "apartment"}},
     "school": {"building": {"school", "university", "college", "kindergarten", "dormitory"},
-               "amenity": {"school", "university", "college", "kindergarten", "library"}},
-    "office": {"building": {"office", "government", "public", "civic", "commercial"}, "office": None,
+               "amenity": {"school", "university", "college", "kindergarten", "library", "research_institute"},
+               "office": {"educational_institution", "research"}},
+    "foundation": {"office": {"foundation", "association", "ngo", "charity", "religion"}},
+    "business": {"building": {"commercial", "retail", "industrial", "warehouse"}, "office": {"company"},
+                 "amenity": {"restaurant", "events_venue", "conference_centre", "nightclub"}},
+    "office": {"building": {"office", "government", "public", "civic"}, "office": None,
                "amenity": {"townhall", "public_building", "courthouse", "police", "bank"}},
     "care": {"building": {"hospital"}, "amenity": {"hospital", "clinic", "social_facility", "nursing_home",
                                                    "doctors", "childcare"}},
@@ -178,13 +182,49 @@ WORSHIP_BUILDINGS = {"church", "chapel", "cathedral", "basilica", "religious", "
                      "bell_tower", "shrine", "monastery"}
 # ... or from the house's OSM name ("Dom Pomocy Społecznej w Jarogniewicach", "Hotel Pałac Mierzęcin"), folded
 HOUSE_USE_NAMES = {
-    "hotel": re.compile(r"(hotel|pensjonat|zajazd|resort|spa)|osrodek (szkoleniowo-)?wypoczynk|osrodek konferenc"),
-    "school": re.compile(r"szkol|liceum|instytut|uniwersytet|akademi|przedszkol|osrodek szkoleniow|internat"),
-    "care": re.compile(r"dom pomocy|dps|szpital|sanatori|hospicj|dom dziecka|osrodek leczen|zaklad opiek"),
-    "office": re.compile(r"urzad|starostwo|nadlesnictw|gminny osrodek"),
-    "museum": re.compile(r"muzeum|galeria|dom kultury|osrodek kultury|centrum kultury|biblioteka"),
-    "church": re.compile(r"klasztor|dom zakonny|parafi"),
+    "hotel": re.compile(r"hotel|pensjonat|zajazd|resort|\bspa\b|osrodek (szkoleniowo-)?wypoczynk|osrodek konferenc|"
+                        r"dom wypoczynk"),
+    "school": re.compile(r"szkol|liceum|instytut|uniwersytet|politechn|akademi|przedszkol|osrodek szkoleniow|internat|"
+                         r"\bbursa"),
+    "care": re.compile(r"dom pomocy|\bdps\b|szpital|sanatori|hospicj|dom dziecka|osrodek leczen|zaklad opiek|"
+                       r"zaklad leczn|osrodek zdrowia|klinik"),
+    "office": re.compile(r"\burzad|starostwo|nadlesnictw|lasy panstwowe|lesniczowk|gminny osrodek|komend|policj|"
+                         r"\bsad (rejonowy|okregowy)|prokuratur|archiwum|palac slubow|agencj"),
+    "museum": re.compile(r"muzeum|galeria|dom kultury|osrodek kultury|centrum kultury|biblioteka|dom ludowy|"
+                         r"dom polonii|dom pracy tworczej"),
+    "church": re.compile(r"klasztor|dom zakonny|zgromadzen|parafi|plebani|siostr|diecez|\bkuri[ai]"),
+    "foundation": re.compile(r"fundacj|stowarzyszen|towarzystw"),
+    "business": re.compile(r"\bsp\. ?z ?o\.? ?o|\bspolka\b|\bs\.a\.|przedsiebiorstw|restaurac|kawiarni|dom weselny|"
+                           r"sala (weselna|bankietow)|stadnin|stado ogierow|gospodarstwo doswiadczaln|"
+                           r"zaklad (doswiadczaln|rybacki)|stacja hodowli|hodowla roslin|kombinat"),
 }
+# ... or from the monument register's current use ("pałac, ob. szkoła", "dwór, obecnie mieszkania"): the name
+# patterns above and these words, which only the register uses. A house used as a home ("ob. dom mieszkalny")
+# says nothing against private hands.
+REGISTER_USE_NAMES = {
+    "flats": re.compile(r"mieszkani|wielorodzin|\bblok"),
+    "office": re.compile(r"administracyjn|biurow"),
+    "public": re.compile(r"park (miejski|gminny|publiczny|spacerowy)|\bskwer"),
+}
+# A school, clinic or hospital mapped this close to the house (pois / poi_areas of the local OSM extract) is what
+# the house is used for when nothing else says (`gutshaus build`). Only for sites whose house is marked.
+USE_POI_M = 50
+USE_POI_KINDS = {"school": "school", "doctor": "care"}
+
+# --- Who owns it: the public map shows only sites in private hands ----------
+# The parcel's registration group (grupa rejestrowa, § 14 of the EGiB regulation) from GUGiK's national land-use
+# WMS: the owner's type, never a name (`gutshaus build`, sources/egib.py). A buyer can deal with a private owner or
+# with KOWR, so the public map and the dossier batch leave out everything else (grades.listed):
+#   7 private persons: shown. 2, 5, 12, 14 public land in perpetual usufruct: whoever holds it (and owns the house)
+#   may be a person, so these count as unknown. Any other group (State Treasury, gmina, powiat, voivodeship, state
+#   or municipal bodies, cooperatives, churches, village communities, companies, 16 "other": foundations,
+#   associations): left out. Unknown (no group published, no parcel): left out only for a current use in
+#   UNLISTED_USES. A KOWR offer is always shown.
+EGIB_WMS = "https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaUzytkowGruntowych"
+EGIB_PAUSE_S = 0.5           # after each uncached lookup: about 6,000 parcels for Poland, ~1 hour the first time
+OWNER_PRIVATE = {7}
+OWNER_UNCLEAR = {2, 5, 12, 14}
+UNLISTED_USES = {"hotel", "school", "foundation", "business", "office", "care", "museum", "flats", "church", "public"}
 # An OSM object that matches only by name is not an estate if it is one of these: settlements named
 # "Dwór", "Zadworze", "Kuków-Folwark" (place=*, mostly PRNG imports), roads, stations, shops, plants ...
 NON_ESTATE_KEYS = ("place", "highway", "railway", "public_transport", "amenity", "shop", "office", "power",

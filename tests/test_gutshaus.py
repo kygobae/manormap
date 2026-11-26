@@ -1,8 +1,9 @@
 import csv
+import json
 
 import pytest
 
-from gutshaus import cli
+from gutshaus import cli, pipeline
 from gutshaus.classify import is_relevant_osm, text_flags
 from gutshaus.sources import uldk
 
@@ -1182,7 +1183,13 @@ def test_town_register_entries_do_not_decide_the_house():
     ("building=university | historic=castle | castle_type=palace", "school"),
     ("building=yes | historic=manor | tourism=hotel", "hotel"),
     ("building=apartments | historic=manor", "flats"),
-    ("building=yes | historic=manor | office=company", "office"),
+    ("building=yes | historic=manor | office=company", "business"),
+    ("building=yes | historic=manor | office=government", "office"),
+    ("name=Hotel Pałac Mierzęcin | building=yes | historic=manor", "hotel"),
+    ("name=Fundacja Piękniejszego Świata w Skłudzewie | historic=manor | building=yes", "foundation"),
+    ("name=Ompol Sp. z o.o. | historic=manor | building=yes", "business"),
+    ("name=Dom Generalny Sióstr Pasterek | historic=palace | building=yes", "church"),
+    ("name=Spacerowa 5 | historic=manor | building=yes", ""),     # "spa" only as a word
     ("building=yes | historic=manor", ""),
     ("building=hotel | name=Stajnia", ""),                       # not the house
     ("name=Dom Pomocy Społecznej w Jarogniewicach | building=yes | historic=manor", "care"),
@@ -1279,3 +1286,84 @@ def test_extract_lock_and_count_check(tmp_path):
     osm_local._check_counts(g, {"places": 2})
     with pytest.raises(RuntimeError, match="incomplete"):
         osm_local._check_counts(g, {"places": 50002})
+
+
+@pytest.mark.parametrize("entry, use", [
+    ("pałac, ob. szkoła | pałac | XVIII w. | Drezdenko | gm. Drezdenko - miasto", "school"),
+    ("dwór, ob. dom pomocy społecznej | dwór | 1880 r. | Wieś | gm. Wieś", "care"),
+    ("dwór, obecnie mieszkania | dwór | XIX w. | Wieś | gm. Wieś", "flats"),
+    ("park dworski, ob. park miejski | park | XIX w. | Wieś | gm. Wieś", "public"),
+    ("pałac, ob. dom mieszkalny | pałac | XIX w. | Wieś | gm. Wieś", ""),         # a home: says nothing against
+    ("oficyna, ob. szkoła | oficyna | XIX w. | Wieś | gm. Wieś", ""),             # an outbuilding, not the house
+    ("spichlerz dworski, ob. szpital | spichlerz | XIX w. | Wieś | gm. Wieś", ""),
+    ("dwór | dwór | 1830 r. | Wieś | gm. Wieś", ""),
+])
+def test_register_current_use(entry, use):
+    from gutshaus.classify import register_use, site_use
+    assert register_use(entry) == use
+    assert site_use({"text": "name=Dwór | historic=manor || " + entry}) == use
+
+
+def test_only_private_owners_are_listed():
+    """The public map shows sites in private hands as far as we know (config "Who owns it"), and every KOWR offer."""
+    from gutshaus.grades import listed, unlisted_reason
+    s = {"status": "standing", "text": "name=Dwór | historic=manor | building=yes"}
+    assert listed(s) and listed({**s, "owner_group": 7})
+    assert unlisted_reason({**s, "owner_group": 4}) == "owner:4"               # gmina
+    assert unlisted_reason({**s, "owner_group": 15}) == "owner:15"             # company
+    assert listed({**s, "owner_group": 2})                                     # perpetual usufruct: unknown holder
+    school = {**s, "use": "school"}
+    assert unlisted_reason(school) == "use:school" and unlisted_reason({**school, "owner_group": 5}) == "use:school"
+    assert listed({**school, "owner_group": 7})                                # a private owner decides
+    assert listed({**s, "owner_group": 1, "kowr_offer": "x"})                  # KOWR sells State Treasury land
+
+
+def test_owner_group_from_the_land_register():
+    from fake_services import egib_page
+    from gutshaus.sources import egib
+    assert egib.parse(egib_page(15, "020101_1.0001.15")) == {"status": "ok", "group": 15, "classes": ["Ls", "Bz", "RIVa"],
+                                                             "area_ha": 2.15}
+    assert egib.parse(egib_page(15, "020101_1.0001.16"), "020101_1.0001.15")["status"] == "none"   # a neighbour
+
+    class Http:
+        def get(self, url, params=None, **kw):
+            assert params["REQUEST"] == "GetFeatureInfo"
+            return egib_page(9, "p/1").encode()
+    ring = [[16.0, 54.0], [16.001, 54.0], [16.001, 54.001], [16.0, 54.001], [16.0, 54.0]]
+    sites = [{"status": "standing", "parcel_ll": ring, "parcel_id": "p/1"}, {"status": "unlocated"},
+             {"status": "lost", "parcel_ll": json.dumps(ring), "parcel_id": "p/2", "owner_group": 7}]
+    assert egib.annotate(Http(), sites) == 1
+    assert [s["owner_group"] for s in sites] == [9, None, None]
+
+    class Down:
+        calls = 0
+
+        def get(self, url, params=None, **kw):
+            Down.calls += 1
+            raise ConnectionError("reset")
+    many = [{"status": "standing", "parcel_ll": ring, "parcel_id": f"p/{i}"} for i in range(50)]
+    assert egib.annotate(Down(), many) == 0 and Down.calls == egib.MAX_FAILURES   # gives up, no hour of retries
+
+
+def test_school_at_the_house():
+    import numpy as np
+    from gutshaus.geo import ll_to_pl
+    house = {"status": "standing", "text": "name=Dwór | historic=manor | building=yes", "house": [54.0, 16.0, 600, "near"]}
+    far = {**house, "house": [54.01, 16.0, 600, "near"]}
+    register = {"status": "unlocated", "text": "pałac, ob. muzeum | pałac | XIX w. | Wieś | gm. Wieś"}
+    x, y = ll_to_pl(16.0, 54.0)
+    n = pipeline.current_uses([house, far, register], {"school": (np.array([[x + 30, y]]), np.array(["Szkoła Podstawowa"]))})
+    assert n == {"osm": 0, "register": 1, "poi": 1}
+    assert (house["use"], house["use_src"]) == ("school", "poi:Szkoła Podstawowa") and far["use"] == ""
+    assert register["use"] == "museum"
+
+
+def test_publish_leaves_out_sites_not_in_private_hands(built):
+    from gutshaus import grades, publish
+    sites = grades.all_sites(built)
+    assert all("owner_group" in s and "unlisted" in s for s in sites)       # build looked them up
+    ids = {grades.dossier_id(s["uid"]) for s in sites}
+    gmina = next(s for s in sites if s["status"] != "unlocated" and not s.get("kowr_offer"))
+    gmina["owner_group"] = 4
+    shown = {i["id"] for v in publish.villages(sites) for i in v["sites"]}
+    assert grades.dossier_id(gmina["uid"]) not in shown and shown == ids - {grades.dossier_id(gmina["uid"])}

@@ -104,6 +104,39 @@ def house_use(text: str) -> str:
     return ""
 
 
+# "pałac, ob. szkoła", "dwór, obecnie dom pomocy społecznej": the register's current use, after the house
+_REGISTER_NOW = re.compile(r"^(.*?)\b(?:ob\.|obecnie|obec\.)\s*(.+)$")
+
+
+def register_use(text: str) -> str:
+    """What the house or its complex is used for today by the monument register ("pałac, ob. szkoła" -> "school",
+    config.HOUSE_USE_NAMES and REGISTER_USE_NAMES); "" when no register entry about the house says. An outbuilding's
+    use ("oficyna, ob. szkoła", "spichlerz dworski, ob. szpital") is not the house's."""
+    for tags, words in fragments(text):
+        if tags is not None:
+            continue
+        m = _REGISTER_NOW.match(fold(words.split(" | ")[0]))
+        if not m:
+            continue
+        before, now = m.group(1), m.group(2)
+        if not (_HOUSE_ANY.search(before) or "zespol" in before or "park" in before) or not _about_the_house(before):
+            continue
+        for use, pattern in {**config.REGISTER_USE_NAMES, **config.HOUSE_USE_NAMES}.items():
+            if pattern.search(now):
+                return use
+    return ""
+
+
+def site_use(site: dict) -> str:
+    """The current use that keeps a site off the public map (grades.listed): set by `gutshaus build`
+    (site["use"]: OSM tags or name of the house, the register's "ob. …", or a school or clinic at the house),
+    else worked out from the text."""
+    if "use" in site:
+        return site["use"] or ""
+    text = site.get("text") or ""
+    return house_use(text) or register_use(text)
+
+
 def register_names_house(text: str) -> bool:
     """A register (non-OSM) member is the house itself ("dwór", "pałac"), not just its park."""
     return any(tags is None and _HOUSE.search(fold(words.split(" | ")[0]))

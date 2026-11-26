@@ -136,6 +136,23 @@ def services(args, root: Path, sites: list[dict]) -> None:
     log.info("Services measured for %d sites", n)
 
 
+def current_uses(args, root: Path, sites: list[dict]) -> None:
+    """What each house is used for today: OSM, the register's "ob. …", and schools or clinics at the house
+    (local OSM extract; without it the first two)."""
+    gpkg = Path(getattr(args, "osm", None) or root / "_osm" / "osm.gpkg")
+    pois = None
+    import pyogrio
+    if gpkg.exists() and "pois" in {n for n, _ in pyogrio.list_layers(gpkg)}:
+        import numpy as np
+        import pandas as pd
+        kinds = ",".join(f"'{k}'" for k in config.USE_POI_KINDS)
+        df = pd.concat([pyogrio.read_dataframe(gpkg, layer=layer, columns=["kind", "name"], where=f"kind IN ({kinds})")
+                        for layer in ("pois", "poi_areas")], ignore_index=True)
+        pois = {k: (np.column_stack([g.geometry.x, g.geometry.y]), g["name"].values) for k, g in df.groupby("kind")}
+    n = pipeline.current_uses(sites, pois)
+    log.info("Current use known for %d sites (%s)", sum(n.values()), ", ".join(f"{k} {v}" for k, v in n.items()))
+
+
 def count_buildings(args, root: Path, sites: list[dict], offers: list[dict]) -> None:
     """Buildings on each parcel from the local OSM extract (skipped without it)."""
     gpkg = Path(getattr(args, "osm", None) or root / "_osm" / "osm.gpkg")
@@ -273,6 +290,10 @@ def cmd_build(args):
     log.info("%d standing sites moved to the parcel their house stands on", n)
     count_buildings(args, root, sites, offers)           # buildings on the parcel: somewhere to live while rebuilding
     services(args, root, sites)                          # supermarket, school, doctor, city: the location light
+    current_uses(args, root, sites)                      # a school, offices, a foundation ...: not for a private buyer
+    if not getattr(args, "no_owner", False):             # who owns the parcel, by type (land register, cached)
+        from .sources import egib
+        egib.annotate(http, sites)
     if not getattr(args, "no_forest", False):            # forest stands from the forest database (cached)
         from .sources import bdl
         bdl.annotate(http, sites)
@@ -280,6 +301,10 @@ def cmd_build(args):
         for s in sites:
             s.update(criteria.compute(s))
             s["score"], s["why"] = criteria.score(s), criteria.explain(s)
+    from .grades import unlisted_reason
+    for s in sites:                                      # not in private hands: left off the public map
+        s["unlisted"] = unlisted_reason(s)
+    log.info("%d sites not in private hands (left off the public map)", sum(bool(s["unlisted"]) for s in sites))
     outputs.rank(sites)
     out = root / "poland"
     out.mkdir(parents=True, exist_ok=True)
@@ -435,6 +460,7 @@ def main(argv=None):
 
     b = sub.add_parser("build", help="combine finished powiats into <out-root>/poland and refresh index.html")
     b.add_argument("--no-forest", action="store_true", help="skip the forest database (BDL) lookups")
+    b.add_argument("--no-owner", action="store_true", help="skip the owner-type lookups (land register groups)")
     b.add_argument("--verdicts", help="earlier verdicts CSV to carry over")
     b.add_argument("--skip-kowr", action="store_true", help="don't load KOWR heritage offers")
     b.add_argument("--refresh", action="store_true", help="reload KOWR offers now")

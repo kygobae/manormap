@@ -20,7 +20,7 @@ BASE_COLS = ["rank", "score", "status", "location", "verdict", "notes", "name", 
              "dist_building_m", "buildings_500m", "nearest_town", "dist_town_m", "dist_water_m",
              "max_building_m2", "n_buildings", "registered", "kowr_offer", "kowr_tender", "kowr_url",
              "sources", "nid_ref", "osm_ref"]
-TAIL_COLS = ["why", "lat", "lon", "link_geoportal", "link_gmaps", "link_osm", "uid", "members"]
+TAIL_COLS = ["owner_group", "use", "use_src", "unlisted", "why", "lat", "lon", "link_geoportal", "link_gmaps", "link_osm", "uid", "members"]
 
 
 def csv_cols() -> list[str]:

@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from . import config, criteria
-from .classify import house_use
+from .classify import house_use, site_use
 
 STATUS_DE = {"lost": "Herrenhaus nicht mehr vorhanden", "ruin": "Ruine / Reste vorhanden",
              "standing": "Gebäude steht noch", "unlocated": "Lage nur auf Dorfebene bekannt", "unknown": "unklar"}
@@ -168,6 +168,27 @@ def grade_of(site: dict, lights_: dict | None = None) -> str:
 
 def grade_rank(g: str) -> int:
     return GRADE_ORDER.index(g) if g in GRADE_ORDER else len(GRADE_ORDER)
+
+
+# ---------------------------------------------------------------- who can sell it
+def unlisted_reason(site: dict) -> str:
+    """Why a site is left off the public map and the dossier batch, "" when it is shown (config "Who owns it"):
+    "owner:<group>" for a parcel owned by anyone but private persons, "use:<use>" for a school, offices,
+    a foundation ... when the owner is unknown. A KOWR offer is always shown."""
+    if site.get("kowr_offer"):
+        return ""
+    g = site.get("owner_group")
+    if g in config.OWNER_PRIVATE:
+        return ""
+    if g is not None and g not in config.OWNER_UNCLEAR:
+        return f"owner:{g}"
+    use = site_use(site)
+    return f"use:{use}" if use in config.UNLISTED_USES else ""
+
+
+def listed(site: dict) -> bool:
+    """In private hands as far as we know, or offered by KOWR: on the public map and in `--all` dossier batches."""
+    return not unlisted_reason(site)
 
 
 # ---------------------------------------------------------------- lookup
