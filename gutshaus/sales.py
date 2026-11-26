@@ -48,15 +48,17 @@ def last_day(e: dict) -> dt.date | None:
     return d + dt.timedelta(days=config.SALE_SHOW_DAYS) if d else None
 
 
-def load(path: Path | str | None = None, today: dt.date | None = None) -> list[dict]:
-    """The current sales from config.SALES_FILE (or `path`): valid entries whose last day has not passed."""
+def load(path: Path | str | None = None, today: dt.date | None = None, extra: list[dict] | None = None) -> list[dict]:
+    """The current sales from config.SALES_FILE (or `path`) and `extra` (tenders found by `gutshaus tenders`):
+    valid entries whose last day has not passed. An entry in the file wins over a found one for the same site."""
     p = Path(path or config.SALES_FILE)
-    if not p.exists():
-        return []
-    raw = json.loads(p.read_text(encoding="utf-8"))
+    raw = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
+    raw = list(raw.get("sales", raw) if isinstance(raw, dict) else raw)
+    by_hand = {str(e.get("site") or "").upper() for e in raw}
+    raw += [e for e in extra or [] if str(e.get("site") or "").upper() not in by_hand]
     today = today or dt.date.today()
     out, seen = [], set()
-    for e in raw.get("sales", raw) if isinstance(raw, dict) else raw:
+    for e in raw:
         if not e.get("id") or e.get("source") not in SOURCES or e["id"] in seen:
             log.warning("Sales: entry skipped (needs a unique id and a source of %s): %s", SOURCES, str(e)[:120])
             continue
