@@ -77,6 +77,19 @@ leaves the map 14 days after it unless `until` says otherwise; one without a dat
 published only for owners' listings. The bailiffs' portal (licytacje.komornik.pl) blocks automated access: enter its
 auctions by hand.
 
+### Tenders of public owners
+
+A manor owned by a gmina, powiat, voivodeship or the State Treasury is left off the map until it is offered by public
+tender. `gutshaus tenders` (weekly, after `gutshaus build`) watches exactly those owners: it finds each office's
+website on Wikidata, the BIP linked from it and the BIP's pages about property sales (kept in
+`output/_tenders/offices.json`), then reads the notices there, with their PDF and DOCX attachments. A notice that names
+a manor's precinct and its parcel number after "działka" puts the manor on the map as a public tender until 14 days
+after the tender date (60 days after it was first seen when no date is given); results of past tenders never do.
+Notices that only name the village and a manor word are printed for review. Offices whose sale pages could not be
+found are listed in `output/_tenders/missing.csv`: set their pages by hand in `TENDER_PAGES_FILE`
+(`tender_pages.json` next to `gutshaus.json`), e.g. `{"gmina:0219073": ["https://bip.example.pl/przetargi"]}`.
+`--discover-only` stops after finding the pages; `--rediscover` looks for them again.
+
 ## How sites are found
 
 1. **Candidates:** OSM features tagged manor/palace/estate/ruins or with estate names (dwór, pałac, park dworski, folwark…), plus estate entries from the NID monument register. The register API has no coordinates, so each entry is placed at the nearest OSM park within 1.5 km of its village, or else at the village centre (status *unlocated*).

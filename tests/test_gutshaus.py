@@ -1456,3 +1456,96 @@ def test_sales_match_and_publish():
     assert "note" not in t1 and "private" not in json.dumps(offers)  # the private note never leaves this machine
     o1 = next(o for o in offers if o["id"] == "o1")
     assert (o1["lat"], o1["contact"]) == (50.0, "+48 600")            # no site there: shown on its own
+
+
+def _fake_bip():
+    """A made-up gmina: website -> BIP -> sale page -> notices (HTML with a DOCX attachment, a result, a plot)."""
+    import io
+    import zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("word/document.xml", "<w:document><w:p>Cena wywoławcza nieruchomości wynosi 750 000,00 zł."
+                                        "</w:p></w:document>")
+    pages = {
+        "https://www.wzorowo.example.pl/": '<a href="https://bip.wzorowo.example.pl/">BIP</a>',
+        "https://bip.wzorowo.example.pl/": '<a href="/zamowienia">Zamówienia publiczne - przetargi</a>'
+                                           '<a href="/nieruchomosci">Przetargi na sprzedaż nieruchomości</a>',
+        "https://bip.wzorowo.example.pl/nieruchomosci":
+            '<a href="/n/3">Ogłoszenie o I przetargu - działka budowlana, obręb Kłos</a>'
+            '<a href="/n/1">Ogłoszenie o przetargu ustnym na sprzedaż nieruchomości - Przykładowo</a>'
+            '<a href="/n/2">Informacja o wyniku przetargu - Przykładowo</a><a href="/kontakt">Kontakt</a>',
+        "https://bip.wzorowo.example.pl/n/1":
+            "<html><h1>Ogłoszenie o przetargu</h1><p>Wójt Gminy Wzorowo ogłasza I przetarg ustny nieograniczony na "
+            "sprzedaż nieruchomości zabudowanej zespołem pałacowo-parkowym, położonej w obrębie Przykładowo, "
+            "oznaczonej jako działka nr 17 o pow. 2,15 ha. Przetarg odbędzie się w dniu 15 grudnia 2026 r.</p>"
+            '<a href="/files/oglosz.docx">Ogłoszenie (docx)</a></html>',
+        "https://bip.wzorowo.example.pl/n/2": "<h1>Informacja o wyniku przetargu</h1> Przykładowo, działka nr 17 – "
+                                              "nabywca wyłoniony.",
+        "https://bip.wzorowo.example.pl/n/3": "<h1>Przetarg</h1> Kłos, działka nr 5/2, dwór nie istnieje.",
+        "https://bip.wzorowo.example.pl/files/oglosz.docx": buf.getvalue(),
+    }
+    calls = []
+
+    def fetch(url, cache=True):
+        calls.append(url)
+        if url not in pages:
+            raise RuntimeError(f"404 {url}")
+        body = pages[url]
+        return url, body if isinstance(body, bytes) else body.encode()
+    return fetch, calls
+
+
+def test_tenders_find_sale_pages_and_notices():
+    from gutshaus.sources import tenders
+    fetch, calls = _fake_bip()
+    d = tenders.discover_office(fetch, ["http://www.wzorowo.example.pl/"])
+    assert d["bip"] == "https://bip.wzorowo.example.pl/" and d["how"] == "auto"
+    assert d["pages"][0] == "https://bip.wzorowo.example.pl/nieruchomosci"       # property sales before procurement
+    manor = {"uid": "nid:1", "owner_group": 4, "parcel_id": "320999_5.0001.17", "parcel_no": "17",
+             "precinct": "0001 Przykładowo", "village": "Przykładowo", "status": "standing"}
+    plot = {**manor, "uid": "nid:2", "parcel_id": "320999_5.0002.5/2", "parcel_no": "5/2", "precinct": "Kłos",
+            "village": "Kłos"}
+    private = {**manor, "uid": "nid:3", "owner_group": 7}
+    offs = tenders.offices([manor, plot, private])
+    assert list(offs) == ["gmina:3209993"] and offs["gmina:3209993"]["sites"] == ["nid:1", "nid:2"]   # 5 -> 3
+    found = tenders.check(fetch, {"gmina:3209993": d}, offs, [manor, plot, private])
+    by = {(f["uid"], f["url"].rsplit("/", 1)[-1]): f for f in found}
+    sale = by[("nid:1", "1")]
+    assert (sale["match"], sale["result"], sale["date"], sale["price_pln"]) == ("parcel", False, "2026-12-15", 750000)
+    assert by[("nid:1", "2")]["result"]                                            # sold: never a sale
+    assert by[("nid:2", "3")]["match"] == "parcel"                                 # "5/2" after "działka nr"
+    assert not any(f["uid"] == "nid:2" and f["url"].endswith("/1") for f in found)  # other village
+    assert not any(u.endswith("/kontakt") or u.endswith("/zamowienia") for u in calls)
+    sales = tenders.as_sales(tenders.merge_found([], found))
+    assert {(e["site"], e["date"]) for e in sales} >= {(sale["site"], "2026-12-15")}
+    assert all(e["source"] == "tender" for e in sales) and len({e["site"] for e in sales}) == len(sales)
+
+
+@pytest.mark.parametrize("text, how", [
+    ("działka nr 136 położona w obrębie Byszów", "parcel"),
+    ("dz. ewid. nr 1250/1, obręb Bieliny", "parcel"),
+    ("działka nr 1250/12, obręb Bieliny", ""),                      # another parcel, no manor word
+    ("działka nr 1250/12, obręb Bieliny, dawny park dworski", "village"),
+    ("Bieliny: zespół dworsko-parkowy na sprzedaż", "village"),
+    ("działka nr 1250/1, obręb Nowa Wieś", ""),                     # another precinct
+])
+def test_tender_text_match(text, how):
+    from gutshaus.sources import tenders
+    site = {"parcel_no": "1250/1" if "Bieliny" in text or "Nowa" in text else "136",
+            "precinct": "Bieliny" if "Bieliny" in text or "Nowa" in text else "Byszów", "village": ""}
+    assert tenders.match_text(text, site) == how
+
+
+@pytest.mark.parametrize("text, kind", [
+    ("przetargi na sprzedaz nieruchomosci", "strong"), ("sprzedaz i dzierzawa nieruchomosci", "strong"),
+    ("wykazy nieruchomosci przeznaczonych do zbycia", "strong"), ("gospodarka nieruchomosciami", "strong"),
+    ("mienie gminy", "strong"), ("przetargi", "weak"), ("nieruchomosci", "weak"),
+    ("wykaz spraw: nadanie numeru porzadkowego dla nieruchomosci", None), ("rejestr cen nieruchomosci", None),
+    ("zamowienia publiczne - przetargi", None), ("ogloszenia o naborze", None),
+])
+def test_tender_sale_pages(text, kind):
+    from gutshaus.sources import tenders
+    got = tenders.sections([("https://x/a", text)])
+    assert bool(got) == bool(kind)
+    if kind == "weak":                                   # only when nothing strong is linked
+        assert tenders.sections([("https://x/a", text), ("https://x/b", "gospodarka nieruchomosciami")]) == ["https://x/b"]

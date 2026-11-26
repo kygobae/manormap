@@ -312,7 +312,7 @@ def load_overrides(path=None) -> str | None:
     for k, v in data.items():
         if k.isupper() and k in g:
             g[k] = v
-    for key in ("RESERVED_FILE", "SALES_FILE"):
+    for key in ("RESERVED_FILE", "SALES_FILE", "TENDER_PAGES_FILE"):
         if key in data and not Path(data[key]).is_absolute():
             g[key] = str(p.resolve().parent / data[key])
     return str(p)
@@ -394,6 +394,11 @@ RESERVED_FILE = "reserved.txt"
 SALES_FILE = "sales.json"
 SALE_MATCH_M = 300           # a sale given by its position takes the located site this close
 SALE_SHOW_DAYS = 14          # an auction or tender stays on the map this long after its date (the result)
+# Public owners' tenders (`gutshaus tenders`, sources/tenders.py): pages set by hand where finding them fails,
+# {"gmina:0219073": ["https://bip.example.pl/przetargi"], ...} (keys from <out-root>/_tenders/missing.csv)
+TENDER_PAGES_FILE = "tender_pages.json"
+TENDER_PAUSE_S = 1.0         # between two requests to the same BIP
+TENDER_SHOW_DAYS = 60        # a tender notice without a date stays on the map this long after it was first seen
 # Corrections from knowledge on the ground, applied by `gutshaus build`: dossier ID or uid ->
 # {"status": "lost" | "ruin" | "standing" | "unknown", "note": "what is there"}. The data can be wrong (an OSM
 # object called "Ruiny …" where only foundations remain). Set them in your private gutshaus.json.

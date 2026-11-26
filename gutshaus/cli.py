@@ -282,7 +282,8 @@ def cmd_build(args):
     if offers:
         kowr.match(sites, offers)
     from . import sales as sales_mod                     # auctions, tenders, owners' listings (config.SALES_FILE)
-    sales = sales_mod.load()
+    from .sources import tenders
+    sales = sales_mod.load(extra=tenders.as_sales(tenders.load_found(root)))   # + public owners' tenders
     if sales:
         log.info("Sales: %d current, %d on a site", len(sales), sales_mod.match(sites, sales))
     gone = kowr.recently_gone(kowr.history_path(root / "_kowr.json"), offers) if not getattr(args, "skip_kowr", False) else []
@@ -419,6 +420,49 @@ def cmd_check(args):
     print("\nAll good." if ok else "\nFix FAIL lines in gutshaus/config.py (layer names) or see README.")
 
 
+def cmd_tenders(args):
+    """Watch the BIPs of the public bodies that own manors for tenders (sources/tenders.py)."""
+    import csv
+    from .grades import all_sites
+    from .sources import tenders
+    root = Path(args.out_root)
+    sites = all_sites(root)
+    if not sites:
+        raise SystemExit("No results yet: run `gutshaus run` and `gutshaus build` first.")
+    offs = tenders.offices(sites)
+    d = root / "_tenders"
+    d.mkdir(parents=True, exist_ok=True)
+    kp = d / "offices.json"
+    known = json.loads(kp.read_text(encoding="utf-8")) if kp.exists() else {}
+    fetch = tenders.Fetcher(d / "cache")
+    known = tenders.discover(fetch, Http(root / ".cache"), offs, known, redo=args.rediscover)
+    manual = Path(config.TENDER_PAGES_FILE)
+    for k, pages in (json.loads(manual.read_text(encoding="utf-8")) if manual.exists() else {}).items():
+        known[k] = {**known.get(k, {"terc": k.split(":")[-1], "web": "", "bip": ""}), "pages": pages, "how": "manual"}
+    kp.write_text(json.dumps(known, ensure_ascii=False, indent=1), encoding="utf-8")
+    with (d / "missing.csv").open("w", newline="", encoding="utf-8-sig") as f:   # offices to set by hand
+        w = csv.writer(f)
+        w.writerow(["office", "manors", "website", "bip", "why"])
+        for k, o in sorted(offs.items(), key=lambda x: -len(x[1]["sites"])):
+            v = known.get(k) or {}
+            if not v.get("pages"):
+                w.writerow([k, len(o["sites"]), v.get("web", ""), v.get("bip", ""), v.get("how", "")])
+    n_pages = sum(bool((known.get(k) or {}).get("pages")) for k in offs)
+    print(f"{len(offs)} public owners of manors, {n_pages} with sale pages ({d / 'missing.csv'} lists the rest)")
+    if args.discover_only:
+        return
+    found = tenders.merge_found(tenders.load_found(root), tenders.check(fetch, known, offs, sites))
+    (d / "found.json").write_text(json.dumps(found, ensure_ascii=False, indent=1), encoding="utf-8")
+    for label, keep in (("On the map (parcel named)", lambda f: f["match"] == "parcel" and not f["result"]),
+                        ("Results of past tenders (not shown)", lambda f: f["result"]),
+                        ("To review (village and a manor word only)", lambda f: f["match"] == "village" and not f["result"])):
+        rows = [f for f in found if keep(f)]
+        print(f"\n{label}: {len(rows)}")
+        for f in rows:
+            print(f"  {f['site']}  {f.get('date') or '-':10}  {f['title'][:70]}\n      {f['url']}")
+    print(f"\nRun `gutshaus publish` (and deploy) to show them. Details: {d / 'found.json'}")
+
+
 def cmd_publish(args):
     from . import grades, publish
     root = Path(args.out_root)
@@ -428,7 +472,8 @@ def cmd_publish(args):
     reserved = publish.load_reserved(Path(args.reserved or config.RESERVED_FILE))
     out = Path(args.out or root / "site")
     from . import sales
-    current = sales.load()                               # matched again: a sale added after the build shows at once
+    from .sources import tenders
+    current = sales.load(extra=tenders.as_sales(tenders.load_found(root)))   # matched again: new sales show at once
     if current:
         log.info("Sales: %d current, %d on a site", len(current), sales.match(sites, current))
     n = publish.publish(sites, out, reserved, root / "_kowr.json", Path(args.sample) if args.sample else None,
@@ -483,6 +528,9 @@ def main(argv=None):
     pb.add_argument("--reserved", help="IDs to leave out (default: RESERVED_FILE in the config, reserved.txt)")
     pb.add_argument("--sample", help="PDF to offer as sample dossier")
     pb.add_argument("--out", help="folder (default: <out-root>/site)")
+    tn = sub.add_parser("tenders", help="look for tenders of the public bodies that own manors (weekly)")
+    tn.add_argument("--discover-only", action="store_true", help="only find each office's sale pages")
+    tn.add_argument("--rediscover", action="store_true", help="find the sale pages again for every office")
     sub.add_parser("check", help="test that all data services are reachable from this machine")
     sub.add_parser("powiats", help="list powiat TERYT codes")
 
@@ -494,7 +542,7 @@ def main(argv=None):
     if used:
         log.info("Using overrides from %s", used)
     {"run": cmd_run, "build": cmd_build, "check": cmd_check, "powiats": cmd_powiats,
-     "osm-extract": cmd_osm_extract, "publish": cmd_publish}[args.cmd](args)
+     "osm-extract": cmd_osm_extract, "publish": cmd_publish, "tenders": cmd_tenders}[args.cmd](args)
 
 
 if __name__ == "__main__":
