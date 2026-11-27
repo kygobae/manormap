@@ -1046,6 +1046,19 @@ def test_nid_map_entry_does_not_take_over_the_site_uid():
     assert s["uid"] == "nid:3"                                                     # alone it is its own site
 
 
+def test_small_building_on_register_point_is_not_lost():
+    """A register entry placed exactly and naming the house ("dwór") with a building a few metres away is "unknown",
+    not "lost": small manors fall under MANOR_BUILDING_MIN_M2 (dwór Zdonia, 142 m², 6 m). A park entry stays lost."""
+    from gutshaus.pipeline import assess
+    dwor = {"uid": "nid:1", "source": "nid", "name": "dwór, Zdonia", "text": "dwór | Zdonia", "x": 0.0, "y": 0.0,
+            "registered": True, "location": "exact", "located_by": "nid map"}
+    ctx = {"n_buildings": 23, "max_building_m2": 142}
+    assert assess(dwor, ctx, None, {"dist_building_m": 6})["status"] == "unknown"
+    assert assess(dwor, ctx, None, {"dist_building_m": 120})["status"] == "lost"
+    park = {**dwor, "name": "park dworski, Zdonia", "text": "park dworski | park | Zdonia"}
+    assert assess(park, ctx, None, {"dist_building_m": 6})["status"] == "lost"
+
+
 def test_village_entry_joins_only_a_site_in_its_own_village():
     """Sulisławice's register entry (village level) does not join the Wiśniowa palace 736 m away, which lies
     nearer Wiśniowa; it does join a site in Sulisławice."""
