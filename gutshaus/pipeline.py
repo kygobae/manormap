@@ -17,8 +17,11 @@ log = logging.getLogger(__name__)
 def merge(cands: list[dict]) -> list[dict]:
     """Greedy spatial clustering. Exactly located candidates first (register
     polygons anchor a site); register entries located only by village attach to
-    the nearest exact site within NID_ATTACH_RADIUS_M."""
+    the nearest exact site within NID_ATTACH_RADIUS_M. Entries placed via NID's
+    map come after the other exact ones, so they never become a site's anchor:
+    the site keeps the uid (and dossier ID) it had while they were village-only."""
     order = sorted(cands, key=lambda c: (c.get("location", "exact") != "exact",
+                                         c.get("located_by") == "nid map",
                                          c["source"] != "nid", c["uid"]))
     sites: list[dict] = []
     for c in order:

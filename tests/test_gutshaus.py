@@ -1032,6 +1032,20 @@ def test_site_sits_on_the_house_not_the_park_centre():
     assert (s["x"], s["y"]) == (1000.0, 1000.0)                                    # no house: the park as before
 
 
+def test_nid_map_entry_does_not_take_over_the_site_uid():
+    """A register entry placed via NID's map joins the OSM site but does not become its anchor, so the site
+    keeps the uid (and dossier ID) it had while the entry was known only by its village."""
+    from gutshaus.pipeline import merge
+    palace = {"uid": "osm:way/2", "source": "osm", "name": "Pałac Wiśniowa", "text": "name=Pałac Wiśniowa | historic=castle",
+              "x": 0.0, "y": 0.0, "registered": True, "location": "exact"}
+    placed = {"uid": "nid:3", "source": "nid", "name": "pałac, Wiśniowa", "text": "pałac | Wiśniowa",
+              "x": 20.0, "y": 0.0, "registered": True, "location": "exact", "located_by": "nid map"}
+    (s,) = merge([placed, palace])
+    assert s["uid"] == "osm:way/2" and s["members"] == ["osm:way/2", "nid:3"]
+    (s,) = merge([placed])
+    assert s["uid"] == "nid:3"                                                     # alone it is its own site
+
+
 def test_village_entry_joins_only_a_site_in_its_own_village():
     """Sulisławice's register entry (village level) does not join the Wiśniowa palace 736 m away, which lies
     nearer Wiśniowa; it does join a site in Sulisławice."""
