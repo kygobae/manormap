@@ -183,6 +183,10 @@ def assess(site: dict, ctx: dict | None, parcel: dict | None, infra: dict | None
     # what the house is used for today (OSM tags of the house): grades turn the house light amber
     out["house_use"] = house_use(site.get("text_exact") or site["text"]) if out["status"] == "standing" else ""
     out.update(infra or {})
+    if (out["status"] == "lost" and site.get("location", "exact") == "exact" and register_names_house(site["text"])
+            and (out.get("dist_building_m") if out.get("dist_building_m") is not None else 1e9)
+            < config.HOUSE_NEAR_BUILDING_M):
+        out["status"] = "unknown"  # a small building on the register's point may be the house itself
     if protected is not None:
         out.update(gdos.assess(Point(site["x"], site["y"]), protected))
     if town_list is not None:

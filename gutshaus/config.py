@@ -247,6 +247,9 @@ MANOR_SEARCH_RADIUS_M = 100  # big building must be this close to count as "stan
 # "lost" needs no big building within this radius either; one at 100-200 m makes the status "unknown"
 # (site points are often park centres or guesses, and the manor can stand at the edge of its park)
 MANOR_LOST_RADIUS_M = 200
+# An exactly placed register entry naming the house itself ("dwór", "pałac") with any building this close is not
+# "lost" but "unknown": small manors (100-250 m²) fall under MANOR_BUILDING_MIN_M2
+HOUSE_NEAR_BUILDING_M = 30
 # A big building on the site's parcel, or this close outside it, counts as the standing manor (the parcel may have
 # been split around the house). Only buildings within PARCEL_SEARCH_MAX_M of the site point are considered, so a
 # large farm parcel does not pull in far-away barns.
