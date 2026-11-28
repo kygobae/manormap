@@ -125,8 +125,10 @@ const map = L.map("map", {preferCanvas: true});
 const bases = {}, overlays = {};
 let defaultBase = null;
 D.wms.forEach(w => {
-  const l = L.tileLayer.wms(w.url, {layers: w.layers, format: "image/png", transparent: !!w.overlay, version: "1.1.1",
-    maxZoom: 20, minZoom: w.minZoom || 0, opacity: w.opacity || 1, attribution: w.attribution});
+  const o = {maxZoom: 20, minZoom: w.minZoom || 0, opacity: w.opacity || 1, attribution: w.attribution};
+  const l = w.tiles ? L.tileLayer(w.tiles, Object.assign(o, {maxNativeZoom: 19}))   // WMTS: cached tiles, much faster
+    : L.tileLayer.wms(w.url, Object.assign(o, {layers: w.layers, format: w.format || "image/png",
+      transparent: !!w.overlay, version: "1.1.1"}));
   (w.overlay ? overlays : bases)[w.name] = l;
   if (w.default) defaultBase = l;
 });

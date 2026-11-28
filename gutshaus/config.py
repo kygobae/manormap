@@ -23,6 +23,12 @@ NID_ATTACH_RADIUS_M = 1000   # attach a village-located register entry to an OSM
 # WMS layers shown in review.html (name, url, layers, attribution).
 # Layer names marked "verify" are best guesses: if a layer stays blank,
 # open <url>?SERVICE=WMS&REQUEST=GetCapabilities and fix the name here.
+# Optional "tiles": a WMTS tile URL ({z}/{x}/{y} on the EPSG:3857 grid) the map loads instead of the WMS: cached tiles
+# load several times faster. The dossier still renders from "url"/"layers". Optional "format" for WMS tiles: JPEG for
+# opaque base maps (the Messtischblatt is ~8x smaller than as PNG; pastmaps has no WMTS).
+ORTHO_WMTS = ("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?SERVICE=WMTS&REQUEST=GetTile"
+              "&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857"
+              "&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}")
 WMS_LAYERS = [
     {"name": "Topographic map (Geoportal)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/img/guest/TOPO/MapServer/WMSServer",
@@ -30,15 +36,15 @@ WMS_LAYERS = [
      "attribution": "GUGiK", "default": True},
     {"name": "Messtischblatt 1:25k (1870-1945)",
      "url": "https://pastmaps.cenagis.edu.pl/geoserver/ihpan/wms",
-     "layers": "m25k_3857",
+     "layers": "m25k_3857", "format": "image/jpeg",
      "attribution": "ZAH IH PAN / CENAGIS, CC BY-NC 4.0"},
     {"name": "Karte des Deutschen Reiches 1:100k (~1900)",
      "url": "https://pastmaps.cenagis.edu.pl/geoserver/ihpan/wms",
-     "layers": "kdr_3857",
+     "layers": "kdr_3857", "format": "image/jpeg",
      "attribution": "ZAH IH PAN / CENAGIS, CC BY-NC 4.0"},
     {"name": "Orthophoto (Geoportal)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution",
-     "layers": "Raster",
+     "layers": "Raster", "tiles": ORTHO_WMTS,
      "attribution": "GUGiK"},
     {"name": "LiDAR shaded relief (Geoportal)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief",
