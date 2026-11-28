@@ -184,6 +184,7 @@ def test_end_to_end(tmp_path, monkeypatch):
     html = (tmp_path / "review.html").read_text(encoding="utf-8")
     assert "__SITES__" not in html and "Przykład" in html
     assert "tile.openstreetmap.org" not in html and "cartocdn" not in html  # both block file:// pages
+    assert "window.pl2180Layer = function" in html and "/*__PL2180__*/" not in html  # LiDAR reprojection inlined
 
 
 def test_verdicts_survive_rerun(tmp_path, monkeypatch):
@@ -727,8 +728,9 @@ def test_publish_site(built, monkeypatch):
     (built / "reserved.txt").write_text(f"{sites[0]['uid']}  # mine\n", encoding="utf-8")
     cli.main(["--out-root", str(built), "publish", "--reserved", str(built / "reserved.txt")])
     html = (built / "site" / "public" / "index.html").read_text(encoding="utf-8")
+    assert 'src="pl2180.js"' in html and (built / "site" / "public" / "pl2180.js").exists()
     data = json.loads(re.search(r"const D = (\{.*?\});\n", html, re.S).group(1))
-    ids = [x["id"] for v in data["villages"] for x in v["sites"]]
+    ids =[x["id"] for v in data["villages"] for x in v["sites"]]
     assert keep in ids and grades.dossier_id(sites[0]["uid"]) not in ids and len(ids) == len(sites) - 1
     outlines = json.loads((built / "site" / "public" / "parcels.json").read_text(encoding="utf-8"))
     assert grades.dossier_id(sites[0]["uid"]) not in outlines                # a reserved site's parcel stays private

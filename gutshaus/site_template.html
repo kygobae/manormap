@@ -16,6 +16,7 @@
 <link rel="preload" href="fonts/fraunces-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <script src="vendor/leaflet/leaflet.js"></script>
+<script src="pl2180.js"></script>
 <style>
 /* Modern strategy: a full-screen map with floating glass panels; the serif only for places, icons for the manor's state. */
 @font-face{font-family:"Fraunces";font-style:normal;font-weight:400 700;font-display:swap;
@@ -507,12 +508,16 @@ const zl = n => new Intl.NumberFormat(lng === "en" ? "en-GB" : lng, {maximumFrac
 const map = window.L.map("map", {preferCanvas:true, zoomControl:false}).setView([52.1, 19.2], 6);
 window.L.control.zoom({position:"bottomright"}).addTo(map);
 const wms = (url, layers, o={}) => window.L.tileLayer.wms(url, Object.assign({layers, format:"image/png", transparent:true, version:"1.1.1"}, o));
-const ortho = wms("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution","Raster",{transparent:false, attribution:"GUGiK / Geoportal"});
+// orthophoto from Geoportal's WMTS: cached tiles, several times faster than its WMS
+const ortho = window.L.tileLayer("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}",
+  {maxZoom:20, maxNativeZoom:19, attribution:"GUGiK / Geoportal"});
 // LiDAR terrain relief: foundations, terraces, avenues and ponds of vanished manors show up under the trees
-const lidar = wms("https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief","Raster",{transparent:false, attribution:"GUGiK / Geoportal (LiDAR)"});
+// its WMS takes 10-25 s per tile; the WMTS (~0.3 s) exists only on the Polish grid, reprojected by pl2180.js
+const lidar = window.pl2180Layer("https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMTS/ShadedRelief?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ISOK_Cien&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:2180&TILEMATRIX=EPSG:2180:{z}&TILEROW={y}&TILECOL={x}", {attribution:"GUGiK / Geoportal (LiDAR)"});
 const osm = window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
 const MTB_URL = "https://pastmaps.cenagis.edu.pl/geoserver/ihpan/wms", MTB_ATTR = "IH PAN, pastmaps (CC BY-NC)";
-const mtb = wms(MTB_URL,"m25k_3857",{transparent:false, attribution:MTB_ATTR});
+// pastmaps has no WMTS (its tile cache publishes no layers); as JPEG its tiles are ~8x smaller than as PNG
+const mtb = wms(MTB_URL,"m25k_3857",{transparent:false, format:"image/jpeg", attribution:MTB_ATTR});
 const markers = window.L.layerGroup().addTo(map);
 const kowrLayer = window.L.layerGroup().addTo(map);
 function ctl(){
@@ -553,7 +558,7 @@ function drawParcels(){
 
 // then / now: the Messtischblatt in its own pane, clipped left of the divider
 const pastPane = map.createPane("past"); pastPane.style.zIndex = 250; pastPane.style.pointerEvents = "none";
-const mtbPast = wms(MTB_URL,"m25k_3857",{transparent:false, attribution:MTB_ATTR, pane:"past"});
+const mtbPast = wms(MTB_URL,"m25k_3857",{transparent:false, format:"image/jpeg", attribution:MTB_ATTR, pane:"past"});
 let comparing = false, cmpFrac = .5;
 function clipPast(){
   if(!comparing) return;

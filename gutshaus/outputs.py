@@ -166,7 +166,8 @@ def _js(obj) -> str:
     return json.dumps(obj, ensure_ascii=False, default=str).replace("</", "<\\/")
 
 
-TEMPLATE = (Path(__file__).parent / "review_template.html").read_text(encoding="utf-8")
+TEMPLATE = (Path(__file__).parent / "review_template.html").read_text(encoding="utf-8").replace(
+    "/*__PL2180__*/", (Path(__file__).parent / "static" / "pl2180.js").read_text(encoding="utf-8"))
 
 
 # ------------------------------------------------------------------ index page

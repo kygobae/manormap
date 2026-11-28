@@ -6,6 +6,7 @@
 <title>ManorMap · __TITLE__</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>/*__PL2180__*/</script>
 <style>
   :root { --ink:#1d2321; --muted:#6b736f; --line:#e2e0da; --bg:#faf8f4; --accent:#33505f;
           --high:#1f7a4d; --possible:#c98a1b; --skip:#9aa19d; }
@@ -125,8 +126,11 @@ const map = L.map("map", {preferCanvas: true});
 const bases = {}, overlays = {};
 let defaultBase = null;
 D.wms.forEach(w => {
-  const l = L.tileLayer.wms(w.url, {layers: w.layers, format: "image/png", transparent: !!w.overlay, version: "1.1.1",
-    maxZoom: 20, minZoom: w.minZoom || 0, opacity: w.opacity || 1, attribution: w.attribution});
+  const o = {maxZoom: 20, minZoom: w.minZoom || 0, opacity: w.opacity || 1, attribution: w.attribution};
+  const l = w.tiles ? L.tileLayer(w.tiles, Object.assign(o, {maxNativeZoom: 19}))   // WMTS: cached tiles, much faster
+    : w.tiles2180 ? pl2180Layer(w.tiles2180, o)                                       // WMTS on the Polish grid
+    : L.tileLayer.wms(w.url, Object.assign(o, {layers: w.layers, format: w.format || "image/png",
+      transparent: !!w.overlay, version: "1.1.1"}));
   (w.overlay ? overlays : bases)[w.name] = l;
   if (w.default) defaultBase = l;
 });

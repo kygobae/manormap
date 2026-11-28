@@ -262,6 +262,7 @@ def publish(sites: list[dict], out: Path, reserved: set[str] = frozenset(), kowr
     shutil.copytree(HERE / "fonts", pub / "fonts")
     shutil.copytree(HERE / "vendor", pub / "vendor")
     shutil.copy(HERE / "static" / "og.png", pub / "og.png")
+    shutil.copy(HERE / "static" / "pl2180.js", pub / "pl2180.js")
     write_share_pages(vs, pub)
     if sample_pdf and config.SHOP_ENABLED:
         shutil.copy(sample_pdf, pub / "sample.pdf")
