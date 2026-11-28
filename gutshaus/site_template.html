@@ -16,6 +16,7 @@
 <link rel="preload" href="fonts/fraunces-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <script src="vendor/leaflet/leaflet.js"></script>
+<script src="pl2180.js"></script>
 <style>
 /* Modern strategy: a full-screen map with floating glass panels; the serif only for places, icons for the manor's state. */
 @font-face{font-family:"Fraunces";font-style:normal;font-weight:400 700;font-display:swap;
@@ -511,7 +512,8 @@ const wms = (url, layers, o={}) => window.L.tileLayer.wms(url, Object.assign({la
 const ortho = window.L.tileLayer("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}",
   {maxZoom:20, maxNativeZoom:19, attribution:"GUGiK / Geoportal"});
 // LiDAR terrain relief: foundations, terraces, avenues and ponds of vanished manors show up under the trees
-const lidar = wms("https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief","Raster",{transparent:false, attribution:"GUGiK / Geoportal (LiDAR)"});
+// its WMS takes 10-25 s per tile; the WMTS (~0.3 s) exists only on the Polish grid, reprojected by pl2180.js
+const lidar = window.pl2180Layer("https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMTS/ShadedRelief?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ISOK_Cien&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:2180&TILEMATRIX=EPSG:2180:{z}&TILEROW={y}&TILECOL={x}", {attribution:"GUGiK / Geoportal (LiDAR)"});
 const osm = window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
 const MTB_URL = "https://pastmaps.cenagis.edu.pl/geoserver/ihpan/wms", MTB_ATTR = "IH PAN, pastmaps (CC BY-NC)";
 // pastmaps has no WMTS (its tile cache publishes no layers); as JPEG its tiles are ~8x smaller than as PNG

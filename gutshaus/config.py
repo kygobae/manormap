@@ -24,11 +24,15 @@ NID_ATTACH_RADIUS_M = 1000   # attach a village-located register entry to an OSM
 # Layer names marked "verify" are best guesses: if a layer stays blank,
 # open <url>?SERVICE=WMS&REQUEST=GetCapabilities and fix the name here.
 # Optional "tiles": a WMTS tile URL ({z}/{x}/{y} on the EPSG:3857 grid) the map loads instead of the WMS: cached tiles
-# load several times faster. The dossier still renders from "url"/"layers". Optional "format" for WMS tiles: JPEG for
+# load several times faster. "tiles2180": the same on Geoportal's EPSG:2180 grid, reprojected in the browser by
+# static/pl2180.js (LiDAR has no 3857 WMTS, and its WMS takes 10-25 s per tile). The dossier still renders from "url"/"layers". Optional "format" for WMS tiles: JPEG for
 # opaque base maps (the Messtischblatt is ~8x smaller than as PNG; pastmaps has no WMTS).
 ORTHO_WMTS = ("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?SERVICE=WMTS&REQUEST=GetTile"
               "&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857"
               "&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}")
+LIDAR_WMTS_2180 = ("https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMTS/ShadedRelief?SERVICE=WMTS"
+                   "&REQUEST=GetTile&VERSION=1.0.0&LAYER=ISOK_Cien&STYLE=default&FORMAT=image/jpeg"
+                   "&TILEMATRIXSET=EPSG:2180&TILEMATRIX=EPSG:2180:{z}&TILEROW={y}&TILECOL={x}")
 WMS_LAYERS = [
     {"name": "Topographic map (Geoportal)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/img/guest/TOPO/MapServer/WMSServer",
@@ -48,7 +52,7 @@ WMS_LAYERS = [
      "attribution": "GUGiK"},
     {"name": "LiDAR shaded relief (Geoportal)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief",
-     "layers": "Raster",
+     "layers": "Raster", "tiles2180": LIDAR_WMTS_2180,
      "attribution": "GUGiK"},
     {"name": "Administrative boundaries (Geoportal)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/img/guest/Administracyjna/MapServer/WMSServer",
